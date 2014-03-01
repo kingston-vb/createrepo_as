@@ -25,7 +25,7 @@
 #include <cra-plugin.h>
 
 struct CraPluginPrivate {
-	GRegex			*regex;
+	gboolean		 dummy;
 };
 
 /**

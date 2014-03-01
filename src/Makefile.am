@@ -1,5 +1,6 @@
 AM_CPPFLAGS =						\
 	$(GLIB_CFLAGS)					\
+	$(RPM_CFLAGS)					\
 	-DG_LOG_DOMAIN=\"Cra\"
 
 noinst_PROGRAMS =					\
@@ -11,7 +12,9 @@ createrepo_as_SOURCES =					\
 	cra-plugin-loader.h				\
 	cra-main.c
 createrepo_as_LDADD =					\
-	$(GLIB_LIBS)
+	$(GLIB_LIBS)					\
+	$(RPM_LIBS)
+
 createrepo_as_CFLAGS =					\
 	$(WARNINGFLAGS_C)
 

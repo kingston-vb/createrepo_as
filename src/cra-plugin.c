@@ -33,3 +33,22 @@ cra_plugin_set_enabled (CraPlugin *plugin, gboolean enabled)
 {
 	plugin->enabled = enabled;
 }
+
+/**
+ * cra_plugin_process:
+ */
+gboolean
+cra_plugin_process (CraPlugin *plugin, const gchar *tmpdir, GError **error)
+{
+	CraPluginProcessFunc plugin_func = NULL;
+	gboolean ret;
+
+	/* run each plugin */
+	g_debug ("Running cra_plugin_process()");
+	ret = g_module_symbol (plugin->module,
+			       "cra_plugin_process",
+			       (gpointer *) &plugin_func);
+	if (!ret)
+		return TRUE;
+	return plugin_func (plugin, tmpdir, error);
+}
