@@ -1,11 +1,16 @@
 AM_CPPFLAGS =						\
 	$(GLIB_CFLAGS)					\
+	$(LIBARCHIVE_CFLAGS)				\
 	$(RPM_CFLAGS)					\
 	-DG_LOG_DOMAIN=\"Cra\"
 
 noinst_PROGRAMS =					\
 	createrepo_as
 createrepo_as_SOURCES =					\
+	cra-package.c					\
+	cra-package.h					\
+	cra-utils.c					\
+	cra-utils.h					\
 	cra-plugin.c					\
 	cra-plugin.h					\
 	cra-plugin-loader.c				\
@@ -13,6 +18,7 @@ createrepo_as_SOURCES =					\
 	cra-main.c
 createrepo_as_LDADD =					\
 	$(GLIB_LIBS)					\
+	$(LIBARCHIVE_LIBS)				\
 	$(RPM_LIBS)
 
 createrepo_as_CFLAGS =					\
