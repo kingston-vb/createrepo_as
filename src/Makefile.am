@@ -7,6 +7,10 @@ AM_CPPFLAGS =						\
 noinst_PROGRAMS =					\
 	createrepo_as
 createrepo_as_SOURCES =					\
+	cra-app.c					\
+	cra-app.h					\
+	cra-context.c					\
+	cra-context.h					\
 	cra-package.c					\
 	cra-package.h					\
 	cra-utils.c					\
@@ -26,11 +30,35 @@ createrepo_as_CFLAGS =					\
 
 plugindir = $(libdir)/cra-plugins
 plugin_LTLIBRARIES =					\
-	libcra_plugin_gstreamer.la
+	libcra_plugin_desktop.la			\
+	libcra_plugin_gettext.la			\
+	libcra_plugin_gstreamer.la			\
+	libcra_plugin_hardcoded.la			\
+	libcra_plugin_nm.la
 
 libcra_plugin_gstreamer_la_SOURCES = cra-plugin-gstreamer.c
 libcra_plugin_gstreamer_la_LIBADD = $(GLIB_LIBS)
 libcra_plugin_gstreamer_la_LDFLAGS = -module -avoid-version
 libcra_plugin_gstreamer_la_CFLAGS = $(GLIB_CFLAGS) $(WARNINGFLAGS_C)
+
+libcra_plugin_gettext_la_SOURCES = cra-plugin-gettext.c
+libcra_plugin_gettext_la_LIBADD = $(GLIB_LIBS)
+libcra_plugin_gettext_la_LDFLAGS = -module -avoid-version
+libcra_plugin_gettext_la_CFLAGS = $(GLIB_CFLAGS) $(WARNINGFLAGS_C)
+
+libcra_plugin_hardcoded_la_SOURCES = cra-plugin-hardcoded.c
+libcra_plugin_hardcoded_la_LIBADD = $(GLIB_LIBS)
+libcra_plugin_hardcoded_la_LDFLAGS = -module -avoid-version
+libcra_plugin_hardcoded_la_CFLAGS = $(GLIB_CFLAGS) $(WARNINGFLAGS_C)
+
+libcra_plugin_desktop_la_SOURCES = cra-plugin-desktop.c
+libcra_plugin_desktop_la_LIBADD = $(GLIB_LIBS)
+libcra_plugin_desktop_la_LDFLAGS = -module -avoid-version
+libcra_plugin_desktop_la_CFLAGS = $(GLIB_CFLAGS) $(WARNINGFLAGS_C)
+
+libcra_plugin_nm_la_SOURCES = cra-plugin-nm.c
+libcra_plugin_nm_la_LIBADD = $(GLIB_LIBS)
+libcra_plugin_nm_la_LDFLAGS = -module -avoid-version
+libcra_plugin_nm_la_CFLAGS = $(GLIB_CFLAGS) $(WARNINGFLAGS_C)
 
 -include $(top_srcdir)/git.mk

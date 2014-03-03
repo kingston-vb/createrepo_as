@@ -64,6 +64,39 @@ cra_plugin_loader_match_fn (GPtrArray *plugins, const gchar *filename)
 }
 
 /**
+ * cra_plugin_loader_process_app:
+ **/
+gboolean
+cra_plugin_loader_process_app (GPtrArray *plugins,
+			       CraPackage *pkg,
+			       CraApp *app,
+			       const gchar *tmpdir,
+			       GError **error)
+{
+	gboolean ret;
+	CraPluginProcessAppFunc plugin_func = NULL;
+	CraPlugin *plugin;
+	guint i;
+
+	/* run each plugin */
+	for (i = 0; i < plugins->len; i++) {
+		plugin = g_ptr_array_index (plugins, i);
+		ret = g_module_symbol (plugin->module,
+				       "cra_plugin_process_app",
+				       (gpointer *) &plugin_func);
+		if (!ret)
+			continue;
+		g_debug ("running cra_plugin_process_app() on %s", plugin->name);
+		ret = plugin_func (plugin, pkg, app, tmpdir, error);
+		if (!ret)
+			goto out;
+	}
+	ret = TRUE;
+out:
+	return ret;
+}
+
+/**
  * cra_plugin_loader_run:
  **/
 static void
@@ -119,6 +152,7 @@ cra_plugin_loader_open_plugin (GPtrArray *plugins,
 	plugin = g_slice_new0 (CraPlugin);
 	plugin->enabled = TRUE;
 	plugin->module = module;
+	plugin->is_native = TRUE;
 	plugin->name = g_strdup (plugin_name ());
 	g_debug ("opened plugin %s: %s", filename, plugin->name);
 

@@ -22,6 +22,7 @@
 #include "config.h"
 
 #include <glib/gstdio.h>
+#include <fnmatch.h>
 
 #include "cra-utils.h"
 #include "cra-plugin.h"
@@ -110,4 +111,63 @@ out:
 	if (dir != NULL)
 		g_dir_close (dir);
 	return ret;
+}
+
+/******************************************************************************/
+
+struct CraGlobValue {
+	gchar		*glob;
+	gchar		*value;
+};
+
+/**
+ * cra_glob_value_free:
+ */
+void
+cra_glob_value_free (CraGlobValue *kv)
+{
+	g_free (kv->glob);
+	g_free (kv->value);
+	g_slice_free (CraGlobValue, kv);
+}
+
+/**
+ * cra_glob_value_array_new:
+ */
+GPtrArray *
+cra_glob_value_array_new (void)
+{
+	return g_ptr_array_new_with_free_func ((GDestroyNotify) cra_glob_value_free);
+}
+
+/**
+ * cra_glob_value_new:
+ */
+CraGlobValue *
+cra_glob_value_new (const gchar *glob, const gchar *value)
+{
+	CraGlobValue *kv;
+	kv = g_slice_new0 (CraGlobValue);
+	kv->glob = g_strdup (glob);
+	kv->value = g_strdup (value);
+	return kv;
+}
+
+/**
+ * cra_glob_value_search:
+ * @array: of CraGlobValue, keys may contain globs
+ * @needle: may not be a glob
+ */
+const gchar *
+cra_glob_value_search (GPtrArray *array, const gchar *search)
+{
+	const CraGlobValue *tmp;
+	guint i;
+
+	for (i = 0; i < array->len; i++) {
+		tmp = g_ptr_array_index (array, i);
+		if (fnmatch (tmp->glob, search, 0) == 0)
+			return tmp->value;
+	}
+	return NULL;
 }

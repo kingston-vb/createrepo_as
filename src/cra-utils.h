@@ -26,10 +26,19 @@
 
 G_BEGIN_DECLS
 
+typedef struct	CraGlobValue		CraGlobValue;
+
 gboolean	 cra_utils_rmtree			(const gchar	*directory,
 							 GError		**error);
 gboolean	 cra_utils_ensure_exists_and_empty	(const gchar	*directory,
 							 GError		**error);
+
+CraGlobValue	*cra_glob_value_new			(const gchar	*glob,
+							 const gchar	*value);
+void		 cra_glob_value_free			(CraGlobValue	*kv);
+const gchar	*cra_glob_value_search			(GPtrArray	*array,
+							 const gchar	*search);
+GPtrArray	*cra_glob_value_array_new		(void);
 
 G_END_DECLS
 

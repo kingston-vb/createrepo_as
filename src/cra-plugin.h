@@ -26,6 +26,10 @@
 #include <gmodule.h>
 #include <gio/gio.h>
 
+#include "cra-app.h"
+#include "cra-package.h"
+#include "cra-utils.h"
+
 G_BEGIN_DECLS
 
 typedef struct	CraPluginPrivate	CraPluginPrivate;
@@ -34,6 +38,7 @@ typedef struct	CraPlugin		CraPlugin;
 struct CraPlugin {
 	GModule			*module;
 	gboolean		 enabled;
+	gboolean		 is_native;
 	gchar			*name;
 	CraPluginPrivate	*priv;
 };
@@ -53,8 +58,14 @@ typedef const gchar	*(*CraPluginGetNameFunc)	(void);
 typedef void		 (*CraPluginFunc)		(CraPlugin	*plugin);
 typedef gboolean	 (*CraPluginCheckFilenameFunc)	(CraPlugin	*plugin,
 							 const gchar	*filename);
-typedef gboolean	 (*CraPluginProcessFunc)	(CraPlugin	*plugin,
+typedef GList		*(*CraPluginProcessFunc)	(CraPlugin	*plugin,
+							 CraPackage 	*pkg,
 							 const gchar	*tmp_dir,
+							 GError		**error);
+typedef gboolean	 (*CraPluginProcessAppFunc)	(CraPlugin	*plugin,
+							 CraPackage 	*pkg,
+							 CraApp 	*app,
+							 const gchar	*tmpdir,
 							 GError		**error);
 
 const gchar	*cra_plugin_get_name			(void);
@@ -62,11 +73,19 @@ void		 cra_plugin_initialize			(CraPlugin	*plugin);
 void		 cra_plugin_destroy			(CraPlugin	*plugin);
 void		 cra_plugin_set_enabled			(CraPlugin	*plugin,
 							 gboolean	 enabled);
-gboolean	 cra_plugin_process			(CraPlugin	*plugin,
+GList		*cra_plugin_process			(CraPlugin	*plugin,
+							 CraPackage	*pkg,
+							 const gchar	*tmp_dir,
+							 GError		**error);
+gboolean	 cra_plugin_process_app			(CraPlugin	*plugin,
+							 CraPackage	*pkg,
+							 CraApp		*app,
 							 const gchar	*tmp_dir,
 							 GError		**error);
 gboolean	 cra_plugin_check_filename		(CraPlugin	*plugin,
 							 const gchar	*filename);
+void		 cra_plugin_add_app			(GList		**list,
+							 CraApp		*app);
 
 G_END_DECLS
 

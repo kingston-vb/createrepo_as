@@ -28,6 +28,11 @@ G_BEGIN_DECLS
 
 gboolean	 cra_plugin_loader_setup	(GPtrArray	*plugins,
 						 GError		**error);
+gboolean	 cra_plugin_loader_process_app	(GPtrArray	*plugins,
+						 CraPackage	*pkg,
+						 CraApp		*app,
+						 const gchar	*tmpdir,
+						 GError		**error);
 GPtrArray	*cra_plugin_loader_new		(void);
 void		 cra_plugin_loader_free		(GPtrArray	*plugins);
 CraPlugin	*cra_plugin_loader_match_fn	(GPtrArray	*plugins,

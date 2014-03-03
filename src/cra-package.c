@@ -44,6 +44,7 @@ cra_package_free (CraPackage *pkg)
 	g_free (pkg->version);
 	g_free (pkg->release);
 	g_free (pkg->arch);
+	g_free (pkg->url);
 	g_free (pkg);
 }
 
@@ -152,6 +153,8 @@ cra_package_open (const gchar *filename, GError **error)
 	pkg->arch = g_strdup (rpmtdGetString (td));
 	headerGet (pkg->h, RPMTAG_EPOCH, td, HEADERGET_MINMEM);
 	pkg->epoch = rpmtdGetNumber (td);
+	headerGet (pkg->h, RPMTAG_URL, td, HEADERGET_MINMEM);
+	pkg->url = g_strdup (rpmtdGetString (td));
 out:
 	rpmtsFree (ts);
 	Fclose (fd);
@@ -164,17 +167,25 @@ out:
 gboolean
 cra_package_explode (CraPackage *pkg, const gchar *dir, GError **error)
 {
+	const gchar *tmp;
 	gboolean ret = TRUE;
 	gchar buf[PATH_MAX];
+	gchar *data = NULL;
+	gsize len;
 	int r;
 	struct archive *arch = NULL;
 	struct archive_entry *entry;
+
+	/* load file at once to avoid seeking */
+	ret = g_file_get_contents (pkg->filename, &data, &len, error);
+	if (!ret)
+		goto out;
 
 	/* read anything */
 	arch = archive_read_new ();
 	archive_read_support_format_all (arch);
 	archive_read_support_filter_all (arch);
-	r = archive_read_open_filename (arch, pkg->filename, 1024 * 4 * 10);
+	r = archive_read_open_memory (arch, data, len);
 	if (r) {
 		ret = FALSE;
 		g_set_error (error,
@@ -199,9 +210,30 @@ cra_package_explode (CraPackage *pkg, const gchar *dir, GError **error)
 				     archive_error_string (arch));
 			goto out;
 		}
+
+		/* update output path */
 		g_snprintf (buf, PATH_MAX, "%s/%s",
 			    dir, archive_entry_pathname (entry));
 		archive_entry_update_pathname_utf8 (entry, buf);
+
+		/* update hardlinks */
+		tmp = archive_entry_hardlink (entry);
+		if (tmp != NULL) {
+			g_snprintf (buf, PATH_MAX, "%s/%s", dir, tmp);
+			archive_entry_update_hardlink_utf8 (entry, buf);
+		}
+
+		/* update symlinks */
+		tmp = archive_entry_symlink (entry);
+		if (tmp != NULL) {
+			g_snprintf (buf, PATH_MAX, "%s/%s", dir, tmp);
+			archive_entry_update_symlink_utf8 (entry, buf);
+		}
+
+		/* no output file */
+		if (archive_entry_pathname (entry) == NULL)
+			continue;
+
 		r = archive_read_extract (arch, entry, 0);
 		if (r != ARCHIVE_OK) {
 			ret = FALSE;
@@ -214,6 +246,7 @@ cra_package_explode (CraPackage *pkg, const gchar *dir, GError **error)
 		}
 	}
 out:
+	g_free (data);
 	if (arch != NULL) {
 		archive_read_close (arch);
 		archive_read_free (arch);

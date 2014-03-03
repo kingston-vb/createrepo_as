@@ -19,53 +19,29 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include "config.h"
+#ifndef __CRA_CONTEXT_H
+#define __CRA_CONTEXT_H
 
 #include <glib.h>
 
-#include "cra-plugin.h"
+#include "cra-package.h"
 
-/**
- * cra_plugin_set_enabled:
- **/
-void
-cra_plugin_set_enabled (CraPlugin *plugin, gboolean enabled)
-{
-	plugin->enabled = enabled;
-}
+G_BEGIN_DECLS
 
-/**
- * cra_plugin_process:
- */
-GList *
-cra_plugin_process (CraPlugin *plugin,
-		    CraPackage *pkg,
-		    const gchar *tmpdir,
-		    GError **error)
-{
-	CraPluginProcessFunc plugin_func = NULL;
-	gboolean ret;
+typedef struct {
+	GPtrArray	*blacklisted_pkgs;	/* of CraGlobValue */
+	GPtrArray	*blacklisted_ids;	/* of CraGlobValue */
+	GPtrArray	*extra_pkgs;		/* of CraGlobValue */
+	GPtrArray	*plugins;		/* of CraPlugin */
+	GPtrArray	*packages;		/* of CraPackage */
+	GList		*apps;			/* of CraApp */
+} CraContext;
 
-	/* run each plugin */
-	g_debug ("Running cra_plugin_process() on %s", plugin->name);
-	ret = g_module_symbol (plugin->module,
-			       "cra_plugin_process",
-			       (gpointer *) &plugin_func);
-	if (!ret) {
-		g_set_error_literal (error,
-				     CRA_PLUGIN_ERROR,
-				     CRA_PLUGIN_ERROR_FAILED,
-				     "no cra_plugin_process");
-		return NULL;
-	}
-	return plugin_func (plugin, pkg, tmpdir, error);
-}
+CraContext	*cra_context_new		(void);
+void		 cra_context_free		(CraContext	*ctx);
+CraPackage	*cra_context_find_by_pkgname	(CraContext	*ctx,
+						 const gchar 	*pkgname);
 
-/**
- * cra_plugin_add_app:
- */
-void
-cra_plugin_add_app (GList **list, CraApp *app)
-{
-	*list = g_list_prepend (*list, app);
-}
+G_END_DECLS
+
+#endif /* __CRA_CONTEXT_H */

@@ -21,12 +21,14 @@
 
 #include "config.h"
 
+#include "cra-context.h"
 #include "cra-package.h"
 #include "cra-plugin.h"
 #include "cra-plugin-loader.h"
 #include "cra-utils.h"
 
 #include <glib.h>
+#include <locale.h>
 #include <rpm/rpmlib.h>
 
 typedef struct {
@@ -34,11 +36,6 @@ typedef struct {
 	gchar		*tmpdir;
 	CraPackage	*pkg;
 } CraTask;
-
-typedef struct {
-	GPtrArray	*plugins;
-	GPtrArray	*packages;
-} CraContext;
 
 /**
  * cra_task_free:
@@ -57,12 +54,25 @@ cra_task_free (CraTask *task)
 static void
 cra_task_process_func (gpointer data, gpointer user_data)
 {
+	const gchar *pkg_name;
+	CraApp *app;
 	CraContext *ctx = (CraContext *) user_data;
+	CraPackage *pkg_extra;
 	CraPlugin *plugin = NULL;
 	CraTask *task = (CraTask *) data;
-	GError *error = NULL;
 	gboolean ret;
+	GError *error = NULL;
+	GList *apps = NULL;
+	GList *l;
 	guint i;
+
+	/* get file list */
+	ret = cra_package_ensure_filelist (task->pkg, &error);
+	if (!ret) {
+		g_warning ("Failed to get file list: %s", error->message);
+		g_error_free (error);
+		goto out;
+	}
 
 	/* did we get a file match on any plugin */
 	g_debug ("Getting filename match for %s", task->filename);
@@ -91,19 +101,68 @@ cra_task_process_func (gpointer data, gpointer user_data)
 		goto out;
 	}
 
-	/* TODO: add interesting common packages */
+	/* add extra packages */
+	pkg_name = cra_glob_value_search (ctx->extra_pkgs, task->pkg->name);
+	if (pkg_name != NULL) {
+		pkg_extra = cra_context_find_by_pkgname (ctx, pkg_name);
+		if (pkg_extra == NULL) {
+			g_warning ("%s requires %s but is not available",
+				   task->pkg->name, pkg_name);
+			goto out;
+		}
+		ret = cra_package_explode (pkg_extra, task->tmpdir, &error);
+		if (!ret) {
+			g_warning ("Failed to explode extra file: %s",
+				   error->message);
+			g_error_free (error);
+			goto out;
+		}
+	}
 
 	/* run plugin */
 	g_debug ("Processing %s with %s [%p]",
 		 task->filename, plugin->name, g_thread_self ());
-	ret = cra_plugin_process (plugin, task->tmpdir, &error);
-	if (!ret) {
+	apps = cra_plugin_process (plugin, task->pkg, task->tmpdir, &error);
+	if (apps == NULL) {
 		g_warning ("Failed to run process: %s", error->message);
 		g_error_free (error);
 		goto out;
 	}
 
-	/* TODO: is application backlisted */
+	/* print */
+	for (l = apps; l != NULL; l = l->next) {
+		app = l->data;
+
+		/* never set */
+		if (app->app_id == NULL) {
+			g_debug ("app id not set for %s", task->pkg->name);
+			continue;
+		}
+
+		/* is application backlisted */
+		if (cra_glob_value_search (ctx->blacklisted_ids, app->app_id)) {
+			g_debug ("app id %s is blacklisted", task->pkg->name);
+			continue;
+		}
+
+		/* copy data from pkg into app */
+		if (task->pkg->url != NULL)
+			cra_app_set_homepage_url (app, task->pkg->url);
+
+		/* run each refine plugin on each app */
+		ret = cra_plugin_loader_process_app (ctx->plugins,
+						     task->pkg,
+						     app,
+						     task->tmpdir,
+						     &error);
+		if (!ret) {
+			g_warning ("Failed to run process: %s", error->message);
+			g_error_free (error);
+			goto out;
+		}
+		g_print ("\n");
+		cra_app_print (app);
+	}
 
 	/* delete tree */
 	ret = cra_utils_rmtree (task->tmpdir, &error);
@@ -113,6 +172,8 @@ cra_task_process_func (gpointer data, gpointer user_data)
 		goto out;
 	}
 out:
+	g_list_foreach (apps, (GFunc) cra_app_free, NULL);
+	g_list_free (apps);
 	cra_task_free (task);
 }
 
@@ -135,32 +196,32 @@ main (int argc, char **argv)
 {
 	const gchar *filename;
 	const gchar *packages_dir = "./packages";
+	const gchar *temp_dir = "./tmp";
 	const gint max_threads = 1;
-	CraContext *ctx;
-	guint i;
+	CraContext *ctx = NULL;
+	CraPackage *pkg;
 	CraTask *task;
 	gboolean ret;
+	gchar *tmp;
 	GDir *dir = NULL;
 	GError *error = NULL;
 	GThreadPool *pool;
-	gchar *tmp;
-	CraPackage *pkg;
+	guint i;
 
 	g_setenv ("G_MESSAGES_DEBUG", "all", TRUE);
 
 	rpmReadConfigFiles (NULL, NULL);
+	setlocale (LC_ALL, "");
 
 	/* set up state */
-	ret = cra_utils_ensure_exists_and_empty ("./tmp", &error);
+	ret = cra_utils_ensure_exists_and_empty (temp_dir, &error);
 	if (!ret) {
 		g_warning ("failed to create tmpdir: %s", error->message);
 		g_error_free (error);
 		goto out;
 	}
 
-	ctx = g_new (CraContext, 1);
-	ctx->plugins = cra_plugin_loader_new ();
-	ctx->packages = g_ptr_array_new_with_free_func ((GDestroyNotify) cra_package_free);
+	ctx = cra_context_new ();
 	ret = cra_plugin_loader_setup (ctx->plugins, &error);
 	if (!ret) {
 		g_warning ("failed to set up plugins: %s", error->message);
@@ -200,14 +261,10 @@ main (int argc, char **argv)
 			goto out;
 		}
 
-		/* TODO: is package name blacklisted */
-
-		/* get file list */
-		ret = cra_package_ensure_filelist (pkg, &error);
-		if (!ret) {
-			g_warning ("Failed to get file list: %s", error->message);
-			g_error_free (error);
-			goto out;
+		/* is package name blacklisted */
+		if (cra_glob_value_search (ctx->blacklisted_pkgs, pkg->name) != NULL) {
+			g_debug ("%s is blacklisted", pkg->filename);
+			continue;
 		}
 
 		g_ptr_array_add (ctx->packages, pkg);
@@ -222,7 +279,7 @@ main (int argc, char **argv)
 		/* create task */
 		task = g_new0 (CraTask, 1);
 		task->filename = g_strdup (pkg->filename);
-		task->tmpdir = g_build_filename ("./tmp", pkg->name, NULL);
+		task->tmpdir = g_build_filename (temp_dir, pkg->name, NULL);
 		task->pkg = pkg;
 
 		/* add task to pool */
@@ -238,14 +295,11 @@ main (int argc, char **argv)
 	if (pool != NULL)
 		g_thread_pool_free (pool, FALSE, TRUE);
 
-	/* run the plugins */
-	cra_plugin_loader_free (ctx->plugins);
-	g_ptr_array_unref (ctx->packages);
-	g_free (ctx);
-
 	/* success */
 	g_debug ("Done!");
 out:
+	if (ctx != NULL)
+		cra_context_free (ctx);
 	if (dir != NULL)
 		g_dir_close (dir);
 	return 0;

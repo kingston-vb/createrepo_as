@@ -36,6 +36,7 @@ typedef struct {
 	gchar		*version;
 	gchar		*release;
 	gchar		*arch;
+	gchar		*url;
 } CraPackage;
 
 CraPackage	*cra_package_open		(const gchar	*filename,
