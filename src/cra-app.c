@@ -29,6 +29,7 @@ struct _CraAppPrivate
 	gchar		*type_id;
 	gchar		*project_group;
 	gchar		*project_license;
+	gchar		*compulsory_for_desktop;
 	gchar		*homepage_url;
 	gchar		*id;
 	gchar		*id_full;
@@ -36,6 +37,7 @@ struct _CraAppPrivate
 	GPtrArray	*categories;
 	GPtrArray	*keywords;
 	GPtrArray	*mimetypes;
+	GPtrArray	*pkgnames;
 	gboolean	 requires_appdata;
 	gboolean	 cached_icon;
 	GHashTable	*names;
@@ -64,10 +66,12 @@ cra_app_finalize (GObject *object)
 	g_free (priv->homepage_url);
 	g_free (priv->project_group);
 	g_free (priv->project_license);
+	g_free (priv->compulsory_for_desktop);
 	g_free (priv->icon);
 	g_ptr_array_unref (priv->categories);
 	g_ptr_array_unref (priv->keywords);
 	g_ptr_array_unref (priv->mimetypes);
+	g_ptr_array_unref (priv->pkgnames);
 	g_hash_table_unref (priv->names);
 	g_hash_table_unref (priv->comments);
 	g_hash_table_unref (priv->languages);
@@ -87,6 +91,7 @@ cra_app_init (CraApp *app)
 	priv->categories = g_ptr_array_new_with_free_func (g_free);
 	priv->keywords = g_ptr_array_new_with_free_func (g_free);
 	priv->mimetypes = g_ptr_array_new_with_free_func (g_free);
+	priv->pkgnames = g_ptr_array_new_with_free_func (g_free);
 	priv->names = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
 	priv->comments = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
 	priv->languages = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
@@ -174,6 +179,8 @@ cra_app_to_string (CraApp *app)
 		g_string_append_printf (str, "project:\t%s\n", priv->project_group);
 	if (priv->project_license != NULL)
 		g_string_append_printf (str, "license:\t%s\n", priv->project_license);
+	if (priv->compulsory_for_desktop != NULL)
+		g_string_append_printf (str, "comp-desktop:\t%s\n", priv->compulsory_for_desktop);
 	if (priv->homepage_url != NULL)
 		g_string_append_printf (str, "homepage:\t%s\n", priv->homepage_url);
 	if (priv->icon != NULL)
@@ -191,6 +198,10 @@ cra_app_to_string (CraApp *app)
 	for (i = 0; i < priv->mimetypes->len; i++) {
 		tmp = g_ptr_array_index (priv->mimetypes, i);
 		g_string_append_printf (str, "mimetype:\t%s\n", tmp);
+	}
+	for (i = 0; i < priv->pkgnames->len; i++) {
+		tmp = g_ptr_array_index (priv->pkgnames, i);
+		g_string_append_printf (str, "pkgname:\t%s\n", tmp);
 	}
 	return g_string_free (str, FALSE);
 }
@@ -237,6 +248,17 @@ cra_app_set_project_license (CraApp *app, const gchar *project_license)
 	CraAppPrivate *priv = GET_PRIVATE (app);
 	g_free (priv->project_license);
 	priv->project_license = g_strdup (project_license);
+}
+
+/**
+ * cra_app_set_compulsory_for_desktop:
+ **/
+void
+cra_app_set_compulsory_for_desktop (CraApp *app, const gchar *compulsory_for_desktop)
+{
+	CraAppPrivate *priv = GET_PRIVATE (app);
+	g_free (priv->compulsory_for_desktop);
+	priv->compulsory_for_desktop = g_strdup (compulsory_for_desktop);
 }
 
 /**
@@ -299,6 +321,23 @@ cra_app_add_mimetype (CraApp *app, const gchar *mimetype)
 		return;
 	}
 	g_ptr_array_add (priv->mimetypes, g_strdup (mimetype));
+}
+
+/**
+ * cra_app_add_pkgname:
+ **/
+void
+cra_app_add_pkgname (CraApp *app, const gchar *pkgname)
+{
+	CraAppPrivate *priv = GET_PRIVATE (app);
+	if (cra_utils_ptr_array_find_string (priv->pkgnames, pkgname)) {
+		cra_package_log (priv->pkg,
+				 CRA_PACKAGE_LOG_LEVEL_WARNING,
+				 "Already added %s to pkgnames",
+				 pkgname);
+		return;
+	}
+	g_ptr_array_add (priv->pkgnames, g_strdup (pkgname));
 }
 
 /**
@@ -412,6 +451,16 @@ cra_app_get_id (CraApp *app)
 }
 
 /**
+ * cra_app_get_type_id:
+ **/
+const gchar *
+cra_app_get_type_id (CraApp *app)
+{
+	CraAppPrivate *priv = GET_PRIVATE (app);
+	return priv->type_id;
+}
+
+/**
  * cra_app_get_icon:
  **/
 const gchar *
@@ -419,6 +468,26 @@ cra_app_get_icon (CraApp *app)
 {
 	CraAppPrivate *priv = GET_PRIVATE (app);
 	return priv->icon;
+}
+
+/**
+ * cra_app_get_name:
+ **/
+const gchar *
+cra_app_get_name (CraApp *app, const gchar *locale)
+{
+	CraAppPrivate *priv = GET_PRIVATE (app);
+	return g_hash_table_lookup (priv->names, locale);
+}
+
+/**
+ * cra_app_get_comment:
+ **/
+const gchar *
+cra_app_get_comment (CraApp *app, const gchar *locale)
+{
+	CraAppPrivate *priv = GET_PRIVATE (app);
+	return g_hash_table_lookup (priv->comments, locale);
 }
 
 /**
@@ -441,7 +510,8 @@ cra_app_set_id_full (CraApp *app, const gchar *id_full)
 	gchar *tmp;
 
 	priv->id_full = g_strdup (id_full);
-	priv->id = g_strdup (id_full);
+	g_strdelimit (priv->id_full, "&<>", '-');
+	priv->id = g_strdup (priv->id_full);
 	tmp = g_strstr_len (priv->id, -1, ".desktop");
 	if (tmp != NULL)
 		*tmp = '\0';
@@ -459,6 +529,7 @@ cra_app_new (CraPackage *pkg, const gchar *id_full)
 	app = g_object_new (CRA_TYPE_APP, NULL);
 	priv = GET_PRIVATE (app);
 	priv->pkg = g_object_ref (pkg);
+	cra_app_add_pkgname (app, cra_package_get_name (pkg));
 	cra_app_set_id_full (app, id_full);
 	return CRA_APP (app);
 }

@@ -60,6 +60,8 @@ void		 cra_app_set_project_group	(CraApp		*app,
 						 const gchar	*project_group);
 void		 cra_app_set_project_license	(CraApp		*app,
 						 const gchar	*project_license);
+void		 cra_app_set_compulsory_for_desktop (CraApp	*app,
+						 const gchar	*compulsory_for_desktop);
 void		 cra_app_set_icon		(CraApp		*app,
 						 const gchar	*icon);
 void		 cra_app_add_category		(CraApp		*app,
@@ -68,6 +70,8 @@ void		 cra_app_add_keyword		(CraApp		*app,
 						 const gchar	*keyword);
 void		 cra_app_add_mimetype		(CraApp		*app,
 						 const gchar	*mimetype);
+void		 cra_app_add_pkgname		(CraApp		*app,
+						 const gchar	*pkgname);
 void		 cra_app_add_language		(CraApp		*app,
 						 const gchar	*locale,
 						 const gchar	*value);
@@ -90,8 +94,13 @@ GPtrArray	*cra_app_get_categories		(CraApp		*app);
 GPtrArray	*cra_app_get_keywords		(CraApp		*app);
 const gchar	*cra_app_get_id			(CraApp		*app);
 const gchar	*cra_app_get_id_full		(CraApp		*app);
+const gchar	*cra_app_get_type_id		(CraApp		*app);
 const gchar	*cra_app_get_icon		(CraApp		*app);
 const gchar	*cra_app_get_project_group	(CraApp		*app);
+const gchar	*cra_app_get_name		(CraApp		*app,
+						 const gchar	*locale);
+const gchar	*cra_app_get_comment		(CraApp		*app,
+						 const gchar	*locale);
 
 G_END_DECLS
 
