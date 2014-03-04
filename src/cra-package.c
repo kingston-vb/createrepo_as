@@ -45,6 +45,7 @@ struct _CraPackagePrivate
 	gchar		*arch;
 	gchar		*url;
 	gchar		*nevr;
+	gchar		*license;
 	GString		*log;
 };
 
@@ -71,6 +72,7 @@ cra_package_finalize (GObject *object)
 	g_free (priv->arch);
 	g_free (priv->url);
 	g_free (priv->nevr);
+	g_free (priv->license);
 	g_string_free (priv->log, TRUE);
 
 	G_OBJECT_CLASS (cra_package_parent_class)->finalize (object);
@@ -164,6 +166,16 @@ cra_package_get_url (CraPackage *pkg)
 {
 	CraPackagePrivate *priv = GET_PRIVATE (pkg);
 	return priv->url;
+}
+
+/**
+ * cra_package_get_license:
+ **/
+const gchar *
+cra_package_get_license (CraPackage *pkg)
+{
+	CraPackagePrivate *priv = GET_PRIVATE (pkg);
+	return priv->license;
 }
 
 /**
@@ -357,6 +369,8 @@ cra_package_open (CraPackage *pkg, const gchar *filename, GError **error)
 	priv->epoch = rpmtdGetNumber (td);
 	headerGet (priv->h, RPMTAG_URL, td, HEADERGET_MINMEM);
 	priv->url = g_strdup (rpmtdGetString (td));
+	headerGet (priv->h, RPMTAG_LICENSE, td, HEADERGET_MINMEM);
+	priv->license = g_strdup (rpmtdGetString (td));
 out:
 	rpmtsFree (ts);
 	Fclose (fd);

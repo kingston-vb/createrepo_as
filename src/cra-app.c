@@ -28,6 +28,7 @@ struct _CraAppPrivate
 {
 	gchar		*type_id;
 	gchar		*project_group;
+	gchar		*project_license;
 	gchar		*homepage_url;
 	gchar		*id;
 	gchar		*id_full;
@@ -62,6 +63,7 @@ cra_app_finalize (GObject *object)
 	g_free (priv->type_id);
 	g_free (priv->homepage_url);
 	g_free (priv->project_group);
+	g_free (priv->project_license);
 	g_free (priv->icon);
 	g_ptr_array_unref (priv->categories);
 	g_ptr_array_unref (priv->keywords);
@@ -170,6 +172,8 @@ cra_app_to_string (CraApp *app)
 	g_string_append_printf (str, "type-id:\t%s\n", priv->type_id);
 	if (priv->project_group != NULL)
 		g_string_append_printf (str, "project:\t%s\n", priv->project_group);
+	if (priv->project_license != NULL)
+		g_string_append_printf (str, "license:\t%s\n", priv->project_license);
 	if (priv->homepage_url != NULL)
 		g_string_append_printf (str, "homepage:\t%s\n", priv->homepage_url);
 	if (priv->icon != NULL)
@@ -222,6 +226,17 @@ cra_app_set_project_group (CraApp *app, const gchar *project_group)
 	CraAppPrivate *priv = GET_PRIVATE (app);
 	g_free (priv->project_group);
 	priv->project_group = g_strdup (project_group);
+}
+
+/**
+ * cra_app_set_project_license:
+ **/
+void
+cra_app_set_project_license (CraApp *app, const gchar *project_license)
+{
+	CraAppPrivate *priv = GET_PRIVATE (app);
+	g_free (priv->project_license);
+	priv->project_license = g_strdup (project_license);
 }
 
 /**

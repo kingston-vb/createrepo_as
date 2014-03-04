@@ -184,6 +184,8 @@ cra_task_process_func (gpointer data, gpointer user_data)
 		/* copy data from pkg into app */
 		if (cra_package_get_url (task->pkg) != NULL)
 			cra_app_set_homepage_url (app, cra_package_get_url (task->pkg));
+		if (cra_package_get_license (task->pkg) != NULL)
+			cra_app_set_project_license (app, cra_package_get_license (task->pkg));
 
 		/* run each refine plugin on each app */
 		ret = cra_plugin_loader_process_app (ctx->plugins,

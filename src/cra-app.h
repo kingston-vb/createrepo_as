@@ -58,6 +58,8 @@ void		 cra_app_set_homepage_url	(CraApp		*app,
 						 const gchar	*homepage_url);
 void		 cra_app_set_project_group	(CraApp		*app,
 						 const gchar	*project_group);
+void		 cra_app_set_project_license	(CraApp		*app,
+						 const gchar	*project_license);
 void		 cra_app_set_icon		(CraApp		*app,
 						 const gchar	*icon);
 void		 cra_app_add_category		(CraApp		*app,
