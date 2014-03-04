@@ -19,32 +19,38 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef __CRA_APP_H
-#define __CRA_APP_H
+#ifndef CRA_APP_H
+#define CRA_APP_H
 
-#include <glib.h>
+#include <glib-object.h>
+
+#include "cra-package.h"
+
+#define CRA_TYPE_APP		(cra_app_get_type())
+#define CRA_APP(obj)		(G_TYPE_CHECK_INSTANCE_CAST((obj), CRA_TYPE_APP, CraApp))
+#define CRA_APP_CLASS(cls)	(G_TYPE_CHECK_CLASS_CAST((cls), CRA_TYPE_APP, CraAppClass))
+#define CRA_IS_APP(obj)	(G_TYPE_CHECK_INSTANCE_TYPE((obj), CRA_TYPE_APP))
+#define CRA_IS_APP_CLASS(cls)	(G_TYPE_CHECK_CLASS_TYPE((cls), CRA_TYPE_APP))
+#define CRA_APP_GET_CLASS(obj)	(G_TYPE_INSTANCE_GET_CLASS((obj), CRA_TYPE_APP, CraAppClass))
 
 G_BEGIN_DECLS
 
-typedef struct {
-	gchar		*type_id;
-	gchar		*project_group;
-	gchar		*homepage_url;
-	gchar		*app_id;
-	gchar		*icon;
-	GPtrArray	*categories;
-	GPtrArray	*keywords;
-	GPtrArray	*mimetypes;
-	gboolean	 requires_appdata;
-	gboolean	 cached_icon;
-	GHashTable	*names;
-	GHashTable	*comments;
-	GHashTable	*languages;
-	GHashTable	*metadata;
-} CraApp;
+typedef struct _CraApp		CraApp;
+typedef struct _CraAppClass	CraAppClass;
 
-CraApp		*cra_app_new			(const gchar	*app_id);
-void		 cra_app_free			(CraApp		*app);
+struct _CraApp
+{
+	GObject			parent;
+};
+
+struct _CraAppClass
+{
+	GObjectClass		parent_class;
+};
+
+GType		 cra_app_get_type		(void);
+CraApp		*cra_app_new			(CraPackage	*pkg,
+						 const gchar	*app_id);
 void		 cra_app_print			(CraApp		*app);
 void		 cra_app_set_type_id		(CraApp		*app,
 						 const gchar	*type_id);
@@ -77,6 +83,11 @@ void		 cra_app_set_requires_appdata	(CraApp		*app,
 void		 cra_app_set_cached_icon	(CraApp		*app,
 						 gboolean	 cached_icon);
 
+GPtrArray	*cra_app_get_categories		(CraApp		*app);
+GPtrArray	*cra_app_get_keywords		(CraApp		*app);
+const gchar	*cra_app_get_app_id		(CraApp		*app);
+const gchar	*cra_app_get_project_group	(CraApp		*app);
+
 G_END_DECLS
 
-#endif /* __CRA_APP_H */
+#endif /* CRA_APP_H */

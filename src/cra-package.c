@@ -31,21 +31,103 @@
 #include "cra-package.h"
 #include "cra-plugin.h"
 
-/**
- * cra_package_free:
- **/
-void
-cra_package_free (CraPackage *pkg)
+typedef struct _CraPackagePrivate	CraPackagePrivate;
+struct _CraPackagePrivate
 {
-	headerFree (pkg->h);
-	g_strfreev (pkg->filelist);
-	g_free (pkg->filename);
-	g_free (pkg->name);
-	g_free (pkg->version);
-	g_free (pkg->release);
-	g_free (pkg->arch);
-	g_free (pkg->url);
-	g_free (pkg);
+	Header		 h;
+	gchar		**filelist;
+	gchar		*filename;
+	gchar		*name;
+	guint		 epoch;
+	gchar		*version;
+	gchar		*release;
+	gchar		*arch;
+	gchar		*url;
+};
+
+G_DEFINE_TYPE_WITH_PRIVATE (CraPackage, cra_package, G_TYPE_OBJECT)
+
+#define GET_PRIVATE(o) (cra_package_get_instance_private (o))
+
+/**
+ * cra_package_finalize:
+ **/
+static void
+cra_package_finalize (GObject *object)
+{
+	CraPackage *pkg = CRA_PACKAGE (object);
+	CraPackagePrivate *priv = GET_PRIVATE (pkg);
+
+	headerFree (priv->h);
+	g_strfreev (priv->filelist);
+	g_free (priv->filename);
+	g_free (priv->name);
+	g_free (priv->version);
+	g_free (priv->release);
+	g_free (priv->arch);
+	g_free (priv->url);
+
+	G_OBJECT_CLASS (cra_package_parent_class)->finalize (object);
+}
+
+/**
+ * cra_package_init:
+ **/
+static void
+cra_package_init (CraPackage *pkg)
+{
+	CraPackagePrivate *priv = GET_PRIVATE (pkg);
+	priv->h = NULL;
+}
+
+/**
+ * cra_package_get_filename:
+ **/
+const gchar *
+cra_package_get_filename (CraPackage *pkg)
+{
+	CraPackagePrivate *priv = GET_PRIVATE (pkg);
+	return priv->filename;
+}
+
+/**
+ * cra_package_get_name:
+ **/
+const gchar *
+cra_package_get_name (CraPackage *pkg)
+{
+	CraPackagePrivate *priv = GET_PRIVATE (pkg);
+	return priv->name;
+}
+
+/**
+ * cra_package_get_url:
+ **/
+const gchar *
+cra_package_get_url (CraPackage *pkg)
+{
+	CraPackagePrivate *priv = GET_PRIVATE (pkg);
+	return priv->url;
+}
+
+/**
+ * cra_package_get_filelist:
+ **/
+gchar **
+cra_package_get_filelist (CraPackage *pkg)
+{
+	CraPackagePrivate *priv = GET_PRIVATE (pkg);
+	return priv->filelist;
+}
+
+/**
+ * cra_package_class_init:
+ **/
+static void
+cra_package_class_init (CraPackageClass *klass)
+{
+	GObjectClass *object_class = G_OBJECT_CLASS (klass);
+	object_class->finalize = cra_package_finalize;
 }
 
 /**
@@ -54,6 +136,7 @@ cra_package_free (CraPackage *pkg)
 gboolean
 cra_package_ensure_filelist (CraPackage *pkg, GError **error)
 {
+	CraPackagePrivate *priv = GET_PRIVATE (pkg);
 	const gchar **dirnames = NULL;
 	gboolean ret = TRUE;
 	gint32 *dirindex = NULL;
@@ -61,24 +144,24 @@ cra_package_ensure_filelist (CraPackage *pkg, GError **error)
 	guint i;
 	rpmtd td[3];
 
-	if (pkg->filelist != NULL)
+	if (priv->filelist != NULL)
 		goto out;
 
 	/* read out the file list */
 	for (i = 0; i < 3; i++)
 		td[i] = rpmtdNew ();
-	rc = headerGet (pkg->h, RPMTAG_DIRNAMES, td[0], HEADERGET_MINMEM);
+	rc = headerGet (priv->h, RPMTAG_DIRNAMES, td[0], HEADERGET_MINMEM);
 	if (rc)
-		rc = headerGet (pkg->h, RPMTAG_BASENAMES, td[1], HEADERGET_MINMEM);
+		rc = headerGet (priv->h, RPMTAG_BASENAMES, td[1], HEADERGET_MINMEM);
 	if (rc)
-		rc = headerGet (pkg->h, RPMTAG_DIRINDEXES, td[2], HEADERGET_MINMEM);
+		rc = headerGet (priv->h, RPMTAG_DIRINDEXES, td[2], HEADERGET_MINMEM);
 	if (!rc) {
 		ret = FALSE;
 		g_set_error (error,
 			     CRA_PLUGIN_ERROR,
 			     CRA_PLUGIN_ERROR_FAILED,
 			     "Failed to read package file list %s",
-			     pkg->filename);
+			     priv->filename);
 		goto out;
 	}
 	i = 0;
@@ -90,9 +173,9 @@ cra_package_ensure_filelist (CraPackage *pkg, GError **error)
 	while (rpmtdNext (td[2]) != -1)
 		dirindex[i++] = rpmtdGetNumber (td[2]);
 	i = 0;
-	pkg->filelist = g_new0 (gchar *, rpmtdCount (td[1]) + 1);
+	priv->filelist = g_new0 (gchar *, rpmtdCount (td[1]) + 1);
 	while (rpmtdNext (td[1]) != -1) {
-		pkg->filelist[i] = g_build_filename (dirnames[dirindex[i]],
+		priv->filelist[i] = g_build_filename (dirnames[dirindex[i]],
 						     rpmtdGetString (td[1]),
 						     NULL);
 		i++;
@@ -106,11 +189,12 @@ out:
 /**
  * cra_package_open:
  **/
-CraPackage *
-cra_package_open (const gchar *filename, GError **error)
+gboolean
+cra_package_open (CraPackage *pkg, const gchar *filename, GError **error)
 {
-	CraPackage *pkg = NULL;
+	CraPackagePrivate *priv = GET_PRIVATE (pkg);
 	FD_t fd;
+	gboolean ret = TRUE;
 	gint rc;
 	rpmtd td;
 	rpmts ts;
@@ -119,6 +203,7 @@ cra_package_open (const gchar *filename, GError **error)
 	ts = rpmtsCreate ();
 	fd = Fopen (filename, "r");
 	if (fd <= 0) {
+		ret = FALSE;
 		g_set_error (error,
 			     CRA_PLUGIN_ERROR,
 			     CRA_PLUGIN_ERROR_FAILED,
@@ -127,12 +212,10 @@ cra_package_open (const gchar *filename, GError **error)
 	}
 
 	/* create package */
-	pkg = g_new0 (CraPackage, 1);
-	pkg->filename = g_strdup (filename);
-	rc = rpmReadPackageFile (ts, fd, filename, &pkg->h);
+	priv->filename = g_strdup (filename);
+	rc = rpmReadPackageFile (ts, fd, filename, &priv->h);
 	if (rc != RPMRC_OK) {
-		cra_package_free (pkg);
-		pkg = NULL;
+		ret = FALSE;
 		g_set_error (error,
 			     CRA_PLUGIN_ERROR,
 			     CRA_PLUGIN_ERROR_FAILED,
@@ -143,22 +226,22 @@ cra_package_open (const gchar *filename, GError **error)
 
 	/* get the simple stuff */
 	td = rpmtdNew ();
-	headerGet (pkg->h, RPMTAG_NAME, td, HEADERGET_MINMEM);
-	pkg->name = g_strdup (rpmtdGetString (td));
-	headerGet (pkg->h, RPMTAG_VERSION, td, HEADERGET_MINMEM);
-	pkg->version = g_strdup (rpmtdGetString (td));
-	headerGet (pkg->h, RPMTAG_RELEASE, td, HEADERGET_MINMEM);
-	pkg->release = g_strdup (rpmtdGetString (td));
-	headerGet (pkg->h, RPMTAG_ARCH, td, HEADERGET_MINMEM);
-	pkg->arch = g_strdup (rpmtdGetString (td));
-	headerGet (pkg->h, RPMTAG_EPOCH, td, HEADERGET_MINMEM);
-	pkg->epoch = rpmtdGetNumber (td);
-	headerGet (pkg->h, RPMTAG_URL, td, HEADERGET_MINMEM);
-	pkg->url = g_strdup (rpmtdGetString (td));
+	headerGet (priv->h, RPMTAG_NAME, td, HEADERGET_MINMEM);
+	priv->name = g_strdup (rpmtdGetString (td));
+	headerGet (priv->h, RPMTAG_VERSION, td, HEADERGET_MINMEM);
+	priv->version = g_strdup (rpmtdGetString (td));
+	headerGet (priv->h, RPMTAG_RELEASE, td, HEADERGET_MINMEM);
+	priv->release = g_strdup (rpmtdGetString (td));
+	headerGet (priv->h, RPMTAG_ARCH, td, HEADERGET_MINMEM);
+	priv->arch = g_strdup (rpmtdGetString (td));
+	headerGet (priv->h, RPMTAG_EPOCH, td, HEADERGET_MINMEM);
+	priv->epoch = rpmtdGetNumber (td);
+	headerGet (priv->h, RPMTAG_URL, td, HEADERGET_MINMEM);
+	priv->url = g_strdup (rpmtdGetString (td));
 out:
 	rpmtsFree (ts);
 	Fclose (fd);
-	return pkg;
+	return ret;
 }
 
 /**
@@ -167,6 +250,7 @@ out:
 gboolean
 cra_package_explode (CraPackage *pkg, const gchar *dir, GError **error)
 {
+	CraPackagePrivate *priv = GET_PRIVATE (pkg);
 	const gchar *tmp;
 	gboolean ret = TRUE;
 	gchar buf[PATH_MAX];
@@ -177,7 +261,7 @@ cra_package_explode (CraPackage *pkg, const gchar *dir, GError **error)
 	struct archive_entry *entry;
 
 	/* load file at once to avoid seeking */
-	ret = g_file_get_contents (pkg->filename, &data, &len, error);
+	ret = g_file_get_contents (priv->filename, &data, &len, error);
 	if (!ret)
 		goto out;
 
@@ -252,4 +336,15 @@ out:
 		archive_read_free (arch);
 	}
 	return ret;
+}
+
+/**
+ * cra_package_new:
+ **/
+CraPackage *
+cra_package_new (void)
+{
+	CraPackage *pkg;
+	pkg = g_object_new (CRA_TYPE_PACKAGE, NULL);
+	return CRA_PACKAGE (pkg);
 }

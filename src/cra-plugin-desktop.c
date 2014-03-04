@@ -111,6 +111,7 @@ out:
  */
 static gboolean
 cra_plugin_process_filename (CraPlugin *plugin,
+			     CraPackage *pkg,
 			     const gchar *filename,
 			     GList **apps,
 			     const gchar *tmpdir,
@@ -126,6 +127,7 @@ cra_plugin_process_filename (CraPlugin *plugin,
 	gchar *tmp;
 	gchar **tmpv;
 	GKeyFile *kf;
+	GPtrArray *categories;
 	guint i;
 	guint j;
 
@@ -140,7 +142,7 @@ cra_plugin_process_filename (CraPlugin *plugin,
 
 	/* create app */
 	app_id = g_path_get_basename (filename);
-	app = cra_app_new (app_id);
+	app = cra_app_new (pkg, app_id);
 	cra_app_set_type_id (app, "desktop");
 
 	/* look at all the keys */
@@ -298,11 +300,12 @@ cra_plugin_process_filename (CraPlugin *plugin,
 	}
 
 	/* check for blacklisted categories */
-	for (i = 0; i < app->categories->len; i++) {
-		key = g_ptr_array_index (app->categories, i);
+	categories = cra_app_get_categories (app);
+	for (i = 0; i < categories->len; i++) {
+		key = g_ptr_array_index (categories, i);
 		if (cra_glob_value_search (plugin->priv->blacklist_cats,
 					   key) != NULL) {
-			cra_app_free (app);
+			g_object_unref (app);
 			app = NULL;
 			g_debug ("category %s is blacklisted", key);
 			goto out;
@@ -331,12 +334,15 @@ cra_plugin_process (CraPlugin *plugin,
 	gboolean ret;
 	GList *apps = NULL;
 	guint i;
+	gchar **filelist;
 
-	for (i = 0; pkg->filelist[i] != NULL; i++) {
-		if (!_cra_plugin_check_filename (pkg->filelist[i]))
+	filelist = cra_package_get_filelist (pkg);
+	for (i = 0; filelist[i] != NULL; i++) {
+		if (!_cra_plugin_check_filename (filelist[i]))
 			continue;
 		ret = cra_plugin_process_filename (plugin,
-						   pkg->filelist[i],
+						   pkg,
+						   filelist[i],
 						   &apps,
 						   tmpdir,
 						   error);
@@ -353,7 +359,7 @@ cra_plugin_process (CraPlugin *plugin,
 			     CRA_PLUGIN_ERROR,
 			     CRA_PLUGIN_ERROR_FAILED,
 			     "nothing interesting in %s",
-			     pkg->filename);
+			     cra_package_get_filename (pkg));
 		goto out;
 	}
 out:

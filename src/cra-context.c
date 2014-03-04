@@ -37,7 +37,7 @@ cra_context_find_by_pkgname (CraContext *ctx, const gchar *pkgname)
 
 	for (i = 0; i < ctx->packages->len; i++) {
 		pkg = g_ptr_array_index (ctx->packages, i);
-		if (g_strcmp0 (pkg->name, pkgname) == 0)
+		if (g_strcmp0 (cra_package_get_name (pkg), pkgname) == 0)
 			return pkg;
 	}
 	return NULL;
@@ -81,7 +81,7 @@ cra_context_new (void)
 	ctx->blacklisted_pkgs = cra_glob_value_array_new ();
 	ctx->blacklisted_ids = cra_glob_value_array_new ();
 	ctx->plugins = cra_plugin_loader_new ();
-	ctx->packages = g_ptr_array_new_with_free_func ((GDestroyNotify) cra_package_free);
+	ctx->packages = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
 	ctx->extra_pkgs = cra_glob_value_array_new ();
 
 	/* add extra data */
@@ -159,7 +159,7 @@ cra_context_free (CraContext *ctx)
 	cra_plugin_loader_free (ctx->plugins);
 	g_ptr_array_unref (ctx->packages);
 	g_ptr_array_unref (ctx->extra_pkgs);
-	g_list_foreach (ctx->apps, (GFunc) cra_app_free, NULL);
+	g_list_foreach (ctx->apps, (GFunc) g_object_unref, NULL);
 	g_list_free (ctx->apps);
 	g_ptr_array_unref (ctx->blacklisted_pkgs);
 	g_ptr_array_unref (ctx->blacklisted_ids);

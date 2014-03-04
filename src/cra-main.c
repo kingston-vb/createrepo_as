@@ -43,6 +43,7 @@ typedef struct {
 static void
 cra_task_free (CraTask *task)
 {
+	g_object_unref (task->pkg);
 	g_free (task->filename);
 	g_free (task->tmpdir);
 	g_free (task);
@@ -65,6 +66,7 @@ cra_task_process_func (gpointer data, gpointer user_data)
 	GList *apps = NULL;
 	GList *l;
 	guint i;
+	gchar **filelist;
 
 	/* get file list */
 	ret = cra_package_ensure_filelist (task->pkg, &error);
@@ -76,9 +78,9 @@ cra_task_process_func (gpointer data, gpointer user_data)
 
 	/* did we get a file match on any plugin */
 	g_debug ("Getting filename match for %s", task->filename);
-	for (i = 0; task->pkg->filelist[i] != NULL; i++) {
-		plugin = cra_plugin_loader_match_fn (ctx->plugins,
-						     task->pkg->filelist[i]);
+	filelist = cra_package_get_filelist (task->pkg);
+	for (i = 0; filelist[i] != NULL; i++) {
+		plugin = cra_plugin_loader_match_fn (ctx->plugins, filelist[i]);
 		if (plugin != NULL)
 			break;
 	}
@@ -102,12 +104,12 @@ cra_task_process_func (gpointer data, gpointer user_data)
 	}
 
 	/* add extra packages */
-	pkg_name = cra_glob_value_search (ctx->extra_pkgs, task->pkg->name);
+	pkg_name = cra_glob_value_search (ctx->extra_pkgs, cra_package_get_name (task->pkg));
 	if (pkg_name != NULL) {
 		pkg_extra = cra_context_find_by_pkgname (ctx, pkg_name);
 		if (pkg_extra == NULL) {
 			g_warning ("%s requires %s but is not available",
-				   task->pkg->name, pkg_name);
+				   cra_package_get_name (task->pkg), pkg_name);
 			goto out;
 		}
 		ret = cra_package_explode (pkg_extra, task->tmpdir, &error);
@@ -134,20 +136,23 @@ cra_task_process_func (gpointer data, gpointer user_data)
 		app = l->data;
 
 		/* never set */
-		if (app->app_id == NULL) {
-			g_debug ("app id not set for %s", task->pkg->name);
+		if (cra_app_get_app_id (app) == NULL) {
+			g_debug ("app id not set for %s",
+				 cra_package_get_name (task->pkg));
 			continue;
 		}
 
 		/* is application backlisted */
-		if (cra_glob_value_search (ctx->blacklisted_ids, app->app_id)) {
-			g_debug ("app id %s is blacklisted", task->pkg->name);
+		if (cra_glob_value_search (ctx->blacklisted_ids,
+					   cra_app_get_app_id (app))) {
+			g_debug ("app id %s is blacklisted",
+				 cra_package_get_name (task->pkg));
 			continue;
 		}
 
 		/* copy data from pkg into app */
-		if (task->pkg->url != NULL)
-			cra_app_set_homepage_url (app, task->pkg->url);
+		if (cra_package_get_url (task->pkg) != NULL)
+			cra_app_set_homepage_url (app, cra_package_get_url (task->pkg));
 
 		/* run each refine plugin on each app */
 		ret = cra_plugin_loader_process_app (ctx->plugins,
@@ -172,7 +177,7 @@ cra_task_process_func (gpointer data, gpointer user_data)
 		goto out;
 	}
 out:
-	g_list_foreach (apps, (GFunc) cra_app_free, NULL);
+	g_list_foreach (apps, (GFunc) g_object_unref, NULL);
 	g_list_free (apps);
 	cra_task_free (task);
 }
@@ -254,16 +259,18 @@ main (int argc, char **argv)
 	}
 	while ((filename = g_dir_read_name (dir)) != NULL) {
 		tmp = g_build_filename (packages_dir, filename, NULL);
-		pkg = cra_package_open (tmp, &error);
-		if (pkg == NULL) {
+		pkg = cra_package_new ();
+		ret = cra_package_open (pkg, tmp, &error);
+		if (!ret) {
 			g_warning ("Failed to open package: %s", error->message);
 			g_error_free (error);
 			goto out;
 		}
 
 		/* is package name blacklisted */
-		if (cra_glob_value_search (ctx->blacklisted_pkgs, pkg->name) != NULL) {
-			g_debug ("%s is blacklisted", pkg->filename);
+		if (cra_glob_value_search (ctx->blacklisted_pkgs,
+					   cra_package_get_name (pkg)) != NULL) {
+			g_debug ("%s is blacklisted", cra_package_get_filename (pkg));
 			continue;
 		}
 
@@ -278,9 +285,9 @@ main (int argc, char **argv)
 
 		/* create task */
 		task = g_new0 (CraTask, 1);
-		task->filename = g_strdup (pkg->filename);
-		task->tmpdir = g_build_filename (temp_dir, pkg->name, NULL);
-		task->pkg = pkg;
+		task->filename = g_strdup (cra_package_get_filename (pkg));
+		task->tmpdir = g_build_filename (temp_dir, cra_package_get_name (pkg), NULL);
+		task->pkg = g_object_ref (pkg);
 
 		/* add task to pool */
 		ret = g_thread_pool_push (pool, task, &error);

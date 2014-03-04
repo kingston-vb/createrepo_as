@@ -19,35 +19,49 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef __CRA_PACKAGE_H
-#define __CRA_PACKAGE_H
+#ifndef CRA_PACKAGE_H
+#define CRA_PACKAGE_H
 
-#include <glib.h>
-#include <rpm/rpmlib.h>
+#include <glib-object.h>
+
+#define CRA_TYPE_PACKAGE		(cra_package_get_type())
+#define CRA_PACKAGE(obj)		(G_TYPE_CHECK_INSTANCE_CAST((obj), CRA_TYPE_PACKAGE, CraPackage))
+#define CRA_PACKAGE_CLASS(cls)		(G_TYPE_CHECK_CLASS_CAST((cls), CRA_TYPE_PACKAGE, CraPackageClass))
+#define CRA_IS_PACKAGE(obj)		(G_TYPE_CHECK_INSTANCE_TYPE((obj), CRA_TYPE_PACKAGE))
+#define CRA_IS_PACKAGE_CLASS(cls)	(G_TYPE_CHECK_CLASS_TYPE((cls), CRA_TYPE_PACKAGE))
+#define CRA_PACKAGE_GET_CLASS(obj)	(G_TYPE_INSTANCE_GET_CLASS((obj), CRA_TYPE_PACKAGE, CraPackageClass))
 
 G_BEGIN_DECLS
 
-typedef struct {
-	Header		 h;
-	gchar		**filelist;
-	gchar		*filename;
-	gchar		*name;
-	guint		 epoch;
-	gchar		*version;
-	gchar		*release;
-	gchar		*arch;
-	gchar		*url;
-} CraPackage;
+typedef struct _CraPackage		CraPackage;
+typedef struct _CraPackageClass		CraPackageClass;
 
-CraPackage	*cra_package_open		(const gchar	*filename,
+struct _CraPackage
+{
+	GObject			parent;
+};
+
+struct _CraPackageClass
+{
+	GObjectClass		parent_class;
+};
+
+GType		 cra_package_get_type		(void);
+
+CraPackage	*cra_package_new		(void);
+gboolean	 cra_package_open		(CraPackage	*pkg,
+						 const gchar	*filename,
 						 GError		**error);
-void		 cra_package_free		(CraPackage	*pkg);
 gboolean	 cra_package_explode		(CraPackage	*pkg,
 						 const gchar	*dir,
 						 GError		**error);
 gboolean	 cra_package_ensure_filelist	(CraPackage	*pkg,
 						 GError		**error);
+const gchar	*cra_package_get_filename	(CraPackage	*pkg);
+const gchar	*cra_package_get_name		(CraPackage	*pkg);
+const gchar	*cra_package_get_url		(CraPackage	*pkg);
+gchar		**cra_package_get_filelist	(CraPackage	*pkg);
 
 G_END_DECLS
 
-#endif /* __CRA_PACKAGE_H */
+#endif /* CRA_PACKAGE_H */

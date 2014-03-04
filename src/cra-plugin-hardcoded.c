@@ -84,36 +84,40 @@ cra_plugin_process_app (CraPlugin *plugin,
 			GError **error)
 {
 	const gchar *tmp;
+	gchar **filelist;
 	guint i;
 
 	/* add extra categories */
-	if (g_strcmp0 (app->app_id, "0install") == 0)
+	tmp = cra_app_get_app_id (app);
+	if (g_strcmp0 (tmp, "0install") == 0)
 		cra_app_add_category (app, "System");
-	if (g_strcmp0 (app->app_id, "alacarte") == 0)
+	if (g_strcmp0 (tmp, "alacarte") == 0)
 		cra_app_add_category (app, "System");
-	if (g_strcmp0 (app->app_id, "deja-dup") == 0)
+	if (g_strcmp0 (tmp, "deja-dup") == 0)
 		cra_app_add_category (app, "Utility");
-	if (g_strcmp0 (app->app_id, "gddccontrol") == 0)
+	if (g_strcmp0 (tmp, "gddccontrol") == 0)
 		cra_app_add_category (app, "System");
-	if (g_strcmp0 (app->app_id, "nautilus") == 0)
+	if (g_strcmp0 (tmp, "nautilus") == 0)
 		cra_app_add_category (app, "System");
-	if (g_strcmp0 (app->app_id, "pessulus") == 0)
+	if (g_strcmp0 (tmp, "pessulus") == 0)
 		cra_app_add_category (app, "System");
 
 	/* add extra project groups */
-	if (g_strcmp0 (app->app_id, "nemo") == 0)
+	if (g_strcmp0 (tmp, "nemo") == 0)
 		cra_app_set_project_group (app, "Cinnamon");
 
 	/* use the URL to guess the project group */
-	if (app->project_group == NULL && pkg->url != NULL) {
-		tmp = cra_glob_value_search (plugin->priv->project_groups, pkg->url);
+	tmp = cra_package_get_url (pkg);
+	if (cra_app_get_project_group (app) == NULL && tmp != NULL) {
+		tmp = cra_glob_value_search (plugin->priv->project_groups, tmp);
 		if (tmp != NULL)
 			cra_app_set_project_group (app, tmp);
 	}
 
 	/* look for any installed docs */
-	for (i = 0; pkg->filelist[i] != NULL; i++) {
-		if (g_str_has_prefix (pkg->filelist[i],
+	filelist = cra_package_get_filelist (pkg);
+	for (i = 0; filelist[i] != NULL; i++) {
+		if (g_str_has_prefix (filelist[i],
 				      "/usr/share/help/")) {
 			cra_app_add_metadata (app, "X-Kudo-InstallsUserDocs", "");
 			break;
@@ -121,8 +125,8 @@ cra_plugin_process_app (CraPlugin *plugin,
 	}
 
 	/* look for a shell search provider */
-	for (i = 0; pkg->filelist[i] != NULL; i++) {
-		if (g_str_has_prefix (pkg->filelist[i],
+	for (i = 0; filelist[i] != NULL; i++) {
+		if (g_str_has_prefix (filelist[i],
 				      "/usr/share/gnome-shell/search-providers/")) {
 			cra_app_add_metadata (app, "X-Kudo-SearchProvider", "");
 			break;

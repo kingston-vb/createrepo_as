@@ -67,14 +67,16 @@ cra_plugin_process_app (CraPlugin *plugin,
 			GError **error)
 {
 	gboolean ret;
+	gchar **filelist;
 	gchar *filename;
 	GError *error_local = NULL;
 	guint i;
 
-	for (i = 0; pkg->filelist[i] != NULL; i++) {
-		if (!g_str_has_prefix (pkg->filelist[i], "/usr/bin/"))
+	filelist = cra_package_get_filelist (pkg);
+	for (i = 0; filelist[i] != NULL; i++) {
+		if (!g_str_has_prefix (filelist[i], "/usr/bin/"))
 			continue;
-		filename = g_build_filename (tmpdir, pkg->filelist[i], NULL);
+		filename = g_build_filename (tmpdir, filelist[i], NULL);
 		ret = cra_plugin_nm_app (app, filename, &error_local);
 		if (!ret) {
 			g_warning ("Failed to run nm on %s: %s",

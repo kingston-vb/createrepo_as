@@ -130,12 +130,13 @@ cra_plugin_process (CraPlugin *plugin,
 	gchar *app_id = NULL;
 	gchar **split;
 	GList *apps = NULL;
+	GPtrArray *keywords;
 	GString *str = NULL;
 	guint i;
 	guint j;
 
 	/* use the pkgname suffix as the app-id */
-	tmp = pkg->name;
+	tmp = cra_package_get_name (pkg);
 	if (g_str_has_prefix (tmp, "gstreamer1-"))
 		tmp += 11;
 	if (g_str_has_prefix (tmp, "gstreamer-"))
@@ -145,7 +146,7 @@ cra_plugin_process (CraPlugin *plugin,
 	app_id = g_strdup_printf ("gstreamer-%s", tmp);
 
 	/* create app */
-	app = cra_app_new (app_id);
+	app = cra_app_new (pkg, app_id);
 	cra_app_set_type_id (app, "codec");
 	cra_app_set_name (app, "C", "GStreamer Multimedia Codecs");
 	cra_app_set_icon (app, "application-x-executable");
@@ -164,31 +165,32 @@ cra_plugin_process (CraPlugin *plugin,
 	}
 
 	/* no codecs we care about */
-	if (app->keywords->len == 0) {
+	keywords = cra_app_get_keywords (app);
+	if (keywords->len == 0) {
 		g_set_error (error,
 			     CRA_PLUGIN_ERROR,
 			     CRA_PLUGIN_ERROR_FAILED,
 			     "nothing interesting in %s",
-			     pkg->filename);
-		cra_app_free (app);
+			     cra_package_get_filename (pkg));
+		g_object_unref (app);
 		goto out;
 	}
 
 	/* sort categories by name */
-	g_ptr_array_sort (app->keywords, cra_utils_string_sort_cb);
+	g_ptr_array_sort (keywords, cra_utils_string_sort_cb);
 
 	/* create a description */
 	str = g_string_new ("Multimedia playback for ");
-	if (app->keywords->len > 0) {
-		for (i = 0; i < app->keywords->len - 1; i++) {
-			tmp = g_ptr_array_index (app->keywords, i);
+	if (keywords->len > 0) {
+		for (i = 0; i < keywords->len - 1; i++) {
+			tmp = g_ptr_array_index (keywords, i);
 			g_string_append_printf (str, "%s, ", tmp);
 		}
 		g_string_truncate (str, str->len - 2);
-		tmp = g_ptr_array_index (app->keywords, app->keywords->len - 1);
+		tmp = g_ptr_array_index (keywords, keywords->len - 1);
 		g_string_append_printf (str, " and %s", tmp);
 	} else {
-		g_string_append (str, g_ptr_array_index (app->keywords, 0));
+		g_string_append (str, g_ptr_array_index (keywords, 0));
 	}
 	cra_app_set_comment (app, "C", str->str);
 

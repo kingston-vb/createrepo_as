@@ -23,6 +23,82 @@
 
 #include "cra-app.h"
 
+typedef struct _CraAppPrivate	CraAppPrivate;
+struct _CraAppPrivate
+{
+	gchar		*type_id;
+	gchar		*project_group;
+	gchar		*homepage_url;
+	gchar		*app_id;
+	gchar		*icon;
+	GPtrArray	*categories;
+	GPtrArray	*keywords;
+	GPtrArray	*mimetypes;
+	gboolean	 requires_appdata;
+	gboolean	 cached_icon;
+	GHashTable	*names;
+	GHashTable	*comments;
+	GHashTable	*languages;
+	GHashTable	*metadata;
+	CraPackage	*pkg;
+};
+
+G_DEFINE_TYPE_WITH_PRIVATE (CraApp, cra_app, G_TYPE_OBJECT)
+
+#define GET_PRIVATE(o) (cra_app_get_instance_private (o))
+
+/**
+ * cra_app_finalize:
+ **/
+static void
+cra_app_finalize (GObject *object)
+{
+	CraApp *app = CRA_APP (object);
+	CraAppPrivate *priv = GET_PRIVATE (app);
+
+	g_free (priv->app_id);
+	g_free (priv->type_id);
+	g_free (priv->homepage_url);
+	g_free (priv->project_group);
+	g_free (priv->icon);
+	g_ptr_array_unref (priv->categories);
+	g_ptr_array_unref (priv->keywords);
+	g_ptr_array_unref (priv->mimetypes);
+	g_hash_table_unref (priv->names);
+	g_hash_table_unref (priv->comments);
+	g_hash_table_unref (priv->languages);
+	g_hash_table_unref (priv->metadata);
+	g_object_unref (priv->pkg);
+
+	G_OBJECT_CLASS (cra_app_parent_class)->finalize (object);
+}
+
+/**
+ * cra_app_init:
+ **/
+static void
+cra_app_init (CraApp *app)
+{
+	CraAppPrivate *priv = GET_PRIVATE (app);
+	priv->categories = g_ptr_array_new_with_free_func (g_free);
+	priv->keywords = g_ptr_array_new_with_free_func (g_free);
+	priv->mimetypes = g_ptr_array_new_with_free_func (g_free);
+	priv->names = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
+	priv->comments = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
+	priv->languages = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
+	priv->metadata = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
+}
+
+/**
+ * cra_app_class_init:
+ **/
+static void
+cra_app_class_init (CraAppClass *klass)
+{
+	GObjectClass *object_class = G_OBJECT_CLASS (klass);
+	object_class->finalize = cra_app_finalize;
+}
+
 /**
  * cra_utils_ptr_array_find_string:
  **/
@@ -31,6 +107,7 @@ cra_utils_ptr_array_find_string (GPtrArray *array, const gchar *value)
 {
 	const gchar *tmp;
 	guint i;
+
 	for (i = 0; i < array->len; i++) {
 		tmp = g_ptr_array_index (array, i);
 		if (g_strcmp0 (tmp, value) == 0)
@@ -74,34 +151,35 @@ cra_app_print_hash (GHashTable *hash, const gchar *header)
 void
 cra_app_print (CraApp *app)
 {
+	CraAppPrivate *priv = GET_PRIVATE (app);
 	const gchar *tmp;
 	guint i;
 
-	g_print ("app-id:\t\t%s\n", app->app_id);
-	cra_app_print_hash (app->names, "names:\t");
-	cra_app_print_hash (app->comments, "comments:");
-	cra_app_print_hash (app->languages, "languages:");
-	cra_app_print_hash (app->metadata, "metadata:");
+	g_print ("app-id:\t\t%s\n", priv->app_id);
+	cra_app_print_hash (priv->names, "names:\t");
+	cra_app_print_hash (priv->comments, "comments:");
+	cra_app_print_hash (priv->languages, "languages:");
+	cra_app_print_hash (priv->metadata, "metadata:");
 
-	g_print ("type-id:\t%s\n", app->type_id);
-	if (app->project_group != NULL)
-		g_print ("project:\t%s\n", app->project_group);
-	if (app->homepage_url != NULL)
-		g_print ("homepage:\t%s\n", app->homepage_url);
-	if (app->icon != NULL)
-		g_print ("icon:\t\t%s\n", app->icon);
-	g_print ("req-appdata:\t%s\n", app->requires_appdata ? "True" : "False");
-	g_print ("cached-icon:\t%s\n", app->cached_icon ? "True" : "False");
-	for (i = 0; i < app->categories->len; i++) {
-		tmp = g_ptr_array_index (app->categories, i);
+	g_print ("type-id:\t%s\n", priv->type_id);
+	if (priv->project_group != NULL)
+		g_print ("project:\t%s\n", priv->project_group);
+	if (priv->homepage_url != NULL)
+		g_print ("homepage:\t%s\n", priv->homepage_url);
+	if (priv->icon != NULL)
+		g_print ("icon:\t\t%s\n", priv->icon);
+	g_print ("req-appdata:\t%s\n", priv->requires_appdata ? "True" : "False");
+	g_print ("cached-icon:\t%s\n", priv->cached_icon ? "True" : "False");
+	for (i = 0; i < priv->categories->len; i++) {
+		tmp = g_ptr_array_index (priv->categories, i);
 		g_print ("category:\t%s\n", tmp);
 	}
-	for (i = 0; i < app->keywords->len; i++) {
-		tmp = g_ptr_array_index (app->keywords, i);
+	for (i = 0; i < priv->keywords->len; i++) {
+		tmp = g_ptr_array_index (priv->keywords, i);
 		g_print ("keyword:\t%s\n", tmp);
 	}
-	for (i = 0; i < app->mimetypes->len; i++) {
-		tmp = g_ptr_array_index (app->mimetypes, i);
+	for (i = 0; i < priv->mimetypes->len; i++) {
+		tmp = g_ptr_array_index (priv->mimetypes, i);
 		g_print ("mimetype:\t%s\n", tmp);
 	}
 }
@@ -112,7 +190,8 @@ cra_app_print (CraApp *app)
 void
 cra_app_set_type_id (CraApp *app, const gchar *type_id)
 {
-	app->type_id = g_strdup (type_id);
+	CraAppPrivate *priv = GET_PRIVATE (app);
+	priv->type_id = g_strdup (type_id);
 }
 
 /**
@@ -121,7 +200,8 @@ cra_app_set_type_id (CraApp *app, const gchar *type_id)
 void
 cra_app_set_homepage_url (CraApp *app, const gchar *homepage_url)
 {
-	app->homepage_url = g_strdup (homepage_url);
+	CraAppPrivate *priv = GET_PRIVATE (app);
+	priv->homepage_url = g_strdup (homepage_url);
 }
 
 /**
@@ -130,7 +210,8 @@ cra_app_set_homepage_url (CraApp *app, const gchar *homepage_url)
 void
 cra_app_set_project_group (CraApp *app, const gchar *project_group)
 {
-	app->project_group = g_strdup (project_group);
+	CraAppPrivate *priv = GET_PRIVATE (app);
+	priv->project_group = g_strdup (project_group);
 }
 
 /**
@@ -139,7 +220,8 @@ cra_app_set_project_group (CraApp *app, const gchar *project_group)
 void
 cra_app_set_icon (CraApp *app, const gchar *icon)
 {
-	app->icon = g_strdup (icon);
+	CraAppPrivate *priv = GET_PRIVATE (app);
+	priv->icon = g_strdup (icon);
 }
 
 /**
@@ -148,11 +230,12 @@ cra_app_set_icon (CraApp *app, const gchar *icon)
 void
 cra_app_add_category (CraApp *app, const gchar *category)
 {
-	if (cra_utils_ptr_array_find_string (app->categories, category)) {
+	CraAppPrivate *priv = GET_PRIVATE (app);
+	if (cra_utils_ptr_array_find_string (priv->categories, category)) {
 		g_warning ("Already added %s to categories", category);
 		return;
 	}
-	g_ptr_array_add (app->categories, g_strdup (category));
+	g_ptr_array_add (priv->categories, g_strdup (category));
 }
 
 /**
@@ -161,11 +244,12 @@ cra_app_add_category (CraApp *app, const gchar *category)
 void
 cra_app_add_keyword (CraApp *app, const gchar *keyword)
 {
-	if (cra_utils_ptr_array_find_string (app->keywords, keyword)) {
+	CraAppPrivate *priv = GET_PRIVATE (app);
+	if (cra_utils_ptr_array_find_string (priv->keywords, keyword)) {
 		g_warning ("Already added %s to keywords", keyword);
 		return;
 	}
-	g_ptr_array_add (app->keywords, g_strdup (keyword));
+	g_ptr_array_add (priv->keywords, g_strdup (keyword));
 }
 
 /**
@@ -174,11 +258,12 @@ cra_app_add_keyword (CraApp *app, const gchar *keyword)
 void
 cra_app_add_mimetype (CraApp *app, const gchar *mimetype)
 {
-	if (cra_utils_ptr_array_find_string (app->mimetypes, mimetype)) {
+	CraAppPrivate *priv = GET_PRIVATE (app);
+	if (cra_utils_ptr_array_find_string (priv->mimetypes, mimetype)) {
 		g_warning ("Already added %s to mimetypes", mimetype);
 		return;
 	}
-	g_ptr_array_add (app->mimetypes, g_strdup (mimetype));
+	g_ptr_array_add (priv->mimetypes, g_strdup (mimetype));
 }
 
 /**
@@ -187,7 +272,8 @@ cra_app_add_mimetype (CraApp *app, const gchar *mimetype)
 void
 cra_app_set_name (CraApp *app, const gchar *locale, const gchar *name)
 {
-	g_hash_table_insert (app->names, g_strdup (locale), g_strdup (name));
+	CraAppPrivate *priv = GET_PRIVATE (app);
+	g_hash_table_insert (priv->names, g_strdup (locale), g_strdup (name));
 }
 
 /**
@@ -196,7 +282,8 @@ cra_app_set_name (CraApp *app, const gchar *locale, const gchar *name)
 void
 cra_app_set_comment (CraApp *app, const gchar *locale, const gchar *comment)
 {
-	g_hash_table_insert (app->comments, g_strdup (locale), g_strdup (comment));
+	CraAppPrivate *priv = GET_PRIVATE (app);
+	g_hash_table_insert (priv->comments, g_strdup (locale), g_strdup (comment));
 }
 
 /**
@@ -205,7 +292,8 @@ cra_app_set_comment (CraApp *app, const gchar *locale, const gchar *comment)
 void
 cra_app_add_language (CraApp *app, const gchar *locale, const gchar *value)
 {
-	g_hash_table_insert (app->languages, g_strdup (locale), g_strdup (value));
+	CraAppPrivate *priv = GET_PRIVATE (app);
+	g_hash_table_insert (priv->languages, g_strdup (locale), g_strdup (value));
 }
 
 /**
@@ -214,7 +302,8 @@ cra_app_add_language (CraApp *app, const gchar *locale, const gchar *value)
 void
 cra_app_add_metadata (CraApp *app, const gchar *key, const gchar *value)
 {
-	g_hash_table_insert (app->metadata, g_strdup (key), g_strdup (value));
+	CraAppPrivate *priv = GET_PRIVATE (app);
+	g_hash_table_insert (priv->metadata, g_strdup (key), g_strdup (value));
 }
 
 /**
@@ -223,7 +312,8 @@ cra_app_add_metadata (CraApp *app, const gchar *key, const gchar *value)
 void
 cra_app_set_requires_appdata (CraApp *app, gboolean requires_appdata)
 {
-	app->requires_appdata = requires_appdata;
+	CraAppPrivate *priv = GET_PRIVATE (app);
+	priv->requires_appdata = requires_appdata;
 }
 
 /**
@@ -232,45 +322,61 @@ cra_app_set_requires_appdata (CraApp *app, gboolean requires_appdata)
 void
 cra_app_set_cached_icon (CraApp *app, gboolean cached_icon)
 {
-	app->cached_icon = cached_icon;
+	CraAppPrivate *priv = GET_PRIVATE (app);
+	priv->cached_icon = cached_icon;
+}
+
+/**
+ * cra_app_get_categories:
+ **/
+GPtrArray *
+cra_app_get_categories (CraApp *app)
+{
+	CraAppPrivate *priv = GET_PRIVATE (app);
+	return priv->categories;
+}
+
+/**
+ * cra_app_get_keywords:
+ **/
+GPtrArray *
+cra_app_get_keywords (CraApp *app)
+{
+	CraAppPrivate *priv = GET_PRIVATE (app);
+	return priv->keywords;
+}
+
+/**
+ * cra_app_get_app_id:
+ **/
+const gchar *
+cra_app_get_app_id (CraApp *app)
+{
+	CraAppPrivate *priv = GET_PRIVATE (app);
+	return priv->app_id;
+}
+
+/**
+ * cra_app_get_project_group:
+ **/
+const gchar *
+cra_app_get_project_group (CraApp *app)
+{
+	CraAppPrivate *priv = GET_PRIVATE (app);
+	return priv->project_group;
 }
 
 /**
  * cra_app_new:
  **/
 CraApp *
-cra_app_new (const gchar *app_id)
+cra_app_new (CraPackage *pkg, const gchar *app_id)
 {
-	CraApp *app = NULL;
-	app = g_slice_new0 (CraApp);
-	app->app_id = g_strdup (app_id);
-	app->categories = g_ptr_array_new_with_free_func (g_free);
-	app->keywords = g_ptr_array_new_with_free_func (g_free);
-	app->mimetypes = g_ptr_array_new_with_free_func (g_free);
-	app->names = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
-	app->comments = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
-	app->languages = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
-	app->metadata = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
-	return app;
-}
-
-/**
- * cra_app_free:
- **/
-void
-cra_app_free (CraApp *app)
-{
-	g_free (app->app_id);
-	g_free (app->type_id);
-	g_free (app->homepage_url);
-	g_free (app->project_group);
-	g_free (app->icon);
-	g_ptr_array_unref (app->categories);
-	g_ptr_array_unref (app->keywords);
-	g_ptr_array_unref (app->mimetypes);
-	g_hash_table_unref (app->names);
-	g_hash_table_unref (app->comments);
-	g_hash_table_unref (app->languages);
-	g_hash_table_unref (app->metadata);
-	g_slice_free (CraApp, app);
+	CraApp *app;
+	CraAppPrivate *priv;
+	app = g_object_new (CRA_TYPE_APP, NULL);
+	priv = GET_PRIVATE (app);
+	priv->app_id = g_strdup (app_id);
+	priv->pkg = g_object_ref (pkg);
+	return CRA_APP (app);
 }
