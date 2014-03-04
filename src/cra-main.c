@@ -163,7 +163,7 @@ cra_task_process_func (gpointer data, gpointer user_data)
 		app = l->data;
 
 		/* never set */
-		if (cra_app_get_app_id (app) == NULL) {
+		if (cra_app_get_id_full (app) == NULL) {
 			cra_package_log (task->pkg,
 					 CRA_PACKAGE_LOG_LEVEL_INFO,
 					 "app id not set for %s",
@@ -173,7 +173,7 @@ cra_task_process_func (gpointer data, gpointer user_data)
 
 		/* is application backlisted */
 		if (cra_glob_value_search (ctx->blacklisted_ids,
-					   cra_app_get_app_id (app))) {
+					   cra_app_get_id (app))) {
 			cra_package_log (task->pkg,
 					 CRA_PACKAGE_LOG_LEVEL_INFO,
 					 "app id %s is blacklisted",
@@ -199,6 +199,25 @@ cra_task_process_func (gpointer data, gpointer user_data)
 			g_error_free (error);
 			goto out;
 		}
+
+		/* don't include apps that *still* require appdata */
+		if (cra_app_get_requires_appdata (app)) {
+			cra_package_log (task->pkg,
+					 CRA_PACKAGE_LOG_LEVEL_INFO,
+					 "%s required appdata but none provided",
+					 cra_app_get_id_full (app));
+			continue;
+		}
+
+		/* don't include apps that have no icon */
+		if (cra_app_get_icon (app) == NULL) {
+			cra_package_log (task->pkg,
+					 CRA_PACKAGE_LOG_LEVEL_INFO,
+					 "%s has no icon",
+					 cra_app_get_id_full (app));
+			continue;
+		}
+
 		tmp = cra_app_to_string (app);
 		cra_package_log (task->pkg, CRA_PACKAGE_LOG_LEVEL_NONE, "%s", tmp);
 		g_free (tmp);
@@ -238,21 +257,52 @@ int
 main (int argc, char **argv)
 {
 	const gchar *filename;
-	const gchar *packages_dir = "./packages";
-	const gchar *temp_dir = "./tmp";
-	const gchar *log_dir = "./logs";
 	const gint max_threads = 1;
 	CraContext *ctx = NULL;
 	CraPackage *pkg;
 	CraTask *task;
 	gboolean ret;
+	gboolean verbose = FALSE;
+	gchar *log_dir = NULL;
+	gchar *packages_dir = NULL;
+	gchar *temp_dir = NULL;
 	gchar *tmp;
 	GDir *dir = NULL;
 	GError *error = NULL;
+	GOptionContext *option_context;
 	GThreadPool *pool;
 	guint i;
+	const GOptionEntry options[] = {
+		{ "verbose", 'v', 0, G_OPTION_ARG_NONE, &verbose,
+			"Show extra debugging information", NULL },
+		{ "log-dir", '\0', 0, G_OPTION_ARG_STRING, &log_dir,
+			"Set the logging directory", NULL },
+		{ "packages-dir", '\0', 0, G_OPTION_ARG_STRING, &packages_dir,
+			"Set the packages directory", NULL },
+		{ "temp-dir", '\0', 0, G_OPTION_ARG_STRING, &temp_dir,
+			"Set the temporary directory", NULL },
+		{ NULL}
+	};
 
-	g_setenv ("G_MESSAGES_DEBUG", "all", TRUE);
+	option_context = g_option_context_new (NULL);
+	g_option_context_add_main_entries (option_context, options, NULL);
+	ret = g_option_context_parse (option_context, &argc, &argv, &error);
+	if (!ret) {
+		g_print ("Failed to parse arguments: %s\n", error->message);
+		g_error_free (error);
+		goto out;
+	}
+
+	if (verbose)
+		g_setenv ("G_MESSAGES_DEBUG", "all", TRUE);
+
+	/* set defaults */
+	if (packages_dir == NULL)
+		packages_dir = g_strdup ("./packages");
+	if (temp_dir == NULL)
+		temp_dir = g_strdup ("./tmp");
+	if (log_dir == NULL)
+		log_dir = g_strdup ("./logs");
 
 	rpmReadConfigFiles (NULL, NULL);
 	setlocale (LC_ALL, "");
@@ -260,13 +310,19 @@ main (int argc, char **argv)
 	/* set up state */
 	ret = cra_utils_ensure_exists_and_empty (temp_dir, &error);
 	if (!ret) {
-		g_warning ("failed to create tmpdir: %s", error->message);
+		g_warning ("failed to create temp dir: %s", error->message);
 		g_error_free (error);
 		goto out;
 	}
 	ret = cra_utils_ensure_exists_and_empty (log_dir, &error);
 	if (!ret) {
-		g_warning ("failed to create logdir: %s", error->message);
+		g_warning ("failed to create log dir: %s", error->message);
+		g_error_free (error);
+		goto out;
+	}
+	ret = cra_utils_ensure_exists_and_empty ("./icons", &error);
+	if (!ret) {
+		g_warning ("failed to create icons dir: %s", error->message);
 		g_error_free (error);
 		goto out;
 	}
@@ -297,7 +353,7 @@ main (int argc, char **argv)
 	/* scan each package */
 	g_debug ("Scanning packages");
 	dir = g_dir_open (packages_dir, 0, &error);
-	if (pool == NULL) {
+	if (dir == NULL) {
 		g_warning ("failed to open packages: %s", error->message);
 		g_error_free (error);
 		goto out;
@@ -359,6 +415,10 @@ main (int argc, char **argv)
 	/* success */
 	g_debug ("Done!");
 out:
+	g_free (packages_dir);
+	g_free (temp_dir);
+	g_free (log_dir);
+	g_option_context_free (option_context);
 	if (ctx != NULL)
 		cra_context_free (ctx);
 	if (dir != NULL)

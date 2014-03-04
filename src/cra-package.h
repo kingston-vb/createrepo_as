@@ -78,6 +78,7 @@ const gchar	*cra_package_get_name		(CraPackage	*pkg);
 const gchar	*cra_package_get_nevr		(CraPackage	*pkg);
 const gchar	*cra_package_get_url		(CraPackage	*pkg);
 gchar		**cra_package_get_filelist	(CraPackage	*pkg);
+gchar		**cra_package_get_deps		(CraPackage	*pkg);
 
 G_END_DECLS
 

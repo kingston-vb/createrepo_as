@@ -35,7 +35,7 @@ cra_plugin_get_name (void)
 static gboolean
 cra_plugin_nm_app (CraApp *app, const gchar *filename, GError **error)
 {
-	const gchar *argv[] = { "/usr/bin/nm", filename, NULL };
+	const gchar *argv[] = { "/usr/bin/nm", "-D", filename, NULL };
 	gboolean ret;
 	gchar *data_err = NULL;
 	gchar *data_out = NULL;

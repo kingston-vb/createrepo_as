@@ -85,10 +85,11 @@ cra_plugin_process_app (CraPlugin *plugin,
 {
 	const gchar *tmp;
 	gchar **filelist;
+	gchar **deps;
 	guint i;
 
 	/* add extra categories */
-	tmp = cra_app_get_app_id (app);
+	tmp = cra_app_get_id (app);
 	if (g_strcmp0 (tmp, "0install") == 0)
 		cra_app_add_category (app, "System");
 	if (g_strcmp0 (tmp, "alacarte") == 0)
@@ -129,6 +130,15 @@ cra_plugin_process_app (CraPlugin *plugin,
 		if (g_str_has_prefix (filelist[i],
 				      "/usr/share/gnome-shell/search-providers/")) {
 			cra_app_add_metadata (app, "X-Kudo-SearchProvider", "");
+			break;
+		}
+	}
+
+	/* look for a modern toolkit */
+	deps = cra_package_get_deps (pkg);
+	for (i = 0; deps[i] != NULL; i++) {
+		if (g_strcmp0 (deps[i], "libgtk-3.so.0") == 0) {
+			cra_app_add_metadata (app, "X-Kudo-GTK3", "");
 			break;
 		}
 	}

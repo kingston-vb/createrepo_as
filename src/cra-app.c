@@ -29,7 +29,8 @@ struct _CraAppPrivate
 	gchar		*type_id;
 	gchar		*project_group;
 	gchar		*homepage_url;
-	gchar		*app_id;
+	gchar		*id;
+	gchar		*id_full;
 	gchar		*icon;
 	GPtrArray	*categories;
 	GPtrArray	*keywords;
@@ -56,7 +57,8 @@ cra_app_finalize (GObject *object)
 	CraApp *app = CRA_APP (object);
 	CraAppPrivate *priv = GET_PRIVATE (app);
 
-	g_free (priv->app_id);
+	g_free (priv->id);
+	g_free (priv->id_full);
 	g_free (priv->type_id);
 	g_free (priv->homepage_url);
 	g_free (priv->project_group);
@@ -159,7 +161,7 @@ cra_app_to_string (CraApp *app)
 	guint i;
 
 	str = g_string_new ("");
-	g_string_append_printf (str, "app-id:\t\t%s\n", priv->app_id);
+	g_string_append_printf (str, "app-id:\t\t%s\n", priv->id);
 	cra_app_to_string_hash (str, priv->names, "names:\t");
 	cra_app_to_string_hash (str, priv->comments, "comments:");
 	cra_app_to_string_hash (str, priv->languages, "languages:");
@@ -196,6 +198,7 @@ void
 cra_app_set_type_id (CraApp *app, const gchar *type_id)
 {
 	CraAppPrivate *priv = GET_PRIVATE (app);
+	g_free (priv->type_id);
 	priv->type_id = g_strdup (type_id);
 }
 
@@ -206,6 +209,7 @@ void
 cra_app_set_homepage_url (CraApp *app, const gchar *homepage_url)
 {
 	CraAppPrivate *priv = GET_PRIVATE (app);
+	g_free (priv->homepage_url);
 	priv->homepage_url = g_strdup (homepage_url);
 }
 
@@ -216,6 +220,7 @@ void
 cra_app_set_project_group (CraApp *app, const gchar *project_group)
 {
 	CraAppPrivate *priv = GET_PRIVATE (app);
+	g_free (priv->project_group);
 	priv->project_group = g_strdup (project_group);
 }
 
@@ -226,6 +231,7 @@ void
 cra_app_set_icon (CraApp *app, const gchar *icon)
 {
 	CraAppPrivate *priv = GET_PRIVATE (app);
+	g_free (priv->icon);
 	priv->icon = g_strdup (icon);
 }
 
@@ -351,6 +357,16 @@ cra_app_get_categories (CraApp *app)
 }
 
 /**
+ * cra_app_get_requires_appdata:
+ **/
+gboolean
+cra_app_get_requires_appdata (CraApp *app)
+{
+	CraAppPrivate *priv = GET_PRIVATE (app);
+	return priv->requires_appdata;
+}
+
+/**
  * cra_app_get_keywords:
  **/
 GPtrArray *
@@ -361,13 +377,33 @@ cra_app_get_keywords (CraApp *app)
 }
 
 /**
- * cra_app_get_app_id:
+ * cra_app_get_id_full:
  **/
 const gchar *
-cra_app_get_app_id (CraApp *app)
+cra_app_get_id_full (CraApp *app)
 {
 	CraAppPrivate *priv = GET_PRIVATE (app);
-	return priv->app_id;
+	return priv->id_full;
+}
+
+/**
+ * cra_app_get_id:
+ **/
+const gchar *
+cra_app_get_id (CraApp *app)
+{
+	CraAppPrivate *priv = GET_PRIVATE (app);
+	return priv->id;
+}
+
+/**
+ * cra_app_get_icon:
+ **/
+const gchar *
+cra_app_get_icon (CraApp *app)
+{
+	CraAppPrivate *priv = GET_PRIVATE (app);
+	return priv->icon;
 }
 
 /**
@@ -381,16 +417,33 @@ cra_app_get_project_group (CraApp *app)
 }
 
 /**
+ * cra_app_set_id_full:
+ **/
+static void
+cra_app_set_id_full (CraApp *app, const gchar *id_full)
+{
+	CraAppPrivate *priv = GET_PRIVATE (app);
+	gchar *tmp;
+
+	priv->id_full = g_strdup (id_full);
+	priv->id = g_strdup (id_full);
+	tmp = g_strstr_len (priv->id, -1, ".desktop");
+	if (tmp != NULL)
+		*tmp = '\0';
+}
+
+/**
  * cra_app_new:
  **/
 CraApp *
-cra_app_new (CraPackage *pkg, const gchar *app_id)
+cra_app_new (CraPackage *pkg, const gchar *id_full)
 {
 	CraApp *app;
 	CraAppPrivate *priv;
+
 	app = g_object_new (CRA_TYPE_APP, NULL);
 	priv = GET_PRIVATE (app);
-	priv->app_id = g_strdup (app_id);
 	priv->pkg = g_object_ref (pkg);
+	cra_app_set_id_full (app, id_full);
 	return CRA_APP (app);
 }

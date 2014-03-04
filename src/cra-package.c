@@ -36,6 +36,7 @@ struct _CraPackagePrivate
 {
 	Header		 h;
 	gchar		**filelist;
+	gchar		**deps;
 	gchar		*filename;
 	gchar		*name;
 	guint		 epoch;
@@ -62,6 +63,7 @@ cra_package_finalize (GObject *object)
 
 	headerFree (priv->h);
 	g_strfreev (priv->filelist);
+	g_strfreev (priv->deps);
 	g_free (priv->filename);
 	g_free (priv->name);
 	g_free (priv->version);
@@ -175,6 +177,16 @@ cra_package_get_filelist (CraPackage *pkg)
 }
 
 /**
+ * cra_package_get_deps:
+ **/
+gchar **
+cra_package_get_deps (CraPackage *pkg)
+{
+	CraPackagePrivate *priv = GET_PRIVATE (pkg);
+	return priv->deps;
+}
+
+/**
  * cra_package_get_nevr:
  **/
 const gchar *
@@ -215,8 +227,10 @@ gboolean
 cra_package_ensure_filelist (CraPackage *pkg, GError **error)
 {
 	CraPackagePrivate *priv = GET_PRIVATE (pkg);
+	const gchar *dep;
 	const gchar **dirnames = NULL;
 	gboolean ret = TRUE;
+	gchar *tmp;
 	gint32 *dirindex = NULL;
 	gint rc;
 	guint i;
@@ -256,6 +270,33 @@ cra_package_ensure_filelist (CraPackage *pkg, GError **error)
 		priv->filelist[i] = g_build_filename (dirnames[dirindex[i]],
 						     rpmtdGetString (td[1]),
 						     NULL);
+		i++;
+	}
+
+	/* read out the dep list */
+	rc = headerGet (priv->h, RPMTAG_REQUIRENAME, td[0], HEADERGET_MINMEM);
+	if (!rc) {
+		ret = FALSE;
+		g_set_error (error,
+			     CRA_PLUGIN_ERROR,
+			     CRA_PLUGIN_ERROR_FAILED,
+			     "Failed to read list of requires %s",
+			     priv->filename);
+		goto out;
+	}
+	i = 0;
+	priv->deps = g_new0 (gchar *, rpmtdCount (td[0]) + 1);
+	while (rpmtdNext (td[0]) != -1) {
+		dep = rpmtdGetString (td[0]);
+		if (g_str_has_prefix (dep, "rpmlib"))
+			continue;
+		if (g_strcmp0 (dep, "/bin/sh") == 0)
+			continue;
+		priv->deps[i] = g_strdup (dep);
+		tmp = g_strstr_len (priv->deps[i], -1, "(");
+		if (tmp != NULL)
+			*tmp = '\0';
+		/* TODO: deduplicate */
 		i++;
 	}
 out:

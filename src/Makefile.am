@@ -1,4 +1,5 @@
 AM_CPPFLAGS =						\
+	$(GDKPIXBUF_CFLAGS)				\
 	$(GLIB_CFLAGS)					\
 	$(LIBARCHIVE_CFLAGS)				\
 	$(RPM_CFLAGS)					\
@@ -21,6 +22,7 @@ createrepo_as_SOURCES =					\
 	cra-plugin-loader.h				\
 	cra-main.c
 createrepo_as_LDADD =					\
+	$(GDKPIXBUF_LIBS)				\
 	$(GLIB_LIBS)					\
 	$(LIBARCHIVE_LIBS)				\
 	$(RPM_LIBS)
@@ -52,7 +54,7 @@ libcra_plugin_hardcoded_la_LDFLAGS = -module -avoid-version
 libcra_plugin_hardcoded_la_CFLAGS = $(GLIB_CFLAGS) $(WARNINGFLAGS_C)
 
 libcra_plugin_desktop_la_SOURCES = cra-plugin-desktop.c
-libcra_plugin_desktop_la_LIBADD = $(GLIB_LIBS)
+libcra_plugin_desktop_la_LIBADD = $(GLIB_LIBS) $(GDKPIXBUF_LIBS)
 libcra_plugin_desktop_la_LDFLAGS = -module -avoid-version
 libcra_plugin_desktop_la_CFLAGS = $(GLIB_CFLAGS) $(WARNINGFLAGS_C)
 

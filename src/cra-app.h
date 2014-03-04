@@ -50,7 +50,7 @@ struct _CraAppClass
 
 GType		 cra_app_get_type		(void);
 CraApp		*cra_app_new			(CraPackage	*pkg,
-						 const gchar	*app_id);
+						 const gchar	*id_full);
 gchar		*cra_app_to_string		(CraApp		*app);
 void		 cra_app_set_type_id		(CraApp		*app,
 						 const gchar	*type_id);
@@ -83,9 +83,12 @@ void		 cra_app_set_requires_appdata	(CraApp		*app,
 void		 cra_app_set_cached_icon	(CraApp		*app,
 						 gboolean	 cached_icon);
 
+gboolean	 cra_app_get_requires_appdata	(CraApp		*app);
 GPtrArray	*cra_app_get_categories		(CraApp		*app);
 GPtrArray	*cra_app_get_keywords		(CraApp		*app);
-const gchar	*cra_app_get_app_id		(CraApp		*app);
+const gchar	*cra_app_get_id			(CraApp		*app);
+const gchar	*cra_app_get_id_full		(CraApp		*app);
+const gchar	*cra_app_get_icon		(CraApp		*app);
 const gchar	*cra_app_get_project_group	(CraApp		*app);
 
 G_END_DECLS
