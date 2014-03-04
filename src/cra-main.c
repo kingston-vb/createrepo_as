@@ -251,6 +251,38 @@ cra_task_sort_cb (gconstpointer a, gconstpointer b, gpointer user_data)
 }
 
 /**
+ * cra_context_add_filename:
+ */
+static gboolean
+cra_context_add_filename (CraContext *ctx, const gchar *filename, GError **error)
+{
+	CraPackage *pkg;
+	gboolean ret;
+
+	/* open */
+	pkg = cra_package_new ();
+	ret = cra_package_open (pkg, filename, error);
+	if (!ret)
+		goto out;
+
+	/* is package name blacklisted */
+	if (cra_glob_value_search (ctx->blacklisted_pkgs,
+				   cra_package_get_name (pkg)) != NULL) {
+		cra_package_log (pkg,
+				 CRA_PACKAGE_LOG_LEVEL_INFO,
+				 "%s is blacklisted",
+				 cra_package_get_filename (pkg));
+		goto out;
+	}
+
+	/* add to array */
+	g_ptr_array_add (ctx->packages, g_object_ref (pkg));
+out:
+	g_object_unref (pkg);
+	return ret;
+}
+
+/**
  * main:
  */
 int
@@ -263,6 +295,7 @@ main (int argc, char **argv)
 	CraTask *task;
 	gboolean ret;
 	gboolean verbose = FALSE;
+	gchar *buildone = NULL;
 	gchar *log_dir = NULL;
 	gchar *packages_dir = NULL;
 	gchar *temp_dir = NULL;
@@ -280,6 +313,8 @@ main (int argc, char **argv)
 		{ "packages-dir", '\0', 0, G_OPTION_ARG_STRING, &packages_dir,
 			"Set the packages directory", NULL },
 		{ "temp-dir", '\0', 0, G_OPTION_ARG_STRING, &temp_dir,
+			"Set the temporary directory", NULL },
+		{ "buildone", '\0', 0, G_OPTION_ARG_STRING, &buildone,
 			"Set the temporary directory", NULL },
 		{ NULL}
 	};
@@ -351,38 +386,27 @@ main (int argc, char **argv)
 	g_thread_pool_set_sort_function (pool, cra_task_sort_cb, NULL);
 
 	/* scan each package */
-	g_debug ("Scanning packages");
-	dir = g_dir_open (packages_dir, 0, &error);
-	if (dir == NULL) {
-		g_warning ("failed to open packages: %s", error->message);
-		g_error_free (error);
-		goto out;
-	}
-	while ((filename = g_dir_read_name (dir)) != NULL) {
-		tmp = g_build_filename (packages_dir, filename, NULL);
-		pkg = cra_package_new ();
-		ret = cra_package_open (pkg, tmp, &error);
-		if (!ret) {
-			cra_package_log (pkg,
-					 CRA_PACKAGE_LOG_LEVEL_WARNING,
-					 "Failed to open package: %s",
-					 error->message);
+	if (buildone == NULL) {
+		g_debug ("Scanning packages");
+		dir = g_dir_open (packages_dir, 0, &error);
+		if (dir == NULL) {
+			g_warning ("failed to open packages: %s", error->message);
 			g_error_free (error);
 			goto out;
 		}
-
-		/* is package name blacklisted */
-		if (cra_glob_value_search (ctx->blacklisted_pkgs,
-					   cra_package_get_name (pkg)) != NULL) {
-			cra_package_log (pkg,
-					 CRA_PACKAGE_LOG_LEVEL_INFO,
-					 "%s is blacklisted",
-					 cra_package_get_filename (pkg));
-			continue;
+		while ((filename = g_dir_read_name (dir)) != NULL) {
+			tmp = g_build_filename (packages_dir, filename, NULL);
+			ret = cra_context_add_filename (ctx, tmp, &error);
+			if (!ret) {
+				g_warning ("Failed to open package %s: %s",
+					   tmp, error->message);
+				g_error_free (error);
+				goto out;
+			}
+			g_free (tmp);
 		}
-
-		g_ptr_array_add (ctx->packages, pkg);
-		g_free (tmp);
+	} else {
+		ret = cra_context_add_filename (ctx, buildone, &error);
 	}
 
 	/* add each package */
@@ -415,6 +439,7 @@ main (int argc, char **argv)
 	/* success */
 	g_debug ("Done!");
 out:
+	g_free (buildone);
 	g_free (packages_dir);
 	g_free (temp_dir);
 	g_free (log_dir);
