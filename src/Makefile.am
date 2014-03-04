@@ -11,6 +11,8 @@ noinst_PROGRAMS =					\
 createrepo_as_SOURCES =					\
 	cra-app.c					\
 	cra-app.h					\
+	cra-dom.c					\
+	cra-dom.h					\
 	cra-context.c					\
 	cra-context.h					\
 	cra-package.c					\
@@ -38,6 +40,7 @@ plugin_LTLIBRARIES =					\
 	libcra_plugin_gstreamer.la			\
 	libcra_plugin_hardcoded.la			\
 	libcra_plugin_ibus_sql.la			\
+	libcra_plugin_ibus_xml.la			\
 	libcra_plugin_nm.la
 
 libcra_plugin_gstreamer_la_SOURCES = cra-plugin-gstreamer.c
@@ -69,5 +72,10 @@ libcra_plugin_ibus_sql_la_SOURCES = cra-plugin-ibus-sql.c
 libcra_plugin_ibus_sql_la_LIBADD = $(GLIB_LIBS) $(SQLITE_LIBS)
 libcra_plugin_ibus_sql_la_LDFLAGS = -module -avoid-version
 libcra_plugin_ibus_sql_la_CFLAGS = $(GLIB_CFLAGS) $(WARNINGFLAGS_C)
+
+libcra_plugin_ibus_xml_la_SOURCES = cra-plugin-ibus-xml.c
+libcra_plugin_ibus_xml_la_LIBADD = $(GLIB_LIBS) $(SQLITE_LIBS)
+libcra_plugin_ibus_xml_la_LDFLAGS = -module -avoid-version
+libcra_plugin_ibus_xml_la_CFLAGS = $(GLIB_CFLAGS) $(WARNINGFLAGS_C)
 
 -include $(top_srcdir)/git.mk

@@ -166,6 +166,17 @@ out:
 }
 
 /**
+ * cra_plugin_loader_sort_cb:
+ */
+static gint
+cra_plugin_loader_sort_cb (gconstpointer a, gconstpointer b)
+{
+	CraPlugin **plugin_a = (CraPlugin **) a;
+	CraPlugin **plugin_b = (CraPlugin **) b;
+	return -g_strcmp0 ((*plugin_a)->name, (*plugin_b)->name);
+}
+
+/**
  * cra_plugin_loader_setup:
  */
 gboolean
@@ -201,6 +212,7 @@ cra_plugin_loader_setup (GPtrArray *plugins, GError **error)
 
 	/* run the plugins */
 	cra_plugin_loader_run (plugins, "cra_plugin_initialize");
+	g_ptr_array_sort (plugins, cra_plugin_loader_sort_cb);
 out:
 	if (dir != NULL)
 		g_dir_close (dir);
