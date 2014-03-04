@@ -43,6 +43,8 @@ struct _CraPackagePrivate
 	gchar		*release;
 	gchar		*arch;
 	gchar		*url;
+	gchar		*nevr;
+	GString		*log;
 };
 
 G_DEFINE_TYPE_WITH_PRIVATE (CraPackage, cra_package, G_TYPE_OBJECT)
@@ -66,6 +68,8 @@ cra_package_finalize (GObject *object)
 	g_free (priv->release);
 	g_free (priv->arch);
 	g_free (priv->url);
+	g_free (priv->nevr);
+	g_string_free (priv->log, TRUE);
 
 	G_OBJECT_CLASS (cra_package_parent_class)->finalize (object);
 }
@@ -77,7 +81,57 @@ static void
 cra_package_init (CraPackage *pkg)
 {
 	CraPackagePrivate *priv = GET_PRIVATE (pkg);
-	priv->h = NULL;
+	priv->log = g_string_sized_new (1024);
+}
+
+/**
+ * cra_package_log:
+ **/
+void
+cra_package_log (CraPackage *pkg,
+		 CraPackageLogLevel log_level,
+		 const gchar *fmt, ...)
+{
+	CraPackagePrivate *priv = GET_PRIVATE (pkg);
+	gchar *tmp;
+	va_list args;
+
+	va_start (args, fmt);
+	tmp = g_strdup_vprintf (fmt, args);
+	va_end (args);
+	switch (log_level) {
+	case CRA_PACKAGE_LOG_LEVEL_INFO:
+		g_string_append_printf (priv->log, "INFO:    %s\n", tmp);
+		break;
+	case CRA_PACKAGE_LOG_LEVEL_WARNING:
+		g_string_append_printf (priv->log, "WARNING: %s\n", tmp);
+		break;
+	default:
+		g_string_append_printf (priv->log, "%s\n", tmp);
+		break;
+	}
+	g_free (tmp);
+}
+
+/**
+ * cra_package_log_flush:
+ **/
+gboolean
+cra_package_log_flush (CraPackage *pkg, GError **error)
+{
+	CraPackagePrivate *priv = GET_PRIVATE (pkg);
+	gboolean ret;
+	gchar *logfile;
+
+	/* overwrite old log */
+	logfile = g_strdup_printf ("./logs/%s.log", cra_package_get_nevr (pkg));
+	g_debug ("Writing to %s", logfile);
+	ret = g_file_set_contents (logfile, priv->log->str, -1, error);
+	if (!ret)
+		goto out;
+out:
+	g_free (logfile);
+	return ret;
 }
 
 /**
@@ -118,6 +172,30 @@ cra_package_get_filelist (CraPackage *pkg)
 {
 	CraPackagePrivate *priv = GET_PRIVATE (pkg);
 	return priv->filelist;
+}
+
+/**
+ * cra_package_get_nevr:
+ **/
+const gchar *
+cra_package_get_nevr (CraPackage *pkg)
+{
+	CraPackagePrivate *priv = GET_PRIVATE (pkg);
+	if (priv->nevr == NULL) {
+		if (priv->epoch == 0) {
+			priv->nevr = g_strdup_printf ("%s-%s-%s",
+						      priv->name,
+						      priv->version,
+						      priv->release);
+		} else {
+			priv->nevr = g_strdup_printf ("%s-%i:%s-%s",
+						      priv->name,
+						      priv->epoch,
+						      priv->version,
+						      priv->release);
+		}
+	}
+	return priv->nevr;
 }
 
 /**

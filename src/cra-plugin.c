@@ -47,7 +47,10 @@ cra_plugin_process (CraPlugin *plugin,
 	gboolean ret;
 
 	/* run each plugin */
-	g_debug ("Running cra_plugin_process() on %s", plugin->name);
+	cra_package_log (pkg,
+			 CRA_PACKAGE_LOG_LEVEL_INFO,
+			 "Running cra_plugin_process() from %s",
+			 plugin->name);
 	ret = g_module_symbol (plugin->module,
 			       "cra_plugin_process",
 			       (gpointer *) &plugin_func);

@@ -307,7 +307,9 @@ cra_plugin_process_filename (CraPlugin *plugin,
 					   key) != NULL) {
 			g_object_unref (app);
 			app = NULL;
-			g_debug ("category %s is blacklisted", key);
+			cra_package_log (pkg,
+					 CRA_PACKAGE_LOG_LEVEL_INFO,
+					 "category %s is blacklisted", key);
 			goto out;
 		}
 	}

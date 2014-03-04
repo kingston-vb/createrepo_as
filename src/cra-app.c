@@ -126,62 +126,67 @@ cra_app_list_sort_cb (gconstpointer a, gconstpointer b)
 }
 
 /**
- * cra_app_print_hash:
+ * cra_app_to_string_hash:
  **/
 static void
-cra_app_print_hash (GHashTable *hash, const gchar *header)
+cra_app_to_string_hash (GString *str, GHashTable *hash, const gchar *header)
 {
-	GList *list;
+	const gchar *tmp;
 	GList *l;
+	GList *list;
 
 	list = g_hash_table_get_keys (hash);
 	list = g_list_sort (list, cra_app_list_sort_cb);
 	for (l = list; l != NULL; l = l->next) {
-		g_print ("%s\t%s\t%s\n",
-			 header,
-			 (const gchar *) l->data,
-			 (const gchar *) g_hash_table_lookup (hash, l->data));
+		tmp = g_hash_table_lookup (hash, l->data);
+		g_string_append_printf (str, "%s\t%s\t%s\n",
+					header,
+					(const gchar *) l->data,
+					(const gchar *) tmp);
 	}
 	g_list_free (list);
 }
 
 /**
- * cra_app_print:
+ * cra_app_to_string:
  **/
-void
-cra_app_print (CraApp *app)
+gchar *
+cra_app_to_string (CraApp *app)
 {
 	CraAppPrivate *priv = GET_PRIVATE (app);
 	const gchar *tmp;
+	GString *str;
 	guint i;
 
-	g_print ("app-id:\t\t%s\n", priv->app_id);
-	cra_app_print_hash (priv->names, "names:\t");
-	cra_app_print_hash (priv->comments, "comments:");
-	cra_app_print_hash (priv->languages, "languages:");
-	cra_app_print_hash (priv->metadata, "metadata:");
+	str = g_string_new ("");
+	g_string_append_printf (str, "app-id:\t\t%s\n", priv->app_id);
+	cra_app_to_string_hash (str, priv->names, "names:\t");
+	cra_app_to_string_hash (str, priv->comments, "comments:");
+	cra_app_to_string_hash (str, priv->languages, "languages:");
+	cra_app_to_string_hash (str, priv->metadata, "metadata:");
 
-	g_print ("type-id:\t%s\n", priv->type_id);
+	g_string_append_printf (str, "type-id:\t%s\n", priv->type_id);
 	if (priv->project_group != NULL)
-		g_print ("project:\t%s\n", priv->project_group);
+		g_string_append_printf (str, "project:\t%s\n", priv->project_group);
 	if (priv->homepage_url != NULL)
-		g_print ("homepage:\t%s\n", priv->homepage_url);
+		g_string_append_printf (str, "homepage:\t%s\n", priv->homepage_url);
 	if (priv->icon != NULL)
-		g_print ("icon:\t\t%s\n", priv->icon);
-	g_print ("req-appdata:\t%s\n", priv->requires_appdata ? "True" : "False");
-	g_print ("cached-icon:\t%s\n", priv->cached_icon ? "True" : "False");
+		g_string_append_printf (str, "icon:\t\t%s\n", priv->icon);
+	g_string_append_printf (str, "req-appdata:\t%s\n", priv->requires_appdata ? "True" : "False");
+	g_string_append_printf (str, "cached-icon:\t%s\n", priv->cached_icon ? "True" : "False");
 	for (i = 0; i < priv->categories->len; i++) {
 		tmp = g_ptr_array_index (priv->categories, i);
-		g_print ("category:\t%s\n", tmp);
+		g_string_append_printf (str, "category:\t%s\n", tmp);
 	}
 	for (i = 0; i < priv->keywords->len; i++) {
 		tmp = g_ptr_array_index (priv->keywords, i);
-		g_print ("keyword:\t%s\n", tmp);
+		g_string_append_printf (str, "keyword:\t%s\n", tmp);
 	}
 	for (i = 0; i < priv->mimetypes->len; i++) {
 		tmp = g_ptr_array_index (priv->mimetypes, i);
-		g_print ("mimetype:\t%s\n", tmp);
+		g_string_append_printf (str, "mimetype:\t%s\n", tmp);
 	}
+	return g_string_free (str, FALSE);
 }
 
 /**
@@ -232,7 +237,10 @@ cra_app_add_category (CraApp *app, const gchar *category)
 {
 	CraAppPrivate *priv = GET_PRIVATE (app);
 	if (cra_utils_ptr_array_find_string (priv->categories, category)) {
-		g_warning ("Already added %s to categories", category);
+		cra_package_log (priv->pkg,
+				 CRA_PACKAGE_LOG_LEVEL_WARNING,
+				 "Already added %s to categories",
+				 category);
 		return;
 	}
 	g_ptr_array_add (priv->categories, g_strdup (category));
@@ -246,7 +254,10 @@ cra_app_add_keyword (CraApp *app, const gchar *keyword)
 {
 	CraAppPrivate *priv = GET_PRIVATE (app);
 	if (cra_utils_ptr_array_find_string (priv->keywords, keyword)) {
-		g_warning ("Already added %s to keywords", keyword);
+		cra_package_log (priv->pkg,
+				 CRA_PACKAGE_LOG_LEVEL_WARNING,
+				 "Already added %s to keywords",
+				 keyword);
 		return;
 	}
 	g_ptr_array_add (priv->keywords, g_strdup (keyword));
@@ -260,7 +271,10 @@ cra_app_add_mimetype (CraApp *app, const gchar *mimetype)
 {
 	CraAppPrivate *priv = GET_PRIVATE (app);
 	if (cra_utils_ptr_array_find_string (priv->mimetypes, mimetype)) {
-		g_warning ("Already added %s to mimetypes", mimetype);
+		cra_package_log (priv->pkg,
+				 CRA_PACKAGE_LOG_LEVEL_WARNING,
+				 "Already added %s to mimetypes",
+				 mimetype);
 		return;
 	}
 	g_ptr_array_add (priv->mimetypes, g_strdup (mimetype));

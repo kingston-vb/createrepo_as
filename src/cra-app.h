@@ -51,7 +51,7 @@ struct _CraAppClass
 GType		 cra_app_get_type		(void);
 CraApp		*cra_app_new			(CraPackage	*pkg,
 						 const gchar	*app_id);
-void		 cra_app_print			(CraApp		*app);
+gchar		*cra_app_to_string		(CraApp		*app);
 void		 cra_app_set_type_id		(CraApp		*app,
 						 const gchar	*type_id);
 void		 cra_app_set_homepage_url	(CraApp		*app,

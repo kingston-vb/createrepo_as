@@ -43,6 +43,10 @@ typedef struct {
 static void
 cra_task_free (CraTask *task)
 {
+	cra_package_log (task->pkg,
+			 CRA_PACKAGE_LOG_LEVEL_INFO,
+			 "Flushing %s", task->filename);
+	cra_package_log_flush (task->pkg, NULL);
 	g_object_unref (task->pkg);
 	g_free (task->filename);
 	g_free (task->tmpdir);
@@ -62,22 +66,29 @@ cra_task_process_func (gpointer data, gpointer user_data)
 	CraPlugin *plugin = NULL;
 	CraTask *task = (CraTask *) data;
 	gboolean ret;
+	gchar **filelist;
+	gchar *tmp;
 	GError *error = NULL;
 	GList *apps = NULL;
 	GList *l;
 	guint i;
-	gchar **filelist;
 
 	/* get file list */
 	ret = cra_package_ensure_filelist (task->pkg, &error);
 	if (!ret) {
-		g_warning ("Failed to get file list: %s", error->message);
+		cra_package_log (task->pkg,
+				 CRA_PACKAGE_LOG_LEVEL_WARNING,
+				 "Failed to get file list: %s",
+				 error->message);
 		g_error_free (error);
 		goto out;
 	}
 
 	/* did we get a file match on any plugin */
-	g_debug ("Getting filename match for %s", task->filename);
+	cra_package_log (task->pkg,
+			 CRA_PACKAGE_LOG_LEVEL_INFO,
+			 "Getting filename match for %s",
+			 task->filename);
 	filelist = cra_package_get_filelist (task->pkg);
 	for (i = 0; filelist[i] != NULL; i++) {
 		plugin = cra_plugin_loader_match_fn (ctx->plugins, filelist[i]);
@@ -90,7 +101,9 @@ cra_task_process_func (gpointer data, gpointer user_data)
 	/* delete old tree if it exists */
 	ret = cra_utils_ensure_exists_and_empty (task->tmpdir, &error);
 	if (!ret) {
-		g_warning ("Failed to clear: %s", error->message);
+		cra_package_log (task->pkg,
+				 CRA_PACKAGE_LOG_LEVEL_WARNING,
+				 "Failed to clear: %s", error->message);
 		g_error_free (error);
 		goto out;
 	}
@@ -98,7 +111,9 @@ cra_task_process_func (gpointer data, gpointer user_data)
 	/* explode tree */
 	ret = cra_package_explode (task->pkg, task->tmpdir, &error);
 	if (!ret) {
-		g_warning ("Failed to explode: %s", error->message);
+		cra_package_log (task->pkg,
+				 CRA_PACKAGE_LOG_LEVEL_WARNING,
+				 "Failed to explode: %s", error->message);
 		g_error_free (error);
 		goto out;
 	}
@@ -108,25 +123,37 @@ cra_task_process_func (gpointer data, gpointer user_data)
 	if (pkg_name != NULL) {
 		pkg_extra = cra_context_find_by_pkgname (ctx, pkg_name);
 		if (pkg_extra == NULL) {
-			g_warning ("%s requires %s but is not available",
-				   cra_package_get_name (task->pkg), pkg_name);
+			cra_package_log (task->pkg,
+					 CRA_PACKAGE_LOG_LEVEL_WARNING,
+					 "%s requires %s but is not available",
+					 cra_package_get_name (task->pkg),
+					 pkg_name);
 			goto out;
 		}
 		ret = cra_package_explode (pkg_extra, task->tmpdir, &error);
 		if (!ret) {
-			g_warning ("Failed to explode extra file: %s",
-				   error->message);
+			cra_package_log (task->pkg,
+					 CRA_PACKAGE_LOG_LEVEL_WARNING,
+					 "Failed to explode extra file: %s",
+					 error->message);
 			g_error_free (error);
 			goto out;
 		}
 	}
 
 	/* run plugin */
-	g_debug ("Processing %s with %s [%p]",
-		 task->filename, plugin->name, g_thread_self ());
+	cra_package_log (task->pkg,
+			 CRA_PACKAGE_LOG_LEVEL_INFO,
+			 "Processing %s with %s [%p]",
+			 task->filename,
+			 plugin->name,
+			 g_thread_self ());
 	apps = cra_plugin_process (plugin, task->pkg, task->tmpdir, &error);
 	if (apps == NULL) {
-		g_warning ("Failed to run process: %s", error->message);
+		cra_package_log (task->pkg,
+				 CRA_PACKAGE_LOG_LEVEL_WARNING,
+				 "Failed to run process: %s",
+				 error->message);
 		g_error_free (error);
 		goto out;
 	}
@@ -137,16 +164,20 @@ cra_task_process_func (gpointer data, gpointer user_data)
 
 		/* never set */
 		if (cra_app_get_app_id (app) == NULL) {
-			g_debug ("app id not set for %s",
-				 cra_package_get_name (task->pkg));
+			cra_package_log (task->pkg,
+					 CRA_PACKAGE_LOG_LEVEL_INFO,
+					 "app id not set for %s",
+					 cra_package_get_name (task->pkg));
 			continue;
 		}
 
 		/* is application backlisted */
 		if (cra_glob_value_search (ctx->blacklisted_ids,
 					   cra_app_get_app_id (app))) {
-			g_debug ("app id %s is blacklisted",
-				 cra_package_get_name (task->pkg));
+			cra_package_log (task->pkg,
+					 CRA_PACKAGE_LOG_LEVEL_INFO,
+					 "app id %s is blacklisted",
+					 cra_package_get_name (task->pkg));
 			continue;
 		}
 
@@ -161,18 +192,25 @@ cra_task_process_func (gpointer data, gpointer user_data)
 						     task->tmpdir,
 						     &error);
 		if (!ret) {
-			g_warning ("Failed to run process: %s", error->message);
+			cra_package_log (task->pkg,
+					 CRA_PACKAGE_LOG_LEVEL_WARNING,
+					 "Failed to run process: %s",
+					 error->message);
 			g_error_free (error);
 			goto out;
 		}
-		g_print ("\n");
-		cra_app_print (app);
+		tmp = cra_app_to_string (app);
+		cra_package_log (task->pkg, CRA_PACKAGE_LOG_LEVEL_NONE, "%s", tmp);
+		g_free (tmp);
 	}
 
 	/* delete tree */
 	ret = cra_utils_rmtree (task->tmpdir, &error);
 	if (!ret) {
-		g_warning ("Failed to delete tree: %s", error->message);
+		cra_package_log (task->pkg,
+				 CRA_PACKAGE_LOG_LEVEL_WARNING,
+				 "Failed to delete tree: %s",
+				 error->message);
 		g_error_free (error);
 		goto out;
 	}
@@ -202,6 +240,7 @@ main (int argc, char **argv)
 	const gchar *filename;
 	const gchar *packages_dir = "./packages";
 	const gchar *temp_dir = "./tmp";
+	const gchar *log_dir = "./logs";
 	const gint max_threads = 1;
 	CraContext *ctx = NULL;
 	CraPackage *pkg;
@@ -222,6 +261,12 @@ main (int argc, char **argv)
 	ret = cra_utils_ensure_exists_and_empty (temp_dir, &error);
 	if (!ret) {
 		g_warning ("failed to create tmpdir: %s", error->message);
+		g_error_free (error);
+		goto out;
+	}
+	ret = cra_utils_ensure_exists_and_empty (log_dir, &error);
+	if (!ret) {
+		g_warning ("failed to create logdir: %s", error->message);
 		g_error_free (error);
 		goto out;
 	}
@@ -262,7 +307,10 @@ main (int argc, char **argv)
 		pkg = cra_package_new ();
 		ret = cra_package_open (pkg, tmp, &error);
 		if (!ret) {
-			g_warning ("Failed to open package: %s", error->message);
+			cra_package_log (pkg,
+					 CRA_PACKAGE_LOG_LEVEL_WARNING,
+					 "Failed to open package: %s",
+					 error->message);
 			g_error_free (error);
 			goto out;
 		}
@@ -270,7 +318,10 @@ main (int argc, char **argv)
 		/* is package name blacklisted */
 		if (cra_glob_value_search (ctx->blacklisted_pkgs,
 					   cra_package_get_name (pkg)) != NULL) {
-			g_debug ("%s is blacklisted", cra_package_get_filename (pkg));
+			cra_package_log (pkg,
+					 CRA_PACKAGE_LOG_LEVEL_INFO,
+					 "%s is blacklisted",
+					 cra_package_get_filename (pkg));
 			continue;
 		}
 
@@ -292,7 +343,10 @@ main (int argc, char **argv)
 		/* add task to pool */
 		ret = g_thread_pool_push (pool, task, &error);
 		if (!ret) {
-			g_warning ("failed to set up pool: %s", error->message);
+			cra_package_log (task->pkg,
+					 CRA_PACKAGE_LOG_LEVEL_WARNING,
+					 "failed to set up pool: %s",
+					 error->message);
 			g_error_free (error);
 			goto out;
 		}

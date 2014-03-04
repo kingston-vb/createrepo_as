@@ -24,6 +24,8 @@
 
 #include <glib-object.h>
 
+#include <stdarg.h>
+
 #define CRA_TYPE_PACKAGE		(cra_package_get_type())
 #define CRA_PACKAGE(obj)		(G_TYPE_CHECK_INSTANCE_CAST((obj), CRA_TYPE_PACKAGE, CraPackage))
 #define CRA_PACKAGE_CLASS(cls)		(G_TYPE_CHECK_CLASS_CAST((cls), CRA_TYPE_PACKAGE, CraPackageClass))
@@ -46,9 +48,23 @@ struct _CraPackageClass
 	GObjectClass		parent_class;
 };
 
+typedef enum {
+	CRA_PACKAGE_LOG_LEVEL_NONE,
+	CRA_PACKAGE_LOG_LEVEL_INFO,
+	CRA_PACKAGE_LOG_LEVEL_WARNING,
+	CRA_PACKAGE_LOG_LEVEL_LAST,
+} CraPackageLogLevel;
+
 GType		 cra_package_get_type		(void);
 
 CraPackage	*cra_package_new		(void);
+void		 cra_package_log		(CraPackage	*pkg,
+						 CraPackageLogLevel log_level,
+						 const gchar	*fmt,
+						 ...)
+						 G_GNUC_PRINTF (3, 4);
+gboolean	 cra_package_log_flush		(CraPackage	*pkg,
+						 GError		**error);
 gboolean	 cra_package_open		(CraPackage	*pkg,
 						 const gchar	*filename,
 						 GError		**error);
@@ -59,6 +75,7 @@ gboolean	 cra_package_ensure_filelist	(CraPackage	*pkg,
 						 GError		**error);
 const gchar	*cra_package_get_filename	(CraPackage	*pkg);
 const gchar	*cra_package_get_name		(CraPackage	*pkg);
+const gchar	*cra_package_get_nevr		(CraPackage	*pkg);
 const gchar	*cra_package_get_url		(CraPackage	*pkg);
 gchar		**cra_package_get_filelist	(CraPackage	*pkg);
 

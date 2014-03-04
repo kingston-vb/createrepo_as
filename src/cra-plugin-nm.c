@@ -79,8 +79,11 @@ cra_plugin_process_app (CraPlugin *plugin,
 		filename = g_build_filename (tmpdir, filelist[i], NULL);
 		ret = cra_plugin_nm_app (app, filename, &error_local);
 		if (!ret) {
-			g_warning ("Failed to run nm on %s: %s",
-				   filename, error_local->message);
+			cra_package_log (pkg,
+					 CRA_PACKAGE_LOG_LEVEL_WARNING,
+					 "Failed to run nm on %s: %s",
+					 filename,
+					 error_local->message);
 			g_clear_error (&error_local);
 		}
 		g_free (filename);
