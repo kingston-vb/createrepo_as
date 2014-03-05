@@ -211,7 +211,7 @@ cra_task_process_func (gpointer data, gpointer user_data)
 			continue;
 		}
 
-		/* don't include apps that have no icon */
+		/* don't include apps that have no icon, name or comment */
 		if (cra_app_get_icon (app) == NULL) {
 			cra_package_log (task->pkg,
 					 CRA_PACKAGE_LOG_LEVEL_INFO,
@@ -219,8 +219,33 @@ cra_task_process_func (gpointer data, gpointer user_data)
 					 cra_app_get_id_full (app));
 			continue;
 		}
+		if (cra_app_get_name (app, "C") == NULL) {
+			cra_package_log (task->pkg,
+					 CRA_PACKAGE_LOG_LEVEL_INFO,
+					 "%s has no name",
+					 cra_app_get_id_full (app));
+			continue;
+		}
+		if (cra_app_get_comment (app, "C") == NULL) {
+			cra_package_log (task->pkg,
+					 CRA_PACKAGE_LOG_LEVEL_INFO,
+					 "%s has no comment",
+					 cra_app_get_id_full (app));
+			continue;
+		}
 
-		tmp = cra_app_to_string (app);
+		/* save icon and screenshots */
+		ret = cra_app_save_resources (app, &error);
+		if (!ret) {
+			cra_package_log (task->pkg,
+					 CRA_PACKAGE_LOG_LEVEL_WARNING,
+					 "Failed to save resources: %s",
+					 error->message);
+			g_error_free (error);
+			goto out;
+		}
+
+		tmp = cra_app_to_xml (app);
 		cra_package_log (task->pkg, CRA_PACKAGE_LOG_LEVEL_NONE, "%s", tmp);
 		g_free (tmp);
 	}
@@ -304,6 +329,7 @@ main (int argc, char **argv)
 	gchar *tmp;
 	GDir *dir = NULL;
 	GError *error = NULL;
+	gint rc;
 	GOptionContext *option_context;
 	GThreadPool *pool;
 	guint i;
@@ -363,6 +389,37 @@ main (int argc, char **argv)
 		g_error_free (error);
 		goto out;
 	}
+	ret = cra_utils_ensure_exists_and_empty ("./screenshots", &error);
+	if (!ret) {
+		g_warning ("failed to create screenshots dir: %s", error->message);
+		g_error_free (error);
+		goto out;
+	}
+	rc = g_mkdir_with_parents ("./screenshots/source", 0700);
+	if (rc != 0) {
+		g_warning ("failed to create screenshot cache dir");
+		goto out;
+	}
+	rc = g_mkdir_with_parents ("./screenshots/112x63", 0700);
+	if (rc != 0) {
+		g_warning ("failed to create screenshot cache dir");
+		goto out;
+	}
+	rc = g_mkdir_with_parents ("./screenshots/624x351", 0700);
+	if (rc != 0) {
+		g_warning ("failed to create screenshot cache dir");
+		goto out;
+	}
+	rc = g_mkdir_with_parents ("./screenshots/752x423", 0700);
+	if (rc != 0) {
+		g_warning ("failed to create screenshot cache dir");
+		goto out;
+	}
+	rc = g_mkdir_with_parents ("./screenshot-cache", 0700);
+	if (rc != 0) {
+		g_warning ("failed to create screenshot cache dir");
+		goto out;
+	}
 
 	ctx = cra_context_new ();
 	ret = cra_plugin_loader_setup (ctx->plugins, &error);
@@ -415,6 +472,12 @@ main (int argc, char **argv)
 	g_debug ("Processing packages");
 	for (i = 0; i < ctx->packages->len; i++) {
 		pkg = g_ptr_array_index (ctx->packages, i);
+		cra_package_set_config (pkg,
+					"AppDataExtra",
+					"../../fedora-appstream/appdata-extra");
+		cra_package_set_config (pkg,
+					"MirrorURI",
+					"http://alt.fedoraproject.org/pub/alt/screenshots/f21/");
 
 		/* create task */
 		task = g_new0 (CraTask, 1);

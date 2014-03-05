@@ -562,7 +562,6 @@ cra_plugin_process_filename (CraPlugin *plugin,
 	gchar *app_id = NULL;
 	gchar *full_filename = NULL;
 	gchar *icon_filename = NULL;
-	gchar *icon_full_path = NULL;
 	gchar **keys = NULL;
 	gchar *locale = NULL;
 	gchar *tmp;
@@ -641,6 +640,8 @@ cra_plugin_process_filename (CraPlugin *plugin,
 				if (g_strcmp0 (tmpv[j], "KDE") == 0)
 					continue;
 				if (g_strcmp0 (tmpv[j], "GNOME") == 0)
+					continue;
+				if (g_str_has_prefix (tmpv[j], "X-"))
 					continue;
 				cra_app_add_category (app, tmpv[j]);
 			}
@@ -791,23 +792,9 @@ cra_plugin_process_filename (CraPlugin *plugin,
 			/* save in target directory */
 			icon_filename = g_strdup_printf ("%s.png",
 							 cra_app_get_id (app));
-			icon_full_path = g_build_filename ("./icons",
-							   icon_filename,
-							   NULL);
-			ret = gdk_pixbuf_save (pixbuf,
-					       icon_full_path,
-					       "png",
-					       error,
-					       NULL);
-			if (!ret)
-				goto out;
-
-			/* set new AppStream compatible icon name */
-			cra_package_log (pkg,
-					 CRA_PACKAGE_LOG_LEVEL_INFO,
-					 "saved icon %s", icon_filename);
 			cra_app_set_icon (app, icon_filename);
 			cra_app_set_cached_icon (app, FALSE);
+			cra_app_set_pixbuf (app, pixbuf);
 		}
 	}
 
@@ -820,7 +807,6 @@ out:
 	g_key_file_unref (kf);
 	g_free (full_filename);
 	g_free (icon_filename);
-	g_free (icon_full_path);
 	g_free (app_id);
 	return ret;
 }

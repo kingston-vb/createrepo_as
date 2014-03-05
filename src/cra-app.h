@@ -23,13 +23,15 @@
 #define CRA_APP_H
 
 #include <glib-object.h>
+#include <gdk-pixbuf/gdk-pixbuf.h>
 
 #include "cra-package.h"
+#include "cra-screenshot.h"
 
 #define CRA_TYPE_APP		(cra_app_get_type())
 #define CRA_APP(obj)		(G_TYPE_CHECK_INSTANCE_CAST((obj), CRA_TYPE_APP, CraApp))
 #define CRA_APP_CLASS(cls)	(G_TYPE_CHECK_CLASS_CAST((cls), CRA_TYPE_APP, CraAppClass))
-#define CRA_IS_APP(obj)	(G_TYPE_CHECK_INSTANCE_TYPE((obj), CRA_TYPE_APP))
+#define CRA_IS_APP(obj)		(G_TYPE_CHECK_INSTANCE_TYPE((obj), CRA_TYPE_APP))
 #define CRA_IS_APP_CLASS(cls)	(G_TYPE_CHECK_CLASS_TYPE((cls), CRA_TYPE_APP))
 #define CRA_APP_GET_CLASS(obj)	(G_TYPE_INSTANCE_GET_CLASS((obj), CRA_TYPE_APP, CraAppClass))
 
@@ -51,7 +53,7 @@ struct _CraAppClass
 GType		 cra_app_get_type		(void);
 CraApp		*cra_app_new			(CraPackage	*pkg,
 						 const gchar	*id_full);
-gchar		*cra_app_to_string		(CraApp		*app);
+gchar		*cra_app_to_xml			(CraApp		*app);
 void		 cra_app_set_type_id		(CraApp		*app,
 						 const gchar	*type_id);
 void		 cra_app_set_homepage_url	(CraApp		*app,
@@ -72,6 +74,8 @@ void		 cra_app_add_mimetype		(CraApp		*app,
 						 const gchar	*mimetype);
 void		 cra_app_add_pkgname		(CraApp		*app,
 						 const gchar	*pkgname);
+void		 cra_app_add_screenshot		(CraApp		*app,
+						 CraScreenshot	*screenshot);
 void		 cra_app_add_language		(CraApp		*app,
 						 const gchar	*locale,
 						 const gchar	*value);
@@ -88,6 +92,8 @@ void		 cra_app_set_requires_appdata	(CraApp		*app,
 						 gboolean	 requires_appdata);
 void		 cra_app_set_cached_icon	(CraApp		*app,
 						 gboolean	 cached_icon);
+void		 cra_app_set_pixbuf		(CraApp		*app,
+						 GdkPixbuf	*pixbuf);
 
 gboolean	 cra_app_get_requires_appdata	(CraApp		*app);
 GPtrArray	*cra_app_get_categories		(CraApp		*app);
@@ -101,6 +107,12 @@ const gchar	*cra_app_get_name		(CraApp		*app,
 						 const gchar	*locale);
 const gchar	*cra_app_get_comment		(CraApp		*app,
 						 const gchar	*locale);
+CraPackage	*cra_app_get_package		(CraApp		*app);
+
+void		 cra_app_insert_into_dom	(CraApp		*app,
+						 GNode		*parent);
+gboolean	 cra_app_save_resources		(CraApp		*app,
+						 GError		**error);
 
 G_END_DECLS
 

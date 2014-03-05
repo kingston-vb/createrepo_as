@@ -46,7 +46,9 @@ struct _CraPackagePrivate
 	gchar		*url;
 	gchar		*nevr;
 	gchar		*license;
+	gchar		*sourcerpm;
 	GString		*log;
+	GHashTable	*configs;
 };
 
 G_DEFINE_TYPE_WITH_PRIVATE (CraPackage, cra_package, G_TYPE_OBJECT)
@@ -73,7 +75,9 @@ cra_package_finalize (GObject *object)
 	g_free (priv->url);
 	g_free (priv->nevr);
 	g_free (priv->license);
+	g_free (priv->sourcerpm);
 	g_string_free (priv->log, TRUE);
+	g_hash_table_unref (priv->configs);
 
 	G_OBJECT_CLASS (cra_package_parent_class)->finalize (object);
 }
@@ -86,6 +90,8 @@ cra_package_init (CraPackage *pkg)
 {
 	CraPackagePrivate *priv = GET_PRIVATE (pkg);
 	priv->log = g_string_sized_new (1024);
+	priv->configs = g_hash_table_new_full (g_str_hash, g_str_equal,
+					       g_free, g_free);
 }
 
 /**
@@ -176,6 +182,16 @@ cra_package_get_license (CraPackage *pkg)
 {
 	CraPackagePrivate *priv = GET_PRIVATE (pkg);
 	return priv->license;
+}
+
+/**
+ * cra_package_get_sourcerpm:
+ **/
+const gchar *
+cra_package_get_sourcerpm (CraPackage *pkg)
+{
+	CraPackagePrivate *priv = GET_PRIVATE (pkg);
+	return priv->sourcerpm;
 }
 
 /**
@@ -326,6 +342,7 @@ cra_package_open (CraPackage *pkg, const gchar *filename, GError **error)
 	CraPackagePrivate *priv = GET_PRIVATE (pkg);
 	FD_t fd;
 	gboolean ret = TRUE;
+	gchar *tmp;
 	gint rc;
 	rpmtd td;
 	rpmts ts;
@@ -371,6 +388,11 @@ cra_package_open (CraPackage *pkg, const gchar *filename, GError **error)
 	priv->url = g_strdup (rpmtdGetString (td));
 	headerGet (priv->h, RPMTAG_LICENSE, td, HEADERGET_MINMEM);
 	priv->license = g_strdup (rpmtdGetString (td));
+	headerGet (priv->h, RPMTAG_SOURCERPM, td, HEADERGET_MINMEM);
+	priv->sourcerpm = g_strdup (rpmtdGetString (td));
+	tmp = g_strstr_len (priv->sourcerpm, -1, ".src.rpm");
+	if (tmp != NULL)
+		*tmp = '\0';
 out:
 	rpmtsFree (ts);
 	Fclose (fd);
@@ -469,6 +491,26 @@ out:
 		archive_read_free (arch);
 	}
 	return ret;
+}
+
+/**
+ * cra_package_set_config:
+ **/
+void
+cra_package_set_config (CraPackage *pkg, const gchar *key, const gchar *value)
+{
+	CraPackagePrivate *priv = GET_PRIVATE (pkg);
+	g_hash_table_insert (priv->configs, g_strdup (key), g_strdup (value));
+}
+
+/**
+ * cra_package_get_config:
+ **/
+const gchar *
+cra_package_get_config (CraPackage *pkg, const gchar *key)
+{
+	CraPackagePrivate *priv = GET_PRIVATE (pkg);
+	return g_hash_table_lookup (priv->configs, key);
 }
 
 /**

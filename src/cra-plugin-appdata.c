@@ -23,6 +23,7 @@
 
 #include <cra-plugin.h>
 #include <cra-dom.h>
+#include <cra-screenshot.h>
 
 /**
  * cra_plugin_get_name:
@@ -168,12 +169,30 @@ cra_plugin_process_filename (CraApp *app,
 	n = cra_dom_get_node (dom, NULL, "application/screenshots");
 	if (n != NULL) {
 		for (c = n->children; c != NULL; c = c->next) {
+			CraScreenshot *ss;
+			GError *error_local = NULL;
+
 			if (g_strcmp0 (cra_dom_get_node_name (c), "screenshot") != 0)
 				continue;
-			//TODO
-			g_warning ("Add screenshot %s [%s]",
-				   cra_dom_get_node_data (c),
-				   cra_dom_get_node_attribute (c, "type"));
+			ss = cra_screenshot_new (cra_app_get_package (app),
+						 cra_app_get_id (app));
+			tmp = cra_dom_get_node_attribute (c, "type");
+			cra_screenshot_set_is_default (ss, g_strcmp0 (tmp, "default") == 0);
+			tmp = cra_dom_get_node_data (c);
+			ret = cra_screenshot_load_url (ss, tmp, &error_local);
+			if (ret) {
+				cra_package_log (cra_app_get_package (app),
+						 CRA_PACKAGE_LOG_LEVEL_INFO,
+						 "Added screenshot %s", tmp);
+				cra_app_add_screenshot (app, ss);
+			} else {
+				cra_package_log (cra_app_get_package (app),
+						 CRA_PACKAGE_LOG_LEVEL_WARNING,
+						 "Failed to load screenshot %s: %s",
+						 tmp, error_local->message);
+				g_clear_error (&error_local);
+			}
+			g_object_unref (ss);
 		}
 	}
 
@@ -193,6 +212,9 @@ cra_plugin_process_filename (CraApp *app,
 			}
 		}
 	}
+
+	/* success */
+	ret = TRUE;
 out:
 	g_free (data);
 	if (names != NULL)
@@ -214,6 +236,7 @@ cra_plugin_process_app (CraPlugin *plugin,
 			const gchar *tmpdir,
 			GError **error)
 {
+	const gchar *tmp;
 	gboolean ret = TRUE;
 	gchar *appdata_filename;
 	gchar *appdata_filename_extra = NULL;
@@ -229,7 +252,9 @@ cra_plugin_process_app (CraPlugin *plugin,
 	}
 
 	/* any appdata-extra file */
-	appdata_filename_extra = g_strdup_printf ("../../fedora-appstream/appdata-extra/%s/%s.appdata.xml",
+	tmp = cra_package_get_config (pkg, "AppDataExtra");
+	appdata_filename_extra = g_strdup_printf ("%s/%s/%s.appdata.xml",
+						  tmp,
 						  cra_app_get_type_id (app),
 						  cra_app_get_id (app));
 	if (g_file_test (appdata_filename_extra, G_FILE_TEST_EXISTS)) {

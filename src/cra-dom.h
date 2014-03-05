@@ -23,12 +23,13 @@
 #define __CRA_DOM_H
 
 #include <glib-object.h>
+#include <stdarg.h>
 
 G_BEGIN_DECLS
 
 #define CRA_TYPE_DOM		(cra_dom_get_type ())
 #define CRA_DOM(o)		(G_TYPE_CHECK_INSTANCE_CAST ((o), CRA_TYPE_DOM, CraDom))
-#define CRA_DOM_CLASS(k)		(G_TYPE_CHECK_CLASS_CAST((k), CRA_TYPE_DOM, CraDomClass))
+#define CRA_DOM_CLASS(k)	(G_TYPE_CHECK_CLASS_CAST((k), CRA_TYPE_DOM, CraDomClass))
 #define CRA_IS_DOM(o)		(G_TYPE_CHECK_INSTANCE_TYPE ((o), CRA_TYPE_DOM))
 #define CRA_IS_DOM_CLASS(k)	(G_TYPE_CHECK_CLASS_TYPE ((k), CRA_TYPE_DOM))
 #define CRA_DOM_GET_CLASS(o)	(G_TYPE_INSTANCE_GET_CLASS ((o), CRA_TYPE_DOM, CraDomClass))
@@ -48,16 +49,31 @@ typedef struct
 
 GType		 cra_dom_get_type			(void);
 CraDom		*cra_dom_new				(void);
-gchar		*cra_dom_to_string			(CraDom		*dom);
+gchar		*cra_dom_to_xml				(CraDom		*dom);
 gboolean	 cra_dom_parse_xml_data			(CraDom		*dom,
 							 const gchar	*data,
 							 gssize		 data_len,
 							 GError		**error)
 							 G_GNUC_WARN_UNUSED_RESULT;
-const GNode	*cra_dom_get_node			(CraDom		*dom,
-							 const GNode	*root,
+GNode		*cra_dom_get_node			(CraDom		*dom,
+							 GNode		*root,
 							 const gchar	*path)
 							 G_GNUC_WARN_UNUSED_RESULT;
+GNode		*cra_dom_get_root			(CraDom		*dom)
+							 G_GNUC_WARN_UNUSED_RESULT;
+GNode		*cra_dom_insert				(GNode		*parent,
+							 const gchar	*name,
+							 const gchar	*cdata,
+							 ...)
+							 G_GNUC_NULL_TERMINATED;
+void		 cra_dom_insert_localized		(GNode		*parent,
+							 const gchar	*name,
+							 GHashTable	*localized);
+void		 cra_dom_insert_hash			(GNode		*parent,
+							 const gchar	*name,
+							 const gchar	*attr_key,
+							 GHashTable	*hash,
+							 gboolean	 swapped);
 const gchar	*cra_dom_get_node_name			(const GNode	*node);
 const gchar	*cra_dom_get_node_data			(const GNode	*node);
 const gchar	*cra_dom_get_node_attribute		(const GNode	*node,

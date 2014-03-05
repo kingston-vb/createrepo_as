@@ -78,8 +78,14 @@ const gchar	*cra_package_get_name		(CraPackage	*pkg);
 const gchar	*cra_package_get_nevr		(CraPackage	*pkg);
 const gchar	*cra_package_get_url		(CraPackage	*pkg);
 const gchar	*cra_package_get_license	(CraPackage	*pkg);
+const gchar	*cra_package_get_sourcerpm	(CraPackage	*pkg);
 gchar		**cra_package_get_filelist	(CraPackage	*pkg);
 gchar		**cra_package_get_deps		(CraPackage	*pkg);
+void		 cra_package_set_config		(CraPackage	*pkg,
+						 const gchar	*key,
+						 const gchar	*value);
+const gchar	*cra_package_get_config		(CraPackage	*pkg,
+						 const gchar	*key);
 
 G_END_DECLS
 

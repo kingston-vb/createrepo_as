@@ -52,7 +52,6 @@ _cra_plugin_check_filename (const gchar *filename)
 gboolean
 cra_plugin_check_filename (CraPlugin *plugin, const gchar *filename)
 {
-	g_debug ("checking %s", filename);
 	return _cra_plugin_check_filename (filename);
 }
 

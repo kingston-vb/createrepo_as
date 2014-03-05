@@ -2,6 +2,7 @@ AM_CPPFLAGS =						\
 	$(GDKPIXBUF_CFLAGS)				\
 	$(GLIB_CFLAGS)					\
 	$(LIBARCHIVE_CFLAGS)				\
+	$(LIBSOUP_CFLAGS)				\
 	$(RPM_CFLAGS)					\
 	$(SQLITE_CFLAGS)				\
 	-DG_LOG_DOMAIN=\"Cra\"
@@ -11,6 +12,8 @@ noinst_PROGRAMS =					\
 createrepo_as_SOURCES =					\
 	cra-app.c					\
 	cra-app.h					\
+	cra-screenshot.c				\
+	cra-screenshot.h				\
 	cra-dom.c					\
 	cra-dom.h					\
 	cra-context.c					\
@@ -28,6 +31,7 @@ createrepo_as_LDADD =					\
 	$(GDKPIXBUF_LIBS)				\
 	$(GLIB_LIBS)					\
 	$(LIBARCHIVE_LIBS)				\
+	$(LIBSOUP_LIBS)					\
 	$(RPM_LIBS)
 
 createrepo_as_CFLAGS =					\
