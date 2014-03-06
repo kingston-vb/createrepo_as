@@ -75,6 +75,9 @@ cra_task_process_func (gpointer data, gpointer user_data)
 	GList *l;
 	guint i;
 
+	/* reset the profile timer */
+	cra_package_log_start (task->pkg);
+
 	/* get file list */
 	ret = cra_package_ensure_filelist (task->pkg, &error);
 	if (!ret) {

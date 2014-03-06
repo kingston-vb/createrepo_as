@@ -58,6 +58,7 @@ typedef enum {
 GType		 cra_package_get_type		(void);
 
 CraPackage	*cra_package_new		(void);
+void		 cra_package_log_start		(CraPackage	*pkg);
 void		 cra_package_log		(CraPackage	*pkg,
 						 CraPackageLogLevel log_level,
 						 const gchar	*fmt,

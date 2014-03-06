@@ -49,6 +49,8 @@ struct _CraPackagePrivate
 	gchar		*sourcerpm;
 	GString		*log;
 	GHashTable	*configs;
+	GTimer		*timer;
+	gdouble		 last_log;
 };
 
 G_DEFINE_TYPE_WITH_PRIVATE (CraPackage, cra_package, G_TYPE_OBJECT)
@@ -77,6 +79,7 @@ cra_package_finalize (GObject *object)
 	g_free (priv->license);
 	g_free (priv->sourcerpm);
 	g_string_free (priv->log, TRUE);
+	g_timer_destroy (priv->timer);
 	g_hash_table_unref (priv->configs);
 
 	G_OBJECT_CLASS (cra_package_parent_class)->finalize (object);
@@ -90,8 +93,19 @@ cra_package_init (CraPackage *pkg)
 {
 	CraPackagePrivate *priv = GET_PRIVATE (pkg);
 	priv->log = g_string_sized_new (1024);
+	priv->timer = g_timer_new ();
 	priv->configs = g_hash_table_new_full (g_str_hash, g_str_equal,
 					       g_free, g_free);
+}
+
+/**
+ * cra_package_log_start:
+ **/
+void
+cra_package_log_start (CraPackage *pkg)
+{
+	CraPackagePrivate *priv = GET_PRIVATE (pkg);
+	g_timer_reset (priv->timer);
 }
 
 /**
@@ -105,21 +119,28 @@ cra_package_log (CraPackage *pkg,
 	CraPackagePrivate *priv = GET_PRIVATE (pkg);
 	gchar *tmp;
 	va_list args;
+	gdouble now;
 
 	va_start (args, fmt);
 	tmp = g_strdup_vprintf (fmt, args);
 	va_end (args);
+	now = g_timer_elapsed (priv->timer, NULL) * 1000;
 	switch (log_level) {
 	case CRA_PACKAGE_LOG_LEVEL_INFO:
-		g_string_append_printf (priv->log, "INFO:    %s\n", tmp);
+		g_string_append_printf (priv->log,
+					"%05.0f\t+%05.0f\tINFO:    %s\n",
+					now, now - priv->last_log, tmp);
 		break;
 	case CRA_PACKAGE_LOG_LEVEL_WARNING:
-		g_string_append_printf (priv->log, "WARNING: %s\n", tmp);
+		g_string_append_printf (priv->log,
+					"%05.0f\t+%05.0f\tWARNING: %s\n",
+					now, now - priv->last_log, tmp);
 		break;
 	default:
 		g_string_append_printf (priv->log, "%s\n", tmp);
 		break;
 	}
+	priv->last_log = now;
 	g_free (tmp);
 }
 
