@@ -93,7 +93,10 @@ cra_screenshot_insert_into_dom (CraScreenshot *screenshot, GNode *parent)
 	gchar tmp_height[6];
 	gchar tmp_width[6];
 	gchar *url_tmp;
+	gchar *size_str;
 	GNode *node_ss;
+	guint i;
+	guint sizes[] = { 624, 351, 112, 63, 752, 423, 0 };
 
 	node_ss = cra_dom_insert (parent, "screenshot", NULL,
 				  "type", priv->is_default ? "default" : "normal",
@@ -103,20 +106,24 @@ cra_screenshot_insert_into_dom (CraScreenshot *screenshot, GNode *parent)
 	if (priv->caption != NULL)
 		cra_dom_insert (node_ss, "caption", priv->caption, NULL);
 
-	/* add source image */
-	g_snprintf (tmp_height, sizeof (tmp_height), "%u", priv->height);
-	g_snprintf (tmp_width, sizeof (tmp_width), "%u", priv->width);
-	mirror_uri = cra_package_get_config (priv->pkg, "MirrorURI");
-	url_tmp = g_build_filename (mirror_uri, "source", priv->basename, NULL);
-	cra_dom_insert (node_ss, "image", url_tmp,
-			"height", tmp_height,
-			"width", tmp_width,
-			"type", "source",
-			NULL);
-	g_free (url_tmp);
-
 	/* add each of the resampled images */
-	//FIXME: xxx
+	mirror_uri = cra_package_get_config (priv->pkg, "MirrorURI");
+	for (i = 0; sizes[i] != 0; i += 2) {
+		g_snprintf (tmp_width, sizeof (tmp_width), "%u", sizes[i]);
+		g_snprintf (tmp_height, sizeof (tmp_height), "%u", sizes[i+1]);
+		size_str = g_strdup_printf ("%ix%i", sizes[i], sizes[i+1]);
+		url_tmp = g_build_filename (mirror_uri,
+					    size_str,
+					    priv->basename,
+					    NULL);
+		cra_dom_insert (node_ss, "image", url_tmp,
+				"height", tmp_height,
+				"width", tmp_width,
+				"type", "thumbnail",
+				NULL);
+		g_free (url_tmp);
+		g_free (size_str);
+	}
 }
 
 /**
@@ -198,25 +205,68 @@ out:
 }
 
 /**
- * cra_screenshot_save_resources:
+ * cra_screenshot_save_pixbuf:
  **/
-gboolean
-cra_screenshot_save_resources (CraScreenshot *screenshot, GError **error)
+static gboolean
+cra_screenshot_save_pixbuf (CraScreenshot *screenshot,
+			    guint width, guint height,
+			    GError **error)
 {
 	CraScreenshotPrivate *priv = GET_PRIVATE (screenshot);
 	gboolean ret = TRUE;
 	gchar *filename = NULL;
+	gchar *size_str;
+	GdkPixbuf *pixbuf = NULL;
+	GdkPixbuf *pixbuf_tmp = NULL;
+	guint tmp_height;
+	guint tmp_width;
 
-	/* any non-stock icon set */
-	if (priv->pixbuf == NULL)
-		goto out;
-
-	/* save source file at full resolution */
+	/* does screenshot already exist */
+	size_str = g_strdup_printf ("%ix%i", width, height);
 	filename = g_build_filename ("./screenshots",
-				     "source",
+				     size_str,
 				     priv->basename,
 				     NULL);
-	ret = gdk_pixbuf_save (priv->pixbuf,
+	if (g_file_test (filename, G_FILE_TEST_EXISTS)) {
+		cra_package_log (priv->pkg,
+				 CRA_PACKAGE_LOG_LEVEL_INFO,
+				 "%s screenshot already exists", size_str);
+		goto out;
+	}
+
+	/* is the aspect ratio of the source perfectly 16:9 */
+	if ((priv->width / 16) * 9 == priv->height) {
+		pixbuf = gdk_pixbuf_scale_simple (priv->pixbuf,
+						  width, height,
+						  GDK_INTERP_BILINEAR);
+	} else {
+
+		/* create new 16:9 pixbuf with alpha padding */
+		pixbuf = gdk_pixbuf_new (GDK_COLORSPACE_RGB,
+					 TRUE, 8,
+					 width,
+					 height);
+		gdk_pixbuf_fill (pixbuf, 0x00000000);
+		if ((priv->width / 16) * 9 > priv->height) {
+			tmp_width = width;
+			tmp_height = width * priv->height / priv->width;
+		} else {
+			tmp_width = height * priv->width / priv->height;
+			tmp_height = height;
+		}
+		pixbuf_tmp = gdk_pixbuf_scale_simple (priv->pixbuf,
+						      tmp_width, tmp_height,
+						      GDK_INTERP_BILINEAR);
+		gdk_pixbuf_copy_area (pixbuf_tmp,
+				      0, 0, /* of src */
+				      tmp_width, tmp_height,
+				      pixbuf,
+				      (width - tmp_width) / 2,
+				      (height - tmp_height) / 2);
+	}
+
+	/* save source file */
+	ret = gdk_pixbuf_save (pixbuf,
 			       filename,
 			       "png",
 			       error,
@@ -227,9 +277,41 @@ cra_screenshot_save_resources (CraScreenshot *screenshot, GError **error)
 	/* set new AppStream compatible screenshot name */
 	cra_package_log (priv->pkg,
 			 CRA_PACKAGE_LOG_LEVEL_INFO,
-			 "saved screenshots %s", priv->basename);
+			 "saved %s screenshot", size_str);
 out:
+	if (pixbuf != NULL)
+		g_object_unref (pixbuf);
+	if (pixbuf_tmp != NULL)
+		g_object_unref (pixbuf_tmp);
 	g_free (filename);
+	g_free (size_str);
+	return ret;
+}
+
+/**
+ * cra_screenshot_save_resources:
+ **/
+gboolean
+cra_screenshot_save_resources (CraScreenshot *screenshot, GError **error)
+{
+	CraScreenshotPrivate *priv = GET_PRIVATE (screenshot);
+	gboolean ret = TRUE;
+
+	/* any non-stock icon set */
+	if (priv->pixbuf == NULL)
+		goto out;
+
+	/* save each supported size */
+	ret = cra_screenshot_save_pixbuf (screenshot, 624, 351, error);
+	if (!ret)
+		goto out;
+	ret = cra_screenshot_save_pixbuf (screenshot, 112, 63, error);
+	if (!ret)
+		goto out;
+	ret = cra_screenshot_save_pixbuf (screenshot, 752, 423, error);
+	if (!ret)
+		goto out;
+out:
 	return ret;
 }
 

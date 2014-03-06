@@ -487,17 +487,6 @@ main (int argc, char **argv)
 		g_error_free (error);
 		goto out;
 	}
-	ret = cra_utils_ensure_exists_and_empty ("./screenshots", &error);
-	if (!ret) {
-		g_warning ("failed to create screenshots dir: %s", error->message);
-		g_error_free (error);
-		goto out;
-	}
-	rc = g_mkdir_with_parents ("./screenshots/source", 0700);
-	if (rc != 0) {
-		g_warning ("failed to create screenshot cache dir");
-		goto out;
-	}
 	rc = g_mkdir_with_parents ("./screenshots/112x63", 0700);
 	if (rc != 0) {
 		g_warning ("failed to create screenshot cache dir");
