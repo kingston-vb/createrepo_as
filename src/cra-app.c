@@ -257,7 +257,7 @@ cra_app_to_xml (CraApp *app)
 	node_root = cra_dom_get_root (dom);
 	node_apps = cra_dom_insert (node_root, "applications", NULL, NULL);
 	cra_app_insert_into_dom (app, node_apps);
-	str = cra_dom_to_xml (dom);
+	str = cra_dom_to_xml (dom, NULL, TRUE);
 	g_object_unref (dom);
 	return g_string_free (str, FALSE);
 }

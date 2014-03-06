@@ -390,7 +390,7 @@ cra_context_write_xml (CraContext *ctx, const gchar *basename, GError **error)
 		app = CRA_APP (l->data);
 		cra_app_insert_into_dom (app, node_apps);
 	}
-	xml = cra_dom_to_xml (dom);
+	xml = cra_dom_to_xml (dom, NULL, TRUE);
 
 	/* compress as a gzip file */
 	compressor = g_zlib_compressor_new (G_ZLIB_COMPRESSOR_FORMAT_GZIP, -1);

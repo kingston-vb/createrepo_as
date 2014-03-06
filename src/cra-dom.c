@@ -94,22 +94,21 @@ cra_dom_get_attr_string (GHashTable *hash)
  * cra_dom_to_xml_string:
  **/
 static void
-cra_dom_to_xml_string (GString *xml, GNode *n)
+cra_dom_to_xml_string (GString *xml, guint depth_offset, const GNode *n)
 {
 	CraDomNodeData *data = n->data;
 	GNode *c;
-	guint depth = g_node_depth (n);
+	guint depth = g_node_depth ((GNode *) n);
 	gchar *attrs;
 
 	/* root node */
 	if (data == NULL) {
-		g_string_append (xml, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
 		for (c = n->children; c != NULL; c = c->next)
-			cra_dom_to_xml_string (xml, c);
+			cra_dom_to_xml_string (xml, depth_offset, c);
 
 	/* leaf node */
 	} else if (n->children == NULL) {
-		cra_dom_add_padding (xml, depth - 2);
+		cra_dom_add_padding (xml, depth - depth_offset);
 		attrs = cra_dom_get_attr_string (data->attributes);
 		if (data->cdata->len == 0) {
 			g_string_append_printf (xml, "<%s%s/>\n",
@@ -125,13 +124,13 @@ cra_dom_to_xml_string (GString *xml, GNode *n)
 
 	/* node with children */
 	} else {
-		cra_dom_add_padding (xml, depth - 2);
+		cra_dom_add_padding (xml, depth - depth_offset);
 		attrs = cra_dom_get_attr_string (data->attributes);
 		g_string_append_printf (xml, "<%s%s>\n", data->name, attrs);
 		g_free (attrs);
 		for (c = n->children; c != NULL; c = c->next)
-			cra_dom_to_xml_string (xml, c);
-		cra_dom_add_padding (xml, depth - 2);
+			cra_dom_to_xml_string (xml, depth_offset, c);
+		cra_dom_add_padding (xml, depth - depth_offset);
 		g_string_append_printf (xml, "</%s>\n", data->name);
 	}
 }
@@ -145,11 +144,16 @@ cra_dom_to_xml_string (GString *xml, GNode *n)
  * Return value: an allocated string
  **/
 GString *
-cra_dom_to_xml (CraDom *dom)
+cra_dom_to_xml (CraDom *dom, const GNode *node, gboolean add_header)
 {
 	GString *xml;
+	guint depth_offset = g_node_depth ((GNode *) node);
 	xml = g_string_new ("");
-	cra_dom_to_xml_string (xml, dom->priv->root);
+	if (add_header)
+		g_string_append (xml, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+	cra_dom_to_xml_string (xml,
+			       node != NULL ? depth_offset : depth_offset + 2,
+			       node != NULL ? node : dom->priv->root);
 	return xml;
 }
 
