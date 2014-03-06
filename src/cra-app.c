@@ -655,7 +655,7 @@ cra_app_save_resources (CraApp *app, GError **error)
 		/* set new AppStream compatible icon name */
 		cra_package_log (priv->pkg,
 				 CRA_PACKAGE_LOG_LEVEL_INFO,
-				 "saved icon %s", filename);
+				 "Saved icon %s", filename);
 	}
 
 	/* save any screenshots */
