@@ -107,6 +107,8 @@ const gchar	*cra_app_get_name		(CraApp		*app,
 						 const gchar	*locale);
 const gchar	*cra_app_get_comment		(CraApp		*app,
 						 const gchar	*locale);
+const gchar	*cra_app_get_metadata_item	(CraApp		*app,
+						 const gchar	*key);
 CraPackage	*cra_app_get_package		(CraApp		*app);
 
 void		 cra_app_insert_into_dom	(CraApp		*app,

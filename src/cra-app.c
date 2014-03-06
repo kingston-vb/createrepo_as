@@ -576,6 +576,16 @@ cra_app_get_comment (CraApp *app, const gchar *locale)
 }
 
 /**
+ * cra_app_get_metadata_item:
+ **/
+const gchar *
+cra_app_get_metadata_item (CraApp *app, const gchar *key)
+{
+	CraAppPrivate *priv = GET_PRIVATE (app);
+	return g_hash_table_lookup (priv->metadata, key);
+}
+
+/**
  * cra_app_get_project_group:
  **/
 const gchar *

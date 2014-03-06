@@ -74,6 +74,13 @@ cra_task_process_func (gpointer data, gpointer user_data)
 	GList *apps = NULL;
 	GList *l;
 	guint i;
+	const gchar *kudos[] = {
+		"X-Kudo-GTK3",
+		"X-Kudo-InstallsUserDocs",
+		"X-Kudo-RecentRelease",
+		"X-Kudo-SearchProvider",
+		"X-Kudo-UsesNotifications",
+		NULL };
 
 	/* reset the profile timer */
 	cra_package_log_start (task->pkg);
@@ -257,6 +264,16 @@ cra_task_process_func (gpointer data, gpointer user_data)
 					 error->message);
 			g_error_free (error);
 			goto out;
+		}
+
+		/* print Kudos the might have */
+		for (i = 0; kudos[i] != NULL; i++) {
+			if (cra_app_get_metadata_item (app, kudos[i]) != NULL)
+				continue;
+			cra_package_log (task->pkg,
+					 CRA_PACKAGE_LOG_LEVEL_INFO,
+					 "Application not not have %s",
+					 kudos[i]);
 		}
 
 		/* all okay */
