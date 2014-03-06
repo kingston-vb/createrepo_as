@@ -346,6 +346,21 @@ out:
 }
 
 /**
+ * cra_context_write_icons:
+ */
+static gboolean
+cra_context_write_icons (CraContext *ctx, const gchar *basename, GError **error)
+{
+	gboolean ret;
+	gchar *filename;
+
+	filename = g_strdup_printf ("./%s-icons.tar", basename);
+	ret = cra_utils_write_archive_dir (filename, "icons", error);
+	g_free (filename);
+	return ret;
+}
+
+/**
  * cra_context_write_xml:
  */
 static gboolean
@@ -594,6 +609,14 @@ main (int argc, char **argv)
 	ret = cra_context_write_xml (ctx, basename, &error);
 	if (!ret) {
 		g_warning ("Failed to write XML file: %s", error->message);
+		g_error_free (error);
+		goto out;
+	}
+
+	/* write icons archive */
+	ret = cra_context_write_icons (ctx, basename, &error);
+	if (!ret) {
+		g_warning ("Failed to write icons archive: %s", error->message);
 		g_error_free (error);
 		goto out;
 	}

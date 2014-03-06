@@ -32,6 +32,9 @@ gboolean	 cra_utils_rmtree			(const gchar	*directory,
 							 GError		**error);
 gboolean	 cra_utils_ensure_exists_and_empty	(const gchar	*directory,
 							 GError		**error);
+gboolean	 cra_utils_write_archive_dir		(const gchar	*filename,
+							 const gchar	*directory,
+							 GError		**error);
 
 CraGlobValue	*cra_glob_value_new			(const gchar	*glob,
 							 const gchar	*value);

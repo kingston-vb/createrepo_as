@@ -23,6 +23,8 @@
 
 #include <glib/gstdio.h>
 #include <fnmatch.h>
+#include <archive.h>
+#include <archive_entry.h>
 
 #include "cra-utils.h"
 #include "cra-plugin.h"
@@ -110,6 +112,86 @@ cra_utils_ensure_exists_and_empty (const gchar *directory, GError **error)
 out:
 	if (dir != NULL)
 		g_dir_close (dir);
+	return ret;
+}
+
+/**
+ * cra_utils_write_archive:
+ */
+static gboolean
+cra_utils_write_archive (const gchar *filename,
+			 GPtrArray *files,
+			 GError **error)
+{
+	const gchar *tmp;
+	gboolean ret = TRUE;
+	gchar *basename;
+	gchar *data;
+	gsize len;
+	guint i;
+	struct archive *a;
+	struct archive_entry *entry;
+	struct stat st;
+
+	a = archive_write_new ();
+	archive_write_set_format_pax_restricted (a);
+	archive_write_open_filename (a, filename);
+	for (i = 0; i < files->len; i++) {
+		tmp = g_ptr_array_index (files, i);
+		stat (tmp, &st);
+		entry = archive_entry_new ();
+		basename = g_path_get_basename (tmp);
+		archive_entry_set_pathname (entry, basename);
+		g_free (basename);
+		archive_entry_set_size (entry, st.st_size);
+		archive_entry_set_filetype (entry, AE_IFREG);
+		archive_entry_set_perm (entry, 0644);
+		archive_write_header (a, entry);
+		ret = g_file_get_contents (tmp, &data, &len, error);
+		if (!ret)
+			goto out;
+		archive_write_data (a, data, len);
+		g_free (data);
+		archive_entry_free (entry);
+	}
+out:
+	archive_write_close (a);
+	archive_write_free (a);
+	return ret;
+}
+
+/**
+ * cra_utils_write_archive_dir:
+ */
+gboolean
+cra_utils_write_archive_dir (const gchar *filename,
+			     const gchar *directory,
+			     GError **error)
+{
+	GPtrArray *files = NULL;
+	GDir *dir;
+	const gchar *tmp;
+	gboolean ret = TRUE;
+
+	/* add all files in the directory to the archive */
+	dir = g_dir_open (directory, 0, error);
+	if (dir == NULL) {
+		ret = FALSE;
+		goto out;
+	}
+	files = g_ptr_array_new_with_free_func (g_free);
+	while ((tmp = g_dir_read_name (dir)) != NULL)
+		g_ptr_array_add (files, g_build_filename (directory, tmp, NULL));
+
+	/* write tar file */
+	ret = cra_utils_write_archive (filename, files, error);
+	if (!ret)
+		goto out;
+out:
+	if (dir != NULL)
+		g_dir_close (dir);
+	if (files != NULL)
+		g_ptr_array_unref (files);
 	return ret;
 }
 
