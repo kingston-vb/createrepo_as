@@ -24,6 +24,7 @@
 #include <glib.h>
 
 #include "cra-plugin.h"
+#include "cra-utils.h"
 
 /**
  * cra_plugin_set_enabled:
@@ -71,4 +72,16 @@ void
 cra_plugin_add_app (GList **list, CraApp *app)
 {
 	*list = g_list_prepend (*list, g_object_ref (app));
+}
+
+/**
+ * cra_plugin_add_glob:
+ */
+void
+cra_plugin_add_glob (GPtrArray *array, const gchar *glob)
+{
+	gchar *glob2;
+	glob2 = g_strdup_printf (".%s", glob);
+	g_ptr_array_add (array, cra_glob_value_new (glob2, ""));
+	g_free (glob2);
 }

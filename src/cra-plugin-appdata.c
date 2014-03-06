@@ -35,6 +35,15 @@ cra_plugin_get_name (void)
 }
 
 /**
+ * cra_plugin_add_globs:
+ */
+void
+cra_plugin_add_globs (CraPlugin *plugin, GPtrArray *globs)
+{
+	cra_plugin_add_glob (globs, "/usr/share/appdata/*.appdata.xml");
+}
+
+/**
  * cra_plugin_appdata_license_valid:
  */
 static gboolean

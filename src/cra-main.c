@@ -111,7 +111,11 @@ cra_task_process_func (gpointer data, gpointer user_data)
 	}
 
 	/* explode tree */
-	ret = cra_package_explode (task->pkg, task->tmpdir, &error);
+	cra_package_log (task->pkg,
+			 CRA_PACKAGE_LOG_LEVEL_INFO,
+			 "Exploding tree for %s",
+			 cra_package_get_name (task->pkg));
+	ret = cra_package_explode (task->pkg, task->tmpdir, ctx->file_globs, &error);
 	if (!ret) {
 		cra_package_log (task->pkg,
 				 CRA_PACKAGE_LOG_LEVEL_WARNING,
@@ -132,7 +136,12 @@ cra_task_process_func (gpointer data, gpointer user_data)
 					 pkg_name);
 			goto out;
 		}
-		ret = cra_package_explode (pkg_extra, task->tmpdir, &error);
+		cra_package_log (task->pkg,
+				 CRA_PACKAGE_LOG_LEVEL_INFO,
+				 "Adding extra package %s for %s",
+				 cra_package_get_name (pkg_extra),
+				 cra_package_get_name (task->pkg));
+		ret = cra_package_explode (pkg_extra, task->tmpdir, ctx->file_globs, &error);
 		if (!ret) {
 			cra_package_log (task->pkg,
 					 CRA_PACKAGE_LOG_LEVEL_WARNING,
@@ -497,6 +506,7 @@ main (int argc, char **argv)
 		g_error_free (error);
 		goto out;
 	}
+	ctx->file_globs = cra_plugin_loader_get_globs (ctx->plugins);
 
 	/* create thread pool */
 	pool = g_thread_pool_new (cra_task_process_func,

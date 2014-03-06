@@ -36,6 +36,15 @@ cra_plugin_get_name (void)
 }
 
 /**
+ * cra_plugin_add_globs:
+ */
+void
+cra_plugin_add_globs (CraPlugin *plugin, GPtrArray *globs)
+{
+	cra_plugin_add_glob (globs, "/usr/share/ibus/component/*.xml");
+}
+
+/**
  * _cra_plugin_check_filename:
  */
 static gboolean

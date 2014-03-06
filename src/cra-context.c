@@ -175,6 +175,7 @@ cra_context_free (CraContext *ctx)
 	g_list_free (ctx->apps);
 	g_ptr_array_unref (ctx->blacklisted_pkgs);
 	g_ptr_array_unref (ctx->blacklisted_ids);
+	g_ptr_array_unref (ctx->file_globs);
 	g_mutex_clear (&ctx->apps_mutex);
 	g_free (ctx);
 }

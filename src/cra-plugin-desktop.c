@@ -34,6 +34,19 @@ cra_plugin_get_name (void)
 	return "desktop";
 }
 
+/**
+ * cra_plugin_add_globs:
+ */
+void
+cra_plugin_add_globs (CraPlugin *plugin, GPtrArray *globs)
+{
+	cra_plugin_add_glob (globs, "/usr/share/applications/*.desktop");
+	cra_plugin_add_glob (globs, "/usr/share/applications/kde4/*.desktop");
+	cra_plugin_add_glob (globs, "/usr/share/icons/hicolor/*/apps/*");
+	cra_plugin_add_glob (globs, "/usr/share/pixmaps/*");
+	cra_plugin_add_glob (globs, "/usr/share/icons/*");
+}
+
 struct CraPluginPrivate {
 	GPtrArray	*blacklist_cats;
 	GHashTable	*stock_icon_names;

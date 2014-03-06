@@ -35,6 +35,7 @@ typedef struct {
 	GPtrArray	*extra_pkgs;		/* of CraGlobValue */
 	GPtrArray	*plugins;		/* of CraPlugin */
 	GPtrArray	*packages;		/* of CraPackage */
+	GPtrArray	*file_globs;		/* of CraPackage */
 	GList		*apps;			/* of CraApp */
 	GMutex		 apps_mutex;		/* for ->apps */
 } CraContext;

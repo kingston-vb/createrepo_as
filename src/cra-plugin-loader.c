@@ -123,6 +123,32 @@ cra_plugin_loader_run (GPtrArray *plugins, const gchar *function_name)
 }
 
 /**
+ * cra_plugin_loader_get_globs:
+ */
+GPtrArray *
+cra_plugin_loader_get_globs (GPtrArray *plugins)
+{
+	gboolean ret;
+	CraPluginGetGlobsFunc plugin_func = NULL;
+	CraPlugin *plugin;
+	guint i;
+	GPtrArray *globs;
+
+	/* run each plugin */
+	globs = cra_glob_value_array_new ();
+	for (i = 0; i < plugins->len; i++) {
+		plugin = g_ptr_array_index (plugins, i);
+		ret = g_module_symbol (plugin->module,
+				       "cra_plugin_add_globs",
+				       (gpointer *) &plugin_func);
+		if (!ret)
+			continue;
+		plugin_func (plugin, globs);
+	}
+	return globs;
+}
+
+/**
  * cra_plugin_loader_open_plugin:
  */
 static CraPlugin *

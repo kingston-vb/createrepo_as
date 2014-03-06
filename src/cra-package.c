@@ -417,7 +417,10 @@ out:
  * cra_package_explode:
  **/
 gboolean
-cra_package_explode (CraPackage *pkg, const gchar *dir, GError **error)
+cra_package_explode (CraPackage *pkg,
+		     const gchar *dir,
+		     GPtrArray *glob,
+		     GError **error)
 {
 	CraPackagePrivate *priv = GET_PRIVATE (pkg);
 	const gchar *tmp;
@@ -464,6 +467,17 @@ cra_package_explode (CraPackage *pkg, const gchar *dir, GError **error)
 			goto out;
 		}
 
+		/* no output file */
+		if (archive_entry_pathname (entry) == NULL)
+			continue;
+
+		/* do we have to decompress this file */
+		if (glob != NULL) {
+			tmp = archive_entry_pathname (entry);
+			if (cra_glob_value_search (glob, tmp) == NULL)
+				continue;
+		}
+
 		/* update output path */
 		g_snprintf (buf, PATH_MAX, "%s/%s",
 			    dir, archive_entry_pathname (entry));
@@ -482,10 +496,6 @@ cra_package_explode (CraPackage *pkg, const gchar *dir, GError **error)
 			g_snprintf (buf, PATH_MAX, "%s/%s", dir, tmp);
 			archive_entry_update_symlink_utf8 (entry, buf);
 		}
-
-		/* no output file */
-		if (archive_entry_pathname (entry) == NULL)
-			continue;
 
 		r = archive_read_extract (arch, entry, 0);
 		if (r != ARCHIVE_OK) {

@@ -70,6 +70,7 @@ gboolean	 cra_package_open		(CraPackage	*pkg,
 						 GError		**error);
 gboolean	 cra_package_explode		(CraPackage	*pkg,
 						 const gchar	*dir,
+						 GPtrArray	*glob,
 						 GError		**error);
 gboolean	 cra_package_ensure_filelist	(CraPackage	*pkg,
 						 GError		**error);

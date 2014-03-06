@@ -37,6 +37,16 @@ cra_plugin_get_name (void)
 }
 
 /**
+ * cra_plugin_add_globs:
+ */
+void
+cra_plugin_add_globs (CraPlugin *plugin, GPtrArray *globs)
+{
+	cra_plugin_add_glob (globs, "/usr/share/help/*");
+	cra_plugin_add_glob (globs, "/usr/share/gnome-shell/search-providers/*");
+}
+
+/**
  * cra_plugin_initialize:
  */
 void

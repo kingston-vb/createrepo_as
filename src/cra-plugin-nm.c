@@ -32,6 +32,15 @@ cra_plugin_get_name (void)
 	return "nm";
 }
 
+/**
+ * cra_plugin_add_globs:
+ */
+void
+cra_plugin_add_globs (CraPlugin *plugin, GPtrArray *globs)
+{
+	cra_plugin_add_glob (globs, "/usr/bin/*");
+}
+
 static gboolean
 cra_plugin_nm_app (CraApp *app, const gchar *filename, GError **error)
 {

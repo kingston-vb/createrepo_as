@@ -60,6 +60,15 @@ cra_plugin_get_name (void)
 }
 
 /**
+ * cra_plugin_add_globs:
+ */
+void
+cra_plugin_add_globs (CraPlugin *plugin, GPtrArray *globs)
+{
+	cra_plugin_add_glob (globs, "./usr/share/locale/*/LC_MESSAGES/*.mo");
+}
+
+/**
  * cra_gettext_entry_new:
  **/
 static CraGettextEntry *

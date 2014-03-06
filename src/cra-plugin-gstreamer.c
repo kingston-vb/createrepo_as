@@ -34,6 +34,15 @@ cra_plugin_get_name (void)
 }
 
 /**
+ * cra_plugin_add_globs:
+ */
+void
+cra_plugin_add_globs (CraPlugin *plugin, GPtrArray *globs)
+{
+	cra_plugin_add_glob (globs, "/usr/lib64/gstreamer-1.0/libgst*.so");
+}
+
+/**
  * cra_plugin_check_filename:
  */
 gboolean
