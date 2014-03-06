@@ -169,7 +169,6 @@ cra_package_log_flush (CraPackage *pkg, GError **error)
 	logfile = g_strdup_printf ("%s/%s.log",
 				   logdir,
 				   cra_package_get_nevr (pkg));
-	g_debug ("Writing to %s", logfile);
 	ret = g_file_set_contents (logfile, priv->log->str, -1, error);
 	if (!ret)
 		goto out;

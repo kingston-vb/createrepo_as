@@ -62,8 +62,8 @@ gboolean	 cra_screenshot_load_url		(CraScreenshot	*screenshot,
 							const gchar	*url,
 							GError		**error);
 gboolean	 cra_screenshot_load_filename		(CraScreenshot	*screenshot,
-							const gchar	*filename,
-							GError		**error);
+							 const gchar	*filename,
+							 GError		**error);
 
 void		 cra_screenshot_insert_into_dom		(CraScreenshot	*screenshot,
 							GNode		*parent);

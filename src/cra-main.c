@@ -82,6 +82,8 @@ cra_task_process_func (gpointer data, gpointer user_data)
 		"X-Kudo-UsesNotifications",
 		NULL };
 
+	g_debug ("Processing %s", cra_package_get_name (task->pkg));
+
 	/* reset the profile timer */
 	cra_package_log_start (task->pkg);
 
@@ -273,7 +275,7 @@ cra_task_process_func (gpointer data, gpointer user_data)
 				continue;
 			cra_package_log (task->pkg,
 					 CRA_PACKAGE_LOG_LEVEL_INFO,
-					 "Application not not have %s",
+					 "Application does not have %s",
 					 kudos[i]);
 		}
 
@@ -491,16 +493,15 @@ main (int argc, char **argv)
 		g_error_free (error);
 		goto out;
 	}
-	ret = cra_utils_ensure_exists_and_empty (log_dir, &error);
-	if (!ret) {
-		g_warning ("failed to create log dir: %s", error->message);
-		g_error_free (error);
-		goto out;
-	}
 	ret = cra_utils_ensure_exists_and_empty ("./icons", &error);
 	if (!ret) {
 		g_warning ("failed to create icons dir: %s", error->message);
 		g_error_free (error);
+		goto out;
+	}
+	rc = g_mkdir_with_parents (log_dir, 0700);
+	if (rc != 0) {
+		g_warning ("failed to create log dir");
 		goto out;
 	}
 	rc = g_mkdir_with_parents ("./screenshots/112x63", 0700);
@@ -579,6 +580,9 @@ main (int argc, char **argv)
 		cra_package_set_config (pkg,
 					"AppDataExtra",
 					"../../fedora-appstream/appdata-extra");
+		cra_package_set_config (pkg,
+					"ScreenshotsExtra",
+					"../../fedora-appstream/screenshots-extra");
 		cra_package_set_config (pkg,
 					"MirrorURI",
 					"http://alt.fedoraproject.org/pub/alt/screenshots/f21/");

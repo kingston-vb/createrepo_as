@@ -83,6 +83,66 @@ cra_plugin_destroy (CraPlugin *plugin)
 	g_ptr_array_unref (plugin->priv->project_groups);
 }
 
+
+/**
+ * cra_plugin_hardcoded_add_screenshot:
+ */
+static gboolean
+cra_plugin_hardcoded_add_screenshot (CraApp *app,
+				     const gchar *filename,
+				     GError **error)
+{
+	CraScreenshot *screenshot;
+	gboolean ret;
+
+	screenshot = cra_screenshot_new (cra_app_get_package (app),
+					 cra_app_get_id (app));
+	ret = cra_screenshot_load_filename (screenshot,
+					    filename,
+					    error);
+	if (!ret)
+		goto out;
+	cra_app_add_screenshot (app, screenshot);
+out:
+	g_object_unref (screenshot);
+	return ret;
+}
+
+/**
+ * cra_plugin_hardcoded_add_screenshots:
+ */
+static gboolean
+cra_plugin_hardcoded_add_screenshots (CraApp *app,
+				      const gchar *location,
+				      GError **error)
+{
+	const gchar *tmp;
+	gboolean ret = TRUE;
+	gchar *filename;
+	GDir *dir;
+
+	/* scan for files */
+	dir = g_dir_open (location, 0, error);
+	if (dir == NULL) {
+		ret = FALSE;
+		goto out;
+	}
+	while ((tmp = g_dir_read_name (dir)) != NULL) {
+		if (!g_str_has_suffix (tmp, ".png"))
+			continue;
+		cra_package_log (cra_app_get_package (app),
+				 CRA_PACKAGE_LOG_LEVEL_INFO,
+				 "Adding extra screenshot: %s", tmp);
+		filename = g_build_filename (location, tmp, NULL);
+		ret = cra_plugin_hardcoded_add_screenshot (app, filename, error);
+		g_free (filename);
+		if (!ret)
+			goto out;
+	}
+out:
+	return ret;
+}
+
 /**
  * cra_plugin_process_app:
  */
@@ -94,8 +154,10 @@ cra_plugin_process_app (CraPlugin *plugin,
 			GError **error)
 {
 	const gchar *tmp;
-	gchar **filelist;
+	gboolean ret = TRUE;
 	gchar **deps;
+	gchar *dirname = NULL;
+	gchar **filelist;
 	guint i;
 
 	/* add extra categories */
@@ -153,5 +215,19 @@ cra_plugin_process_app (CraPlugin *plugin,
 		}
 	}
 
-	return TRUE;
+	/* do any extra screenshots exist */
+	tmp = cra_package_get_config (pkg, "ScreenshotsExtra");
+	if (tmp != NULL) {
+		dirname = g_build_filename (tmp, cra_app_get_id (app), NULL);
+		if (g_file_test (dirname, G_FILE_TEST_EXISTS)) {
+			ret = cra_plugin_hardcoded_add_screenshots (app,
+								    dirname,
+								    error);
+			if (!ret)
+				goto out;
+		}
+	}
+out:
+	g_free (dirname);
+	return ret;
 }

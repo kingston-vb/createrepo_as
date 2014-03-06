@@ -516,6 +516,16 @@ cra_app_get_keywords (CraApp *app)
 }
 
 /**
+ * cra_app_get_screenshots:
+ **/
+GPtrArray *
+cra_app_get_screenshots (CraApp *app)
+{
+	CraAppPrivate *priv = GET_PRIVATE (app);
+	return priv->screenshots;
+}
+
+/**
  * cra_app_get_id_full:
  **/
 const gchar *

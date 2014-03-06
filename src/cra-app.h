@@ -98,6 +98,7 @@ void		 cra_app_set_pixbuf		(CraApp		*app,
 gboolean	 cra_app_get_requires_appdata	(CraApp		*app);
 GPtrArray	*cra_app_get_categories		(CraApp		*app);
 GPtrArray	*cra_app_get_keywords		(CraApp		*app);
+GPtrArray	*cra_app_get_screenshots	(CraApp		*app);
 const gchar	*cra_app_get_id			(CraApp		*app);
 const gchar	*cra_app_get_id_full		(CraApp		*app);
 const gchar	*cra_app_get_type_id		(CraApp		*app);

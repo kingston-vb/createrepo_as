@@ -176,7 +176,7 @@ cra_plugin_process_filename (CraApp *app,
 
 	/* add screenshots */
 	n = cra_dom_get_node (dom, NULL, "application/screenshots");
-	if (n != NULL) {
+	if (n != NULL && cra_app_get_screenshots(app)->len == 0) {
 		for (c = n->children; c != NULL; c = c->next) {
 			CraScreenshot *ss;
 			GError *error_local = NULL;
@@ -203,6 +203,10 @@ cra_plugin_process_filename (CraApp *app,
 			}
 			g_object_unref (ss);
 		}
+	} else if (n != NULL) {
+		cra_package_log (cra_app_get_package (app),
+				 CRA_PACKAGE_LOG_LEVEL_INFO,
+				 "AppData screenshots ignored");
 	}
 
 	/* add metadata */
@@ -250,9 +254,25 @@ cra_plugin_process_app (CraPlugin *plugin,
 	gchar *appdata_filename;
 	gchar *appdata_filename_extra = NULL;
 
-	/* any installed appdata file */
+	/* get possible sources */
 	appdata_filename = g_strdup_printf ("%s/usr/share/appdata/%s.appdata.xml",
 					    tmpdir, cra_app_get_id (app));
+	tmp = cra_package_get_config (pkg, "AppDataExtra");
+	if (tmp != NULL) {
+		appdata_filename_extra = g_strdup_printf ("%s/%s/%s.appdata.xml",
+							  tmp,
+							  cra_app_get_type_id (app),
+							  cra_app_get_id (app));
+		if (g_file_test (appdata_filename, G_FILE_TEST_EXISTS) &&
+		    g_file_test (appdata_filename_extra, G_FILE_TEST_EXISTS)) {
+			cra_package_log (cra_app_get_package (app),
+					 CRA_PACKAGE_LOG_LEVEL_WARNING,
+					 "extra AppData file %s exists for no reason",
+					 appdata_filename_extra);
+		}
+	}
+
+	/* any installed appdata file */
 	if (g_file_test (appdata_filename, G_FILE_TEST_EXISTS)) {
 		ret = cra_plugin_process_filename (app,
 						   appdata_filename,
@@ -261,12 +281,8 @@ cra_plugin_process_app (CraPlugin *plugin,
 	}
 
 	/* any appdata-extra file */
-	tmp = cra_package_get_config (pkg, "AppDataExtra");
-	appdata_filename_extra = g_strdup_printf ("%s/%s/%s.appdata.xml",
-						  tmp,
-						  cra_app_get_type_id (app),
-						  cra_app_get_id (app));
-	if (g_file_test (appdata_filename_extra, G_FILE_TEST_EXISTS)) {
+	if (appdata_filename_extra != NULL &&
+	    g_file_test (appdata_filename_extra, G_FILE_TEST_EXISTS)) {
 		ret = cra_plugin_process_filename (app,
 						   appdata_filename_extra,
 						   error);
