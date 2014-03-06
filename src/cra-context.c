@@ -71,6 +71,17 @@ cra_context_add_blacklist_app_id (CraContext *ctx, const gchar *id)
 }
 
 /**
+ * cra_context_add_app:
+ */
+void
+cra_context_add_app (CraContext *ctx, CraApp *app)
+{
+	g_mutex_lock (&ctx->apps_mutex);
+	cra_plugin_add_app (&ctx->apps, app);
+	g_mutex_unlock (&ctx->apps_mutex);
+}
+
+/**
  * cra_context_new:
  */
 CraContext *
@@ -83,6 +94,7 @@ cra_context_new (void)
 	ctx->plugins = cra_plugin_loader_new ();
 	ctx->packages = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
 	ctx->extra_pkgs = cra_glob_value_array_new ();
+	g_mutex_init (&ctx->apps_mutex);
 
 	/* add extra data */
 	cra_context_add_extra_pkg (ctx, "alliance-libs", "alliance");
@@ -163,5 +175,6 @@ cra_context_free (CraContext *ctx)
 	g_list_free (ctx->apps);
 	g_ptr_array_unref (ctx->blacklisted_pkgs);
 	g_ptr_array_unref (ctx->blacklisted_ids);
+	g_mutex_clear (&ctx->apps_mutex);
 	g_free (ctx);
 }

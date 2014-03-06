@@ -76,7 +76,7 @@ cra_plugin_process_filename (CraPlugin *plugin,
 			     const gchar *tmpdir,
 			     GError **error)
 {
-	CraApp *app;
+	CraApp *app = NULL;
 	gboolean ret = TRUE;
 	gchar *basename = NULL;
 	gchar *description = NULL;
@@ -157,6 +157,8 @@ out:
 	g_free (basename);
 	g_free (filename_tmp);
 	g_free (description);
+	if (app != NULL)
+		g_object_unref (app);
 	if (db != NULL)
 		sqlite3_close (db);
 	return ret;

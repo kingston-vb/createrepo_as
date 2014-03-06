@@ -557,7 +557,7 @@ cra_plugin_process_filename (CraPlugin *plugin,
 			     GError **error)
 {
 	const gchar *key;
-	CraApp *app;
+	CraApp *app = NULL;
 	gboolean ret;
 	gchar *app_id = NULL;
 	gchar *full_filename = NULL;
@@ -801,6 +801,8 @@ cra_plugin_process_filename (CraPlugin *plugin,
 	/* add */
 	cra_plugin_add_app (apps, app);
 out:
+	if (app != NULL)
+		g_object_unref (app);
 	if (pixbuf != NULL)
 		g_object_unref (pixbuf);
 	g_strfreev (keys);

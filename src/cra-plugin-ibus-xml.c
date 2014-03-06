@@ -131,7 +131,7 @@ cra_plugin_process_filename (CraPlugin *plugin,
 		cra_app_set_comment (app, "C", cra_dom_get_node_data (n));
 
 	/* add */
-	cra_plugin_add_app (apps, g_object_ref (app));
+	cra_plugin_add_app (apps, app);
 out:
 	g_strfreev (lines);
 	g_free (data);

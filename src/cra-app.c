@@ -249,7 +249,7 @@ gchar *
 cra_app_to_xml (CraApp *app)
 {
 	CraDom *dom;
-	gchar *str;
+	GString *str;
 	GNode *node_apps;
 	GNode *node_root;
 
@@ -259,7 +259,7 @@ cra_app_to_xml (CraApp *app)
 	cra_app_insert_into_dom (app, node_apps);
 	str = cra_dom_to_xml (dom);
 	g_object_unref (dom);
-	return str;
+	return g_string_free (str, FALSE);
 }
 
 /**
@@ -617,7 +617,7 @@ cra_app_save_resources (CraApp *app, GError **error)
 {
 	CraAppPrivate *priv = GET_PRIVATE (app);
 	CraScreenshot *ss;
-	gboolean ret;
+	gboolean ret = TRUE;
 	guint i;
 	gchar *filename = NULL;
 

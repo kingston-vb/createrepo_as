@@ -22,11 +22,13 @@
 #include "config.h"
 
 #include "cra-context.h"
+#include "cra-dom.h"
 #include "cra-package.h"
 #include "cra-plugin.h"
 #include "cra-plugin-loader.h"
 #include "cra-utils.h"
 
+#include <gio/gio.h>
 #include <glib.h>
 #include <locale.h>
 #include <rpm/rpmlib.h>
@@ -245,6 +247,10 @@ cra_task_process_func (gpointer data, gpointer user_data)
 			goto out;
 		}
 
+		/* all okay */
+		cra_context_add_app (ctx, app);
+
+		/* log the XML in the log file */
 		tmp = cra_app_to_xml (app);
 		cra_package_log (task->pkg, CRA_PACKAGE_LOG_LEVEL_NONE, "%s", tmp);
 		g_free (tmp);
@@ -310,6 +316,64 @@ out:
 }
 
 /**
+ * cra_context_write_xml:
+ */
+static gboolean
+cra_context_write_xml (CraContext *ctx, const gchar *basename, GError **error)
+{
+	CraApp *app;
+	CraDom *dom;
+	gboolean ret;
+	GList *l;
+	GNode *node_apps;
+	GNode *node_root;
+	GOutputStream *out;
+	GOutputStream *out2;
+	GString *xml;
+	GZlibCompressor *compressor;
+	gchar *filename = NULL;
+
+	/* get XML text */
+	dom = cra_dom_new ();
+	node_root = cra_dom_get_root (dom);
+	node_apps = cra_dom_insert (node_root, "applications", NULL, NULL);
+	for (l = ctx->apps; l != NULL; l = l->next) {
+		app = CRA_APP (l->data);
+		cra_app_insert_into_dom (app, node_apps);
+	}
+	xml = cra_dom_to_xml (dom);
+
+	/* compress as a gzip file */
+	compressor = g_zlib_compressor_new (G_ZLIB_COMPRESSOR_FORMAT_GZIP, -1);
+	out = g_memory_output_stream_new_resizable ();
+	out2 = g_converter_output_stream_new (out, G_CONVERTER (compressor));
+	ret = g_output_stream_write_all (out2, xml->str, xml->len,
+					 NULL, NULL, error);
+	if (!ret)
+		goto out;
+	ret = g_output_stream_close (out2, NULL, error);
+	if (!ret)
+		goto out;
+
+	/* write file */
+	filename = g_strdup_printf ("./%s.xml.gz", basename);
+	ret = g_file_set_contents (filename,
+				   g_memory_output_stream_get_data (G_MEMORY_OUTPUT_STREAM (out)),
+				   g_memory_output_stream_get_size (G_MEMORY_OUTPUT_STREAM (out)),
+				   error);
+	if (!ret)
+		goto out;
+out:
+	g_free (filename);
+	g_object_unref (dom);
+	g_object_unref (compressor);
+	g_object_unref (out);
+	g_object_unref (out2);
+	g_string_free (xml, TRUE);
+	return ret;
+}
+
+/**
  * main:
  */
 int
@@ -323,6 +387,7 @@ main (int argc, char **argv)
 	gboolean ret;
 	gboolean verbose = FALSE;
 	gchar *buildone = NULL;
+	gchar *basename = NULL;
 	gchar *log_dir = NULL;
 	gchar *packages_dir = NULL;
 	gchar *temp_dir = NULL;
@@ -344,6 +409,8 @@ main (int argc, char **argv)
 			"Set the temporary directory", NULL },
 		{ "buildone", '\0', 0, G_OPTION_ARG_STRING, &buildone,
 			"Set the temporary directory", NULL },
+		{ "basename", '\0', 0, G_OPTION_ARG_STRING, &basename,
+			"Set the basename, e.g. 'fedora-20'", NULL },
 		{ NULL}
 	};
 
@@ -366,6 +433,8 @@ main (int argc, char **argv)
 		temp_dir = g_strdup ("./tmp");
 	if (log_dir == NULL)
 		log_dir = g_strdup ("./logs");
+	if (basename == NULL)
+		basename = g_strdup ("fedora-21");
 
 	rpmReadConfigFiles (NULL, NULL);
 	setlocale (LC_ALL, "");
@@ -501,12 +570,21 @@ main (int argc, char **argv)
 	if (pool != NULL)
 		g_thread_pool_free (pool, FALSE, TRUE);
 
+	/* write XML file */
+	ret = cra_context_write_xml (ctx, basename, &error);
+	if (!ret) {
+		g_warning ("Failed to write XML file: %s", error->message);
+		g_error_free (error);
+		goto out;
+	}
+
 	/* success */
 	g_debug ("Done!");
 out:
 	g_free (buildone);
 	g_free (packages_dir);
 	g_free (temp_dir);
+	g_free (basename);
 	g_free (log_dir);
 	g_option_context_free (option_context);
 	if (ctx != NULL)

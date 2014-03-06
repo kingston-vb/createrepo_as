@@ -144,13 +144,13 @@ cra_dom_to_xml_string (GString *xml, GNode *n)
  *
  * Return value: an allocated string
  **/
-gchar *
+GString *
 cra_dom_to_xml (CraDom *dom)
 {
 	GString *xml;
 	xml = g_string_new ("");
 	cra_dom_to_xml_string (xml, dom->priv->root);
-	return g_string_free (xml, FALSE);
+	return xml;
 }
 
 /**

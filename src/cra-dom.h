@@ -49,7 +49,7 @@ typedef struct
 
 GType		 cra_dom_get_type			(void);
 CraDom		*cra_dom_new				(void);
-gchar		*cra_dom_to_xml				(CraDom		*dom);
+GString		*cra_dom_to_xml				(CraDom		*dom);
 gboolean	 cra_dom_parse_xml_data			(CraDom		*dom,
 							 const gchar	*data,
 							 gssize		 data_len,

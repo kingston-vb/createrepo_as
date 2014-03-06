@@ -70,5 +70,5 @@ cra_plugin_process (CraPlugin *plugin,
 void
 cra_plugin_add_app (GList **list, CraApp *app)
 {
-	*list = g_list_prepend (*list, app);
+	*list = g_list_prepend (*list, g_object_ref (app));
 }

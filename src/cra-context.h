@@ -24,6 +24,7 @@
 
 #include <glib.h>
 
+#include "cra-app.h"
 #include "cra-package.h"
 
 G_BEGIN_DECLS
@@ -35,12 +36,15 @@ typedef struct {
 	GPtrArray	*plugins;		/* of CraPlugin */
 	GPtrArray	*packages;		/* of CraPackage */
 	GList		*apps;			/* of CraApp */
+	GMutex		 apps_mutex;		/* for ->apps */
 } CraContext;
 
 CraContext	*cra_context_new		(void);
 void		 cra_context_free		(CraContext	*ctx);
 CraPackage	*cra_context_find_by_pkgname	(CraContext	*ctx,
 						 const gchar 	*pkgname);
+void		 cra_context_add_app		(CraContext	*ctx,
+						 CraApp		*app);
 
 G_END_DECLS
 

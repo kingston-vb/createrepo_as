@@ -199,6 +199,7 @@ cra_plugin_process (CraPlugin *plugin,
 out:
 	if (str != NULL)
 		g_string_free (str, TRUE);
+	g_object_unref (app);
 	g_free (app_id);
 	return apps;
 }
