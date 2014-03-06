@@ -217,7 +217,8 @@ cra_task_process_func (gpointer data, gpointer user_data)
 		if (!ret) {
 			cra_package_log (task->pkg,
 					 CRA_PACKAGE_LOG_LEVEL_WARNING,
-					 "Failed to run process: %s",
+					 "Failed to run process on %s: %s",
+					 cra_app_get_id (app),
 					 error->message);
 			g_error_free (error);
 			goto out;

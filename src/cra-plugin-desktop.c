@@ -493,7 +493,12 @@ cra_app_find_icon (const gchar *tmpdir, const gchar *something, GError **error)
 	guint i;
 	guint j;
 	const gchar *pixmap_dirs[] = { "pixmaps", "icons", NULL };
-	const gchar *supported_ext[] = { ".png", "", ".svg", ".xpm", NULL };
+	const gchar *supported_ext[] = { ".png",
+					 ".gif",
+					 ".svg",
+					 ".xpm",
+					 "",
+					 NULL };
 	const gchar *sizes[] = { "64x64",
 				 "128x128",
 				 "96x96",
