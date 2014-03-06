@@ -44,10 +44,15 @@ cra_plugin_add_globs (CraPlugin *plugin, GPtrArray *globs)
 static gboolean
 cra_plugin_nm_app (CraApp *app, const gchar *filename, GError **error)
 {
-	const gchar *argv[] = { "/usr/bin/nm", "-D", filename, NULL };
 	gboolean ret;
 	gchar *data_err = NULL;
 	gchar *data_out = NULL;
+	const gchar *argv[] = { "/usr/bin/nm",
+				"--dynamic",
+				"--no-sort",
+				"--undefined-only",
+				filename,
+				NULL };
 
 	ret = g_spawn_sync (NULL, (gchar **) argv, NULL,
 			    G_SPAWN_DEFAULT,
@@ -85,6 +90,8 @@ cra_plugin_process_app (CraPlugin *plugin,
 	for (i = 0; filelist[i] != NULL; i++) {
 		if (!g_str_has_prefix (filelist[i], "/usr/bin/"))
 			continue;
+		if (cra_app_get_metadata_item (app, "X-Kudo-UsesAppMenu") != NULL)
+			break;
 		filename = g_build_filename (tmpdir, filelist[i], NULL);
 		ret = cra_plugin_nm_app (app, filename, &error_local);
 		if (!ret) {
