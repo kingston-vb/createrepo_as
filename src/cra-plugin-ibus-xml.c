@@ -118,7 +118,7 @@ cra_plugin_process_filename (CraPlugin *plugin,
 	cra_app_add_category (app, "Addons");
 	cra_app_add_category (app, "InputSources");
 	cra_app_set_icon (app, "system-run-symbolic");
-	cra_app_set_cached_icon (app, FALSE);
+	cra_app_set_icon_type (app, CRA_APP_ICON_TYPE_STOCK);
 	cra_app_set_requires_appdata (app, TRUE);
 
 	/* read the component header which all input methods have */

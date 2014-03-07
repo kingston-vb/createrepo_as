@@ -41,7 +41,7 @@ struct _CraAppPrivate
 	GPtrArray	*pkgnames;
 	GPtrArray	*screenshots;
 	gboolean	 requires_appdata;
-	gboolean	 cached_icon;
+	CraAppIconType	 icon_type;
 	GHashTable	*names;
 	GHashTable	*comments;
 	GHashTable	*languages;
@@ -166,8 +166,10 @@ cra_app_insert_into_dom (CraApp *app, GNode *parent)
 
 	/* <icon> */
 	if (priv->icon != NULL) {
+		gboolean is_cached;
+		is_cached = priv->icon_type == CRA_APP_ICON_TYPE_CACHED;
 		cra_dom_insert (node_app, "icon", priv->icon,
-				"type", priv->cached_icon ? "cached" : "stock",
+				"type", is_cached ? "cached" : "stock",
 				NULL);
 	}
 
@@ -464,13 +466,13 @@ cra_app_set_requires_appdata (CraApp *app, gboolean requires_appdata)
 }
 
 /**
- * cra_app_set_cached_icon:
+ * cra_app_set_icon_type:
  **/
 void
-cra_app_set_cached_icon (CraApp *app, gboolean cached_icon)
+cra_app_set_icon_type (CraApp *app, CraAppIconType icon_type)
 {
 	CraAppPrivate *priv = GET_PRIVATE (app);
-	priv->cached_icon = cached_icon;
+	priv->icon_type = icon_type;
 }
 
 /**

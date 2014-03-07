@@ -795,7 +795,7 @@ cra_plugin_process_filename (CraPlugin *plugin,
 	if (key != NULL) {
 		if (g_hash_table_lookup (plugin->priv->stock_icon_names,
 					 key) != NULL) {
-			cra_app_set_cached_icon (app, TRUE);
+			cra_app_set_icon_type (app, CRA_APP_ICON_TYPE_STOCK);
 			cra_package_log (pkg,
 					 CRA_PACKAGE_LOG_LEVEL_INFO,
 					 "using stock icon %s", key);
@@ -828,7 +828,7 @@ cra_plugin_process_filename (CraPlugin *plugin,
 			icon_filename = g_strdup_printf ("%s.png",
 							 cra_app_get_id (app));
 			cra_app_set_icon (app, icon_filename);
-			cra_app_set_cached_icon (app, FALSE);
+			cra_app_set_icon_type (app, CRA_APP_ICON_TYPE_CACHED);
 			cra_app_set_pixbuf (app, pixbuf);
 		}
 	}

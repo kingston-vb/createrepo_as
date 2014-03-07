@@ -160,7 +160,7 @@ cra_plugin_process (CraPlugin *plugin,
 	cra_app_set_name (app, "C", "GStreamer Multimedia Codecs");
 	cra_app_set_icon (app, "application-x-executable");
 	cra_app_set_requires_appdata (app, TRUE);
-	cra_app_set_cached_icon (app, FALSE);
+	cra_app_set_icon_type (app, CRA_APP_ICON_TYPE_STOCK);
 	cra_app_add_category (app, "Addons");
 	cra_app_add_category (app, "Codecs");
 

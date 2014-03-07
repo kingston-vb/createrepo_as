@@ -50,6 +50,12 @@ struct _CraAppClass
 	GObjectClass		parent_class;
 };
 
+typedef enum {
+	CRA_APP_ICON_TYPE_STOCK,
+	CRA_APP_ICON_TYPE_CACHED,
+	CRA_APP_ICON_TYPE_LAST
+} CraAppIconType;
+
 GType		 cra_app_get_type		(void);
 CraApp		*cra_app_new			(CraPackage	*pkg,
 						 const gchar	*id_full);
@@ -90,8 +96,8 @@ void		 cra_app_set_comment		(CraApp		*app,
 						 const gchar	*comment);
 void		 cra_app_set_requires_appdata	(CraApp		*app,
 						 gboolean	 requires_appdata);
-void		 cra_app_set_cached_icon	(CraApp		*app,
-						 gboolean	 cached_icon);
+void		 cra_app_set_icon_type		(CraApp		*app,
+						 CraAppIconType	 icon_type);
 void		 cra_app_set_pixbuf		(CraApp		*app,
 						 GdkPixbuf	*pixbuf);
 
