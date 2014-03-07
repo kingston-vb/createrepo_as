@@ -87,7 +87,7 @@ cra_plugin_loader_process_app (GPtrArray *plugins,
 		if (!ret)
 			continue;
 		cra_package_log (pkg,
-				 CRA_PACKAGE_LOG_LEVEL_INFO,
+				 CRA_PACKAGE_LOG_LEVEL_DEBUG,
 				 "Running cra_plugin_process_app() from %s",
 				 plugin->name);
 		ret = plugin_func (plugin, pkg, app, tmpdir, error);

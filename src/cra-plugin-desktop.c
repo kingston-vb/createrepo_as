@@ -797,7 +797,7 @@ cra_plugin_process_filename (CraPlugin *plugin,
 					 key) != NULL) {
 			cra_app_set_icon_type (app, CRA_APP_ICON_TYPE_STOCK);
 			cra_package_log (pkg,
-					 CRA_PACKAGE_LOG_LEVEL_INFO,
+					 CRA_PACKAGE_LOG_LEVEL_DEBUG,
 					 "using stock icon %s", key);
 		} else {
 

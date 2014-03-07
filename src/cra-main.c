@@ -46,7 +46,7 @@ static void
 cra_task_free (CraTask *task)
 {
 	cra_package_log (task->pkg,
-			 CRA_PACKAGE_LOG_LEVEL_INFO,
+			 CRA_PACKAGE_LOG_LEVEL_DEBUG,
 			 "Flushing %s", task->filename);
 	cra_package_log_flush (task->pkg, NULL);
 	g_object_unref (task->pkg);
@@ -102,7 +102,7 @@ cra_task_process_func (gpointer data, gpointer user_data)
 
 	/* did we get a file match on any plugin */
 	cra_package_log (task->pkg,
-			 CRA_PACKAGE_LOG_LEVEL_INFO,
+			 CRA_PACKAGE_LOG_LEVEL_DEBUG,
 			 "Getting filename match for %s",
 			 task->filename);
 	filelist = cra_package_get_filelist (task->pkg);
@@ -126,7 +126,7 @@ cra_task_process_func (gpointer data, gpointer user_data)
 
 	/* explode tree */
 	cra_package_log (task->pkg,
-			 CRA_PACKAGE_LOG_LEVEL_INFO,
+			 CRA_PACKAGE_LOG_LEVEL_DEBUG,
 			 "Exploding tree for %s",
 			 cra_package_get_name (task->pkg));
 	ret = cra_package_explode (task->pkg, task->tmpdir, ctx->file_globs, &error);
@@ -151,7 +151,7 @@ cra_task_process_func (gpointer data, gpointer user_data)
 			goto out;
 		}
 		cra_package_log (task->pkg,
-				 CRA_PACKAGE_LOG_LEVEL_INFO,
+				 CRA_PACKAGE_LOG_LEVEL_DEBUG,
 				 "Adding extra package %s for %s",
 				 cra_package_get_name (pkg_extra),
 				 cra_package_get_name (task->pkg));
@@ -168,7 +168,7 @@ cra_task_process_func (gpointer data, gpointer user_data)
 
 	/* run plugin */
 	cra_package_log (task->pkg,
-			 CRA_PACKAGE_LOG_LEVEL_INFO,
+			 CRA_PACKAGE_LOG_LEVEL_DEBUG,
 			 "Processing %s with %s [%p]",
 			 task->filename,
 			 plugin->name,
@@ -248,21 +248,21 @@ cra_task_process_func (gpointer data, gpointer user_data)
 		if (cra_app_get_icon (app) == NULL) {
 			cra_package_log (task->pkg,
 					 CRA_PACKAGE_LOG_LEVEL_INFO,
-					 "%s has no icon",
+					 "%s not included as has no icon",
 					 cra_app_get_id_full (app));
 			continue;
 		}
 		if (cra_app_get_name (app, "C") == NULL) {
 			cra_package_log (task->pkg,
 					 CRA_PACKAGE_LOG_LEVEL_INFO,
-					 "%s has no name",
+					 "%s not included as has no name",
 					 cra_app_get_id_full (app));
 			continue;
 		}
 		if (cra_app_get_comment (app, "C") == NULL) {
 			cra_package_log (task->pkg,
 					 CRA_PACKAGE_LOG_LEVEL_INFO,
-					 "%s has no comment",
+					 "%s not included as has no comment",
 					 cra_app_get_id_full (app));
 			continue;
 		}

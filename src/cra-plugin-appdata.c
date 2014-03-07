@@ -223,7 +223,7 @@ cra_plugin_process_filename (CraApp *app,
 			ret = cra_screenshot_load_url (ss, tmp, &error_local);
 			if (ret) {
 				cra_package_log (cra_app_get_package (app),
-						 CRA_PACKAGE_LOG_LEVEL_INFO,
+						 CRA_PACKAGE_LOG_LEVEL_DEBUG,
 						 "Added screenshot %s", tmp);
 				cra_app_add_screenshot (app, ss);
 			} else {

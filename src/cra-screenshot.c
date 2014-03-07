@@ -237,7 +237,7 @@ cra_screenshot_save_pixbuf (CraScreenshot *screenshot,
 				     NULL);
 	if (g_file_test (filename, G_FILE_TEST_EXISTS)) {
 		cra_package_log (priv->pkg,
-				 CRA_PACKAGE_LOG_LEVEL_INFO,
+				 CRA_PACKAGE_LOG_LEVEL_DEBUG,
 				 "%s screenshot already exists", size_str);
 		goto out;
 	}
@@ -284,7 +284,7 @@ cra_screenshot_save_pixbuf (CraScreenshot *screenshot,
 
 	/* set new AppStream compatible screenshot name */
 	cra_package_log (priv->pkg,
-			 CRA_PACKAGE_LOG_LEVEL_INFO,
+			 CRA_PACKAGE_LOG_LEVEL_DEBUG,
 			 "saved %s screenshot", size_str);
 out:
 	if (pixbuf != NULL)

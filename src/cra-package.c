@@ -138,6 +138,11 @@ cra_package_log (CraPackage *pkg,
 					"%05.0f\t+%05.0f\tINFO:    %s\n",
 					now, now - priv->last_log, tmp);
 		break;
+	case CRA_PACKAGE_LOG_LEVEL_DEBUG:
+		g_string_append_printf (priv->log,
+					"%05.0f\t+%05.0f\tDEBUG:   %s\n",
+					now, now - priv->last_log, tmp);
+		break;
 	case CRA_PACKAGE_LOG_LEVEL_WARNING:
 		g_string_append_printf (priv->log,
 					"%05.0f\t+%05.0f\tWARNING: %s\n",

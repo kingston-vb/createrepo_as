@@ -49,7 +49,7 @@ cra_plugin_process (CraPlugin *plugin,
 
 	/* run each plugin */
 	cra_package_log (pkg,
-			 CRA_PACKAGE_LOG_LEVEL_INFO,
+			 CRA_PACKAGE_LOG_LEVEL_DEBUG,
 			 "Running cra_plugin_process() from %s",
 			 plugin->name);
 	ret = g_module_symbol (plugin->module,

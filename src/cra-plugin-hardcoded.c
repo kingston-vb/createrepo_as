@@ -131,7 +131,7 @@ cra_plugin_hardcoded_add_screenshots (CraApp *app,
 		if (!g_str_has_suffix (tmp, ".png"))
 			continue;
 		cra_package_log (cra_app_get_package (app),
-				 CRA_PACKAGE_LOG_LEVEL_INFO,
+				 CRA_PACKAGE_LOG_LEVEL_DEBUG,
 				 "Adding extra screenshot: %s", tmp);
 		filename = g_build_filename (location, tmp, NULL);
 		ret = cra_plugin_hardcoded_add_screenshot (app, filename, error);
