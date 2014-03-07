@@ -43,6 +43,7 @@ plugindir = $(libdir)/cra-plugins
 plugin_LTLIBRARIES =					\
 	libcra_plugin_appdata.la			\
 	libcra_plugin_desktop.la			\
+	libcra_plugin_font.la				\
 	libcra_plugin_gettext.la			\
 	libcra_plugin_gstreamer.la			\
 	libcra_plugin_hardcoded.la			\
@@ -89,5 +90,10 @@ libcra_plugin_ibus_xml_la_SOURCES = cra-plugin-ibus-xml.c
 libcra_plugin_ibus_xml_la_LIBADD = $(GLIB_LIBS) $(SQLITE_LIBS)
 libcra_plugin_ibus_xml_la_LDFLAGS = -module -avoid-version
 libcra_plugin_ibus_xml_la_CFLAGS = $(GLIB_CFLAGS) $(WARNINGFLAGS_C)
+
+libcra_plugin_font_la_SOURCES = cra-plugin-font.c
+libcra_plugin_font_la_LIBADD = $(GLIB_LIBS) $(SQLITE_LIBS)
+libcra_plugin_font_la_LDFLAGS = -module -avoid-version
+libcra_plugin_font_la_CFLAGS = $(GLIB_CFLAGS) $(WARNINGFLAGS_C)
 
 -include $(top_srcdir)/git.mk
