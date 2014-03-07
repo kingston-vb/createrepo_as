@@ -203,6 +203,12 @@ cra_dom_end_element_cb (GMarkupParseContext *context,
 		       GError             **error)
 {
 	CraDom *dom = (CraDom *) user_data;
+	CraDomNodeData *data;
+
+	data = dom->priv->current->data;
+	cra_string_replace (data->cdata, "\n", " ");
+	cra_string_replace (data->cdata, "  ", " ");
+
 	dom->priv->current = dom->priv->current->parent;
 }
 
@@ -236,7 +242,7 @@ cra_dom_text_cb (GMarkupParseContext *context,
 
 	/* save cdata */
 	data = dom->priv->current->data;
-	g_string_append (data->cdata, text);
+	g_string_append (data->cdata, g_strstrip (text));
 }
 
 /**

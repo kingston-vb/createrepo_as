@@ -25,6 +25,7 @@
 #include <fnmatch.h>
 #include <archive.h>
 #include <archive_entry.h>
+#include <string.h>
 
 #include "cra-utils.h"
 #include "cra-plugin.h"
@@ -193,6 +194,31 @@ out:
 	if (files != NULL)
 		g_ptr_array_unref (files);
 	return ret;
+}
+
+/**
+ * cra_string_replace:
+ */
+guint
+cra_string_replace (GString *string, const gchar *search, const gchar *replace)
+{
+	gchar **split = NULL;
+	gchar *tmp = NULL;
+	guint count = 0;
+
+	/* quick search */
+	if (g_strstr_len (string->str, -1, search) == NULL)
+		goto out;
+
+	/* replace */
+	split = g_strsplit (string->str, search, -1);
+	tmp = g_strjoinv (replace, split);
+	g_string_assign (string, tmp);
+	count = g_strv_length (split);
+out:
+	g_strfreev (split);
+	g_free (tmp);
+	return count;
 }
 
 /******************************************************************************/

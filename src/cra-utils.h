@@ -42,6 +42,9 @@ void		 cra_glob_value_free			(CraGlobValue	*kv);
 const gchar	*cra_glob_value_search			(GPtrArray	*array,
 							 const gchar	*search);
 GPtrArray	*cra_glob_value_array_new		(void);
+guint		 cra_string_replace			(GString	*string,
+							 const gchar	*search,
+							 const gchar	*replace);
 
 G_END_DECLS
 
