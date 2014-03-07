@@ -318,6 +318,11 @@ cra_package_add_release (CraPackage *pkg,
 		*tmp = '\0';
 	}
 
+	/* remove any epoch */
+	tmp = g_strstr_len (version, -1, ":");
+	if (tmp != NULL)
+		version = tmp + 1;
+
 	/* is version already in the database */
 	release = g_hash_table_lookup (priv->releases_hash, version);
 	if (release != NULL) {
