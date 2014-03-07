@@ -66,6 +66,7 @@ cra_task_process_func (gpointer data, gpointer user_data)
 	CraContext *ctx = (CraContext *) user_data;
 	CraPackage *pkg_extra;
 	CraPlugin *plugin = NULL;
+	CraRelease *release;
 	CraTask *task = (CraTask *) data;
 	gboolean ret;
 	gchar **filelist;
@@ -73,6 +74,7 @@ cra_task_process_func (gpointer data, gpointer user_data)
 	GError *error = NULL;
 	GList *apps = NULL;
 	GList *l;
+	GPtrArray *releases;
 	guint i;
 	const gchar *kudos[] = {
 		"X-Kudo-GTK3",
@@ -209,6 +211,13 @@ cra_task_process_func (gpointer data, gpointer user_data)
 			cra_app_set_homepage_url (app, cra_package_get_url (task->pkg));
 		if (cra_package_get_license (task->pkg) != NULL)
 			cra_app_set_project_license (app, cra_package_get_license (task->pkg));
+
+		/* set all the releases on the app */
+		releases = cra_package_get_releases (task->pkg);
+		for (i = 0; i < releases->len; i++) {
+			release = g_ptr_array_index (releases, i);
+			cra_app_add_release (app, release);
+		}
 
 		/* run each refine plugin on each app */
 		ret = cra_plugin_loader_process_app (ctx->plugins,

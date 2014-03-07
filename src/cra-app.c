@@ -39,7 +39,8 @@ struct _CraAppPrivate
 	GPtrArray	*keywords;
 	GPtrArray	*mimetypes;
 	GPtrArray	*pkgnames;
-	GPtrArray	*screenshots;
+	GPtrArray	*screenshots;	/* of CraScreenshot */
+	GPtrArray	*releases;	/* of CraRelease */
 	gboolean	 requires_appdata;
 	CraAppIconType	 icon_type;
 	GHashTable	*names;
@@ -77,6 +78,7 @@ cra_app_finalize (GObject *object)
 	g_ptr_array_unref (priv->mimetypes);
 	g_ptr_array_unref (priv->pkgnames);
 	g_ptr_array_unref (priv->screenshots);
+	g_ptr_array_unref (priv->releases);
 	g_hash_table_unref (priv->names);
 	g_hash_table_unref (priv->comments);
 	g_hash_table_unref (priv->descriptions);
@@ -101,6 +103,7 @@ cra_app_init (CraApp *app)
 	priv->mimetypes = g_ptr_array_new_with_free_func (g_free);
 	priv->pkgnames = g_ptr_array_new_with_free_func (g_free);
 	priv->screenshots = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
+	priv->releases = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
 	priv->names = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
 	priv->comments = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
 	priv->descriptions = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
@@ -142,10 +145,12 @@ void
 cra_app_insert_into_dom (CraApp *app, GNode *parent)
 {
 	CraAppPrivate *priv = GET_PRIVATE (app);
+	const gchar *tmp;
+	CraRelease *rel;
 	CraScreenshot *ss;
+	gchar *timestamp_str;
 	GNode *node_app;
 	GNode *node_tmp;
-	const gchar *tmp;
 	guint i;
 
 	node_app = cra_dom_insert (parent, "application", NULL, NULL);
@@ -231,6 +236,21 @@ cra_app_insert_into_dom (CraApp *app, GNode *parent)
 		for (i = 0; i < priv->screenshots->len; i++) {
 			ss = g_ptr_array_index (priv->screenshots, i);
 			cra_screenshot_insert_into_dom (ss, node_tmp);
+		}
+	}
+
+	/* <releases> */
+	if (priv->releases->len > 0) {
+		node_tmp = cra_dom_insert (node_app, "releases", NULL, NULL);
+		for (i = 0; i < priv->releases->len && i < 3; i++) {
+			rel = g_ptr_array_index (priv->releases, i);
+			timestamp_str = g_strdup_printf ("%" G_GUINT64_FORMAT,
+							 cra_release_get_timestamp (rel));
+			cra_dom_insert (node_tmp, "release", NULL,
+					"timestamp", timestamp_str,
+					"version", cra_release_get_version (rel),
+					NULL);
+			g_free (timestamp_str);
 		}
 	}
 
@@ -400,6 +420,16 @@ cra_app_add_screenshot (CraApp *app, CraScreenshot *screenshot)
 }
 
 /**
+ * cra_app_add_release:
+ **/
+void
+cra_app_add_release (CraApp *app, CraRelease *release)
+{
+	CraAppPrivate *priv = GET_PRIVATE (app);
+	g_ptr_array_add (priv->releases, g_object_ref (release));
+}
+
+/**
  * cra_app_add_pkgname:
  **/
 void
@@ -547,6 +577,16 @@ cra_app_get_screenshots (CraApp *app)
 {
 	CraAppPrivate *priv = GET_PRIVATE (app);
 	return priv->screenshots;
+}
+
+/**
+ * cra_app_get_releases:
+ **/
+GPtrArray *
+cra_app_get_releases (CraApp *app)
+{
+	CraAppPrivate *priv = GET_PRIVATE (app);
+	return priv->releases;
 }
 
 /**

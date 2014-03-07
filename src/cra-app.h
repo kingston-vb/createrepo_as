@@ -26,6 +26,7 @@
 #include <gdk-pixbuf/gdk-pixbuf.h>
 
 #include "cra-package.h"
+#include "cra-release.h"
 #include "cra-screenshot.h"
 
 #define CRA_TYPE_APP		(cra_app_get_type())
@@ -82,6 +83,8 @@ void		 cra_app_add_pkgname		(CraApp		*app,
 						 const gchar	*pkgname);
 void		 cra_app_add_screenshot		(CraApp		*app,
 						 CraScreenshot	*screenshot);
+void		 cra_app_add_release		(CraApp		*app,
+						 CraRelease	*release);
 void		 cra_app_add_language		(CraApp		*app,
 						 const gchar	*locale,
 						 const gchar	*value);
@@ -108,6 +111,7 @@ gboolean	 cra_app_get_requires_appdata	(CraApp		*app);
 GPtrArray	*cra_app_get_categories		(CraApp		*app);
 GPtrArray	*cra_app_get_keywords		(CraApp		*app);
 GPtrArray	*cra_app_get_screenshots	(CraApp		*app);
+GPtrArray	*cra_app_get_releases		(CraApp		*app);
 const gchar	*cra_app_get_id			(CraApp		*app);
 const gchar	*cra_app_get_id_full		(CraApp		*app);
 const gchar	*cra_app_get_type_id		(CraApp		*app);

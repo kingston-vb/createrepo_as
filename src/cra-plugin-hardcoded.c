@@ -154,11 +154,14 @@ cra_plugin_process_app (CraPlugin *plugin,
 			GError **error)
 {
 	const gchar *tmp;
+	CraRelease *release;
 	gboolean ret = TRUE;
 	gchar **deps;
 	gchar *dirname = NULL;
 	gchar **filelist;
+	GPtrArray *releases;
 	guint i;
+	guint secs;
 
 	/* add extra categories */
 	tmp = cra_app_get_id (app);
@@ -211,6 +214,18 @@ cra_plugin_process_app (CraPlugin *plugin,
 	for (i = 0; deps[i] != NULL; i++) {
 		if (g_strcmp0 (deps[i], "libgtk-3.so.0") == 0) {
 			cra_app_add_metadata (app, "X-Kudo-GTK3", "");
+			break;
+		}
+	}
+
+	/* has the application been updated in the last year */
+	releases = cra_app_get_releases (app);
+	for (i = 0; i < releases->len; i++) {
+		release = g_ptr_array_index (releases, i);
+		secs = (g_get_real_time () / G_USEC_PER_SEC) -
+			cra_release_get_timestamp (release);
+		if (secs / (60 * 60 * 24) < 365) {
+			cra_app_add_metadata (app, "X-Kudo-RecentRelease", "");
 			break;
 		}
 	}

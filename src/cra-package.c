@@ -51,6 +51,8 @@ struct _CraPackagePrivate
 	GHashTable	*configs;
 	GTimer		*timer;
 	gdouble		 last_log;
+	GPtrArray	*releases;
+	GHashTable	*releases_hash;
 };
 
 G_DEFINE_TYPE_WITH_PRIVATE (CraPackage, cra_package, G_TYPE_OBJECT)
@@ -81,6 +83,8 @@ cra_package_finalize (GObject *object)
 	g_string_free (priv->log, TRUE);
 	g_timer_destroy (priv->timer);
 	g_hash_table_unref (priv->configs);
+	g_ptr_array_unref (priv->releases);
+	g_hash_table_unref (priv->releases_hash);
 
 	G_OBJECT_CLASS (cra_package_parent_class)->finalize (object);
 }
@@ -96,6 +100,9 @@ cra_package_init (CraPackage *pkg)
 	priv->timer = g_timer_new ();
 	priv->configs = g_hash_table_new_full (g_str_hash, g_str_equal,
 					       g_free, g_free);
+	priv->releases = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
+	priv->releases_hash = g_hash_table_new_full (g_str_hash, g_str_equal,
+						     g_free, (GDestroyNotify) g_object_unref);
 }
 
 /**
@@ -273,6 +280,62 @@ cra_package_get_nevr (CraPackage *pkg)
 }
 
 /**
+ * cra_package_add_release:
+ **/
+static void
+cra_package_add_release (CraPackage *pkg,
+			 guint64 timestamp,
+			 const gchar *name,
+			 const gchar *text)
+{
+	CraPackagePrivate *priv = GET_PRIVATE (pkg);
+	CraRelease *release;
+	const gchar *version;
+	gchar *name_dup;
+	gchar *tmp;
+	gchar *vr;
+
+	/* get last string chunk */
+	name_dup = g_strchomp (g_strdup (name));
+	vr = g_strrstr (name_dup, " ");
+	if (vr == NULL) {
+		g_warning ("Cannot parse version-release from %s", name);
+		goto out;
+	}
+
+	/* get last string chunk */
+	version = vr + 1;
+	tmp = g_strstr_len (version, -1, "-");
+	if (tmp == NULL) {
+		if (g_strstr_len (version, -1, ">") != NULL)
+			goto out;
+	} else {
+		*tmp = '\0';
+	}
+
+	/* is version already in the database */
+	release = g_hash_table_lookup (priv->releases_hash, version);
+	if (release != NULL) {
+		/* use the earlier timestamp to ignore auto-rebuilds with just
+		 * a bumped release */
+		if (timestamp < cra_release_get_timestamp (release))
+			cra_release_set_timestamp (release, timestamp);
+		cra_release_add_text (release, text);
+	} else {
+		release = cra_release_new ();
+		cra_release_set_version (release, version);
+		cra_release_set_timestamp (release, timestamp);
+		cra_release_add_text (release, text);
+		g_hash_table_insert (priv->releases_hash,
+				     g_strdup (version),
+				     release);
+		g_ptr_array_add (priv->releases, g_object_ref (release));
+	}
+out:
+	g_free (name_dup);
+}
+
+/**
  * cra_package_class_init:
  **/
 static void
@@ -360,6 +423,19 @@ cra_package_ensure_filelist (CraPackage *pkg, GError **error)
 			*tmp = '\0';
 		/* TODO: deduplicate */
 		i++;
+	}
+
+	/* get the ChangeLog info */
+	headerGet (priv->h, RPMTAG_CHANGELOGTIME, td[0], HEADERGET_MINMEM);
+	headerGet (priv->h, RPMTAG_CHANGELOGNAME, td[1], HEADERGET_MINMEM);
+	headerGet (priv->h, RPMTAG_CHANGELOGTEXT, td[2], HEADERGET_MINMEM);
+	while (rpmtdNext (td[0]) != -1 &&
+	       rpmtdNext (td[1]) != -1 &&
+	       rpmtdNext (td[2]) != -1) {
+		cra_package_add_release (pkg,
+					 rpmtdGetNumber (td[0]),
+					 rpmtdGetString (td[1]),
+					 rpmtdGetString (td[2]));
 	}
 out:
 	g_free (dirindex);
@@ -555,6 +631,16 @@ cra_package_get_config (CraPackage *pkg, const gchar *key)
 {
 	CraPackagePrivate *priv = GET_PRIVATE (pkg);
 	return g_hash_table_lookup (priv->configs, key);
+}
+
+/**
+ * cra_package_get_releases:
+ **/
+GPtrArray *
+cra_package_get_releases (CraPackage *pkg)
+{
+	CraPackagePrivate *priv = GET_PRIVATE (pkg);
+	return priv->releases;
 }
 
 /**

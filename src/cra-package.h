@@ -26,6 +26,8 @@
 
 #include <stdarg.h>
 
+#include "cra-release.h"
+
 #define CRA_TYPE_PACKAGE		(cra_package_get_type())
 #define CRA_PACKAGE(obj)		(G_TYPE_CHECK_INSTANCE_CAST((obj), CRA_TYPE_PACKAGE, CraPackage))
 #define CRA_PACKAGE_CLASS(cls)		(G_TYPE_CHECK_CLASS_CAST((cls), CRA_TYPE_PACKAGE, CraPackageClass))
@@ -83,6 +85,7 @@ const gchar	*cra_package_get_license	(CraPackage	*pkg);
 const gchar	*cra_package_get_sourcerpm	(CraPackage	*pkg);
 gchar		**cra_package_get_filelist	(CraPackage	*pkg);
 gchar		**cra_package_get_deps		(CraPackage	*pkg);
+GPtrArray	*cra_package_get_releases	(CraPackage	*pkg);
 void		 cra_package_set_config		(CraPackage	*pkg,
 						 const gchar	*key,
 						 const gchar	*value);

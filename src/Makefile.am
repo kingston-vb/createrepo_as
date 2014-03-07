@@ -12,6 +12,8 @@ noinst_PROGRAMS =					\
 createrepo_as_SOURCES =					\
 	cra-app.c					\
 	cra-app.h					\
+	cra-release.c					\
+	cra-release.h					\
 	cra-screenshot.c				\
 	cra-screenshot.h				\
 	cra-dom.c					\
