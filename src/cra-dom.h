@@ -70,7 +70,8 @@ GNode		*cra_dom_insert				(GNode		*parent,
 							 G_GNUC_NULL_TERMINATED;
 void		 cra_dom_insert_localized		(GNode		*parent,
 							 const gchar	*name,
-							 GHashTable	*localized);
+							 GHashTable	*localized,
+							 gboolean	 escape_xml);
 void		 cra_dom_insert_hash			(GNode		*parent,
 							 const gchar	*name,
 							 const gchar	*attr_key,
@@ -82,6 +83,8 @@ const gchar	*cra_dom_get_node_attribute		(const GNode	*node,
 							 const gchar	*key);
 GHashTable	*cra_dom_get_node_localized		(const GNode	*node,
 							 const gchar	*key);
+GHashTable	*cd_dom_denorm_to_xml_localized		(const GNode	*node,
+							 GError		**error);
 
 G_END_DECLS
 

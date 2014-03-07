@@ -44,6 +44,7 @@ struct _CraAppPrivate
 	CraAppIconType	 icon_type;
 	GHashTable	*names;
 	GHashTable	*comments;
+	GHashTable	*descriptions;
 	GHashTable	*languages;
 	GHashTable	*metadata;
 	GdkPixbuf	*pixbuf;
@@ -78,6 +79,7 @@ cra_app_finalize (GObject *object)
 	g_ptr_array_unref (priv->screenshots);
 	g_hash_table_unref (priv->names);
 	g_hash_table_unref (priv->comments);
+	g_hash_table_unref (priv->descriptions);
 	g_hash_table_unref (priv->languages);
 	g_hash_table_unref (priv->metadata);
 	if (priv->pixbuf != NULL)
@@ -101,6 +103,7 @@ cra_app_init (CraApp *app)
 	priv->screenshots = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
 	priv->names = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
 	priv->comments = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
+	priv->descriptions = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
 	priv->languages = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
 	priv->metadata = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
 }
@@ -159,10 +162,13 @@ cra_app_insert_into_dom (CraApp *app, GNode *parent)
 	}
 
 	/* <name> */
-	cra_dom_insert_localized (node_app, "name", priv->names);
+	cra_dom_insert_localized (node_app, "name", priv->names, TRUE);
 
 	/* <summary> */
-	cra_dom_insert_localized (node_app, "summary", priv->comments);
+	cra_dom_insert_localized (node_app, "summary", priv->comments, TRUE);
+
+	/* <description> */
+	cra_dom_insert_localized (node_app, "description", priv->descriptions, FALSE);
 
 	/* <icon> */
 	if (priv->icon != NULL) {
@@ -218,9 +224,6 @@ cra_app_insert_into_dom (CraApp *app, GNode *parent)
 	/* <compulsory_for_desktop> */
 	if (priv->compulsory_for_desktop != NULL)
 		cra_dom_insert (node_app, "compulsory_for_desktop", priv->compulsory_for_desktop, NULL);
-
-	/* <description> */
-	cra_dom_insert (node_app, "description", "This is the long description", NULL);
 
 	/* <screenshots> */
 	if (priv->screenshots->len > 0) {
@@ -433,6 +436,18 @@ cra_app_set_comment (CraApp *app, const gchar *locale, const gchar *comment)
 	g_return_if_fail (locale != NULL && locale[0] != '\0');
 	g_return_if_fail (comment != NULL);
 	g_hash_table_insert (priv->comments, g_strdup (locale), g_strdup (comment));
+}
+
+/**
+ * cra_app_set_description:
+ **/
+void
+cra_app_set_description (CraApp *app, const gchar *locale, const gchar *description)
+{
+	CraAppPrivate *priv = GET_PRIVATE (app);
+	g_return_if_fail (locale != NULL && locale[0] != '\0');
+	g_return_if_fail (description != NULL);
+	g_hash_table_insert (priv->descriptions, g_strdup (locale), g_strdup (description));
 }
 
 /**

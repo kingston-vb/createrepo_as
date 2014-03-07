@@ -76,6 +76,7 @@ cra_plugin_process_filename (CraApp *app,
 	gchar *data = NULL;
 	GHashTable *comments = NULL;
 	GHashTable *names = NULL;
+	GHashTable *descriptions = NULL;
 	GList *l;
 	GList *list;
 
@@ -182,7 +183,28 @@ cra_plugin_process_filename (CraApp *app,
 		g_list_free (list);
 	}
 
-	/* FIXME: description */
+	/* get de-normalized description */
+	n = cra_dom_get_node (dom, NULL, "application/description");
+	if (n != NULL) {
+		descriptions = cd_dom_denorm_to_xml_localized (n, error);
+		if (descriptions == NULL) {
+			ret = FALSE;
+			goto out;
+		}
+	}
+	if (descriptions != NULL) {
+		list = g_hash_table_get_keys (descriptions);
+		for (l = list; l != NULL; l = l->next) {
+			tmp = g_hash_table_lookup (descriptions, l->data);
+			cra_app_set_description (app, (const gchar *) l->data, tmp);
+		}
+		if (g_list_length (list) == 1) {
+			cra_package_log (cra_app_get_package (app),
+					 CRA_PACKAGE_LOG_LEVEL_WARNING,
+					 "AppData 'description' has no translations");
+		}
+		g_list_free (list);
+	}
 
 	/* add screenshots */
 	n = cra_dom_get_node (dom, NULL, "application/screenshots");
@@ -244,6 +266,8 @@ out:
 		g_hash_table_unref (names);
 	if (comments != NULL)
 		g_hash_table_unref (comments);
+	if (descriptions != NULL)
+		g_hash_table_unref (descriptions);
 	if (dom != NULL)
 		g_object_unref (dom);
 	return ret;

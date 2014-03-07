@@ -29,6 +29,7 @@
 #include <glib.h>
 
 #include "cra-dom.h"
+#include "cra-plugin.h"
 
 static void	cra_dom_class_init	(CraDomClass	*klass);
 static void	cra_dom_init		(CraDom		*dom);
@@ -50,7 +51,7 @@ struct _CraDomPrivate
 typedef struct
 {
 	gchar		*name;
-	GString		*cdata;
+	GString		*cdata;		/* with "&amp;" rather than '&' */
 	GHashTable	*attributes;
 } CraDomNodeData;
 
@@ -161,6 +162,17 @@ cra_dom_to_xml (CraDom *dom, const GNode *node, gboolean add_header)
  * cra_dom_start_element_cb:
  **/
 static void
+cra_dom_data_escape_xml (CraDomNodeData *data)
+{
+	cra_string_replace (data->cdata, "&", "&amp;");
+	cra_string_replace (data->cdata, "<", "&lt;");
+	cra_string_replace (data->cdata, ">", "&gt;");
+}
+
+/**
+ * cra_dom_start_element_cb:
+ **/
+static void
 cra_dom_start_element_cb (GMarkupParseContext *context,
 			 const gchar         *element_name,
 			 const gchar        **attribute_names,
@@ -181,6 +193,7 @@ cra_dom_start_element_cb (GMarkupParseContext *context,
 						  g_str_equal,
 						  g_free,
 						  g_free);
+	cra_dom_data_escape_xml (data);
 	for (i = 0; attribute_names[i] != NULL; i++) {
 		g_hash_table_insert (data->attributes,
 				     g_strdup (attribute_names[i]),
@@ -204,11 +217,12 @@ cra_dom_end_element_cb (GMarkupParseContext *context,
 {
 	CraDom *dom = (CraDom *) user_data;
 	CraDomNodeData *data;
-
 	data = dom->priv->current->data;
 	cra_string_replace (data->cdata, "\n", " ");
 	cra_string_replace (data->cdata, "  ", " ");
-
+	cra_string_replace (data->cdata, "&amp;", "&");
+	cra_string_replace (data->cdata, "&lt;", "<");
+	cra_string_replace (data->cdata, "&gt;", ">");
 	dom->priv->current = dom->priv->current->parent;
 }
 
@@ -242,7 +256,7 @@ cra_dom_text_cb (GMarkupParseContext *context,
 
 	/* save cdata */
 	data = dom->priv->current->data;
-	g_string_append (data->cdata, g_strstrip (text));
+	g_string_append (data->cdata, g_strstrip ((gchar*) text));
 }
 
 /**
@@ -427,6 +441,7 @@ cra_dom_insert (GNode *parent,
 						  g_str_equal,
 						  g_free,
 						  g_free);
+	cra_dom_data_escape_xml (data);
 
 	/* process the attrs valist */
 	va_start (args, cdata);
@@ -461,7 +476,8 @@ cra_dom_list_sort_cb (gconstpointer a, gconstpointer b)
 void
 cra_dom_insert_localized (GNode *parent,
 			  const gchar *name,
-			  GHashTable *localized)
+			  GHashTable *localized,
+			  gboolean escape_xml)
 {
 	const gchar *key;
 	const gchar *value;
@@ -481,6 +497,8 @@ cra_dom_insert_localized (GNode *parent,
 							  g_str_equal,
 							  g_free,
 							  g_free);
+		if (escape_xml)
+			cra_dom_data_escape_xml (data);
 		if (g_strcmp0 (key, "C") != 0) {
 			g_hash_table_insert (data->attributes,
 					     g_strdup ("xml:lang"),
@@ -519,6 +537,7 @@ cra_dom_insert_hash (GNode *parent,
 							  g_str_equal,
 							  g_free,
 							  g_free);
+		cra_dom_data_escape_xml (data);
 		if (!swapped) {
 			g_hash_table_insert (data->attributes,
 					     g_strdup (attr_key),
@@ -579,6 +598,171 @@ cra_dom_get_node_localized (const GNode *node, const gchar *key)
 out:
 	return hash;
 }
+
+/**
+ * _g_string_unref:
+ **/
+static void
+_g_string_unref (GString *string)
+{
+	g_string_free (string, TRUE);
+}
+
+/**
+ * cd_dom_denorm_add_to_langs:
+ **/
+static void
+cd_dom_denorm_add_to_langs (GHashTable *hash,
+			    const gchar *data,
+			    gboolean is_start)
+{
+	const gchar *xml_lang;
+	GList *keys;
+	GList *l;
+	GString *str;
+
+	keys = g_hash_table_get_keys (hash);
+	for (l = keys; l != NULL; l = l->next) {
+		xml_lang = l->data;
+		str = g_hash_table_lookup (hash, xml_lang);
+		if (is_start)
+			g_string_append_printf (str, "<%s>", data);
+		else
+			g_string_append_printf (str, "</%s>", data);
+	}
+	g_list_free (keys);
+}
+
+/**
+ * cd_dom_denorm_get_str_for_lang:
+ **/
+static GString *
+cd_dom_denorm_get_str_for_lang (GHashTable *hash,
+				CraDomNodeData *data,
+				gboolean allow_new_locales)
+{
+	const gchar *xml_lang;
+	GString *str;
+
+	/* get locale */
+	xml_lang = g_hash_table_lookup (data->attributes, "xml:lang");
+	if (xml_lang == NULL)
+		xml_lang = "C";
+	str = g_hash_table_lookup (hash, xml_lang);
+	if (str == NULL && allow_new_locales) {
+		str = g_string_new ("");
+		g_hash_table_insert (hash, g_strdup (xml_lang), str);
+	}
+	return str;
+}
+
+/**
+ * cd_dom_denorm_to_xml_localized:
+ *
+ * Denormalize AppData data like this:
+ *
+ * <description>
+ *  <p>Hi</p>
+ *  <p xml:lang="pl">Czesc</p>
+ *  <ul>
+ *   <li>First</li>
+ *   <li xml:lang="pl">Pierwszy</li>
+ *  </ul>
+ * </description>
+ *
+ * into a hash that contains:
+ *
+ * "C"  ->  "<p>Hi</p><ul><li>First</li></ul>"
+ * "pl" ->  "<p>Czesc</p><ul><li>Pierwszy</li></ul>"
+ **/
+GHashTable *
+cd_dom_denorm_to_xml_localized (const GNode *node, GError **error)
+{
+	GNode *tmp;
+	GNode *tmp_c;
+	CraDomNodeData *data;
+	CraDomNodeData *data_c;
+	const gchar *xml_lang;
+	GHashTable *hash;
+	GString *str;
+	GList *keys = NULL;
+	GList *l;
+	GHashTable *results = NULL;
+
+	hash = g_hash_table_new_full (g_str_hash, g_str_equal,
+				      g_free, (GDestroyNotify) _g_string_unref);
+	for (tmp = node->children; tmp != NULL; tmp = tmp->next) {
+		data = tmp->data;
+
+		/* append to existing string, adding the locale if it's not
+		 * already present */
+		if (g_strcmp0 (data->name, "p") == 0) {
+			str = cd_dom_denorm_get_str_for_lang (hash, data, TRUE);
+			g_string_append_printf (str, "<p>%s</p>",
+						data->cdata->str);
+
+		/* loop on the children */
+		} else if (g_strcmp0 (data->name, "ul") == 0 ||
+			   g_strcmp0 (data->name, "ol") == 0) {
+			cd_dom_denorm_add_to_langs (hash, data->name, TRUE);
+			for (tmp_c = tmp->children; tmp_c != NULL; tmp_c = tmp_c->next) {
+				data_c = tmp_c->data;
+
+				/* we can only add local text for languages
+				 * already added in paragraph text */
+				str = cd_dom_denorm_get_str_for_lang (hash,
+								      data_c,
+								      FALSE);
+				if (str == NULL) {
+					g_set_error (error,
+						     CRA_PLUGIN_ERROR,
+						     CRA_PLUGIN_ERROR_FAILED,
+						     "Cannot add locale for <%s>",
+						     data_c->name);
+					goto out;
+				}
+				if (g_strcmp0 (data_c->name, "li") == 0) {
+					g_string_append_printf (str,
+								"<li>%s</li>",
+								data_c->cdata->str);
+				} else {
+					/* only <li> is valid in lists */
+					g_set_error (error,
+						     CRA_PLUGIN_ERROR,
+						     CRA_PLUGIN_ERROR_FAILED,
+						     "Tag %s in %s invalid",
+						     data_c->name, data->name);
+					goto out;
+				}
+			}
+			cd_dom_denorm_add_to_langs (hash, data->name, FALSE);
+		} else {
+			/* only <p>, <ul> and <ol> is valid here */
+			g_set_error (error,
+				     CRA_PLUGIN_ERROR,
+				     CRA_PLUGIN_ERROR_FAILED,
+				     "Unknown tag '%s'",
+				     data->name);
+			goto out;
+		}
+	}
+
+	/* copy into a hash table of the correct size */
+	results = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
+	keys = g_hash_table_get_keys (hash);
+	for (l = keys; l != NULL; l = l->next) {
+		xml_lang = l->data;
+		str = g_hash_table_lookup (hash, xml_lang);
+		g_hash_table_insert (results,
+				     g_strdup (xml_lang),
+				     g_strdup (str->str));
+	}
+out:
+	g_list_free (keys);
+	g_hash_table_unref (hash);
+	return results;
+}
+
 
 /**
  * cra_dom_destroy_node_cb:

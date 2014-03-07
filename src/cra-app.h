@@ -94,6 +94,9 @@ void		 cra_app_set_name		(CraApp		*app,
 void		 cra_app_set_comment		(CraApp		*app,
 						 const gchar	*locale,
 						 const gchar	*comment);
+void		 cra_app_set_description	(CraApp		*app,
+						 const gchar	*locale,
+						 const gchar	*description);
 void		 cra_app_set_requires_appdata	(CraApp		*app,
 						 gboolean	 requires_appdata);
 void		 cra_app_set_icon_type		(CraApp		*app,
