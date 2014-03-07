@@ -22,6 +22,7 @@
 #ifndef CRA_APP_H
 #define CRA_APP_H
 
+#include <stdarg.h>
 #include <glib-object.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
 
@@ -79,6 +80,10 @@ void		 cra_app_add_keyword		(CraApp		*app,
 						 const gchar	*keyword);
 void		 cra_app_add_mimetype		(CraApp		*app,
 						 const gchar	*mimetype);
+void		 cra_app_add_veto		(CraApp		*app,
+						 const gchar	*fmt,
+						 ...)
+						 G_GNUC_PRINTF(2,3);
 void		 cra_app_add_pkgname		(CraApp		*app,
 						 const gchar	*pkgname);
 void		 cra_app_add_screenshot		(CraApp		*app,
@@ -112,6 +117,7 @@ GPtrArray	*cra_app_get_categories		(CraApp		*app);
 GPtrArray	*cra_app_get_keywords		(CraApp		*app);
 GPtrArray	*cra_app_get_screenshots	(CraApp		*app);
 GPtrArray	*cra_app_get_releases		(CraApp		*app);
+GPtrArray	*cra_app_get_vetos		(CraApp		*app);
 const gchar	*cra_app_get_id			(CraApp		*app);
 const gchar	*cra_app_get_id_full		(CraApp		*app);
 const gchar	*cra_app_get_type_id		(CraApp		*app);

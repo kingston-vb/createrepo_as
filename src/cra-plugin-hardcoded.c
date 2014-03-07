@@ -218,6 +218,14 @@ cra_plugin_process_app (CraPlugin *plugin,
 		}
 	}
 
+	/* look for ancient toolkits */
+	for (i = 0; deps[i] != NULL; i++) {
+		if (g_strcmp0 (deps[i], "libgtk-1.2.so.0") == 0) {
+			cra_app_add_veto (app, "Uses obsolete GTK1 toolkit");
+			break;
+		}
+	}
+
 	/* has the application been updated in the last year */
 	releases = cra_app_get_releases (app);
 	for (i = 0; i < releases->len; i++) {
@@ -227,6 +235,17 @@ cra_plugin_process_app (CraPlugin *plugin,
 		if (secs / (60 * 60 * 24) < 365) {
 			cra_app_add_metadata (app, "X-Kudo-RecentRelease", "");
 			break;
+		}
+	}
+
+	/* has there been no upstream version in the last 5 years? */
+	if (releases->len > 0) {
+		release = g_ptr_array_index (releases, 0);
+		secs = (g_get_real_time () / G_USEC_PER_SEC) -
+			cra_release_get_timestamp (release);
+		if (secs / (60 * 60 * 24) > 365 * 5) {
+			cra_app_add_veto (app, "Dead upstream for %i years",
+					  secs / (60 * 60 * 24 * 365));
 		}
 	}
 

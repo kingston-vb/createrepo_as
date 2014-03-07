@@ -74,7 +74,7 @@ cra_task_process_func (gpointer data, gpointer user_data)
 	GError *error = NULL;
 	GList *apps = NULL;
 	GList *l;
-	GPtrArray *releases;
+	GPtrArray *array;
 	guint i;
 	const gchar *kudos[] = {
 		"X-Kudo-GTK3",
@@ -213,9 +213,9 @@ cra_task_process_func (gpointer data, gpointer user_data)
 			cra_app_set_project_license (app, cra_package_get_license (task->pkg));
 
 		/* set all the releases on the app */
-		releases = cra_package_get_releases (task->pkg);
-		for (i = 0; i < releases->len; i++) {
-			release = g_ptr_array_index (releases, i);
+		array = cra_package_get_releases (task->pkg);
+		for (i = 0; i < array->len; i++) {
+			release = g_ptr_array_index (array, i);
 			cra_app_add_release (app, release);
 		}
 
@@ -245,25 +245,26 @@ cra_task_process_func (gpointer data, gpointer user_data)
 		}
 
 		/* don't include apps that have no icon, name or comment */
-		if (cra_app_get_icon (app) == NULL) {
+		if (cra_app_get_icon (app) == NULL)
+			cra_app_add_veto (app, "Has no Icon");
+		if (cra_app_get_name (app, "C") == NULL)
+			cra_app_add_veto (app, "Has no Name");
+		if (cra_app_get_comment (app, "C") == NULL)
+			cra_app_add_veto (app, "Has no Comment");
+
+		/* list all the reasons we're ignoring the app */
+		array = cra_app_get_vetos (app);
+		if (array->len > 0) {
 			cra_package_log (task->pkg,
-					 CRA_PACKAGE_LOG_LEVEL_INFO,
-					 "%s not included as has no icon",
+					 CRA_PACKAGE_LOG_LEVEL_WARNING,
+					 "%s not included in metadata:",
 					 cra_app_get_id_full (app));
-			continue;
-		}
-		if (cra_app_get_name (app, "C") == NULL) {
-			cra_package_log (task->pkg,
-					 CRA_PACKAGE_LOG_LEVEL_INFO,
-					 "%s not included as has no name",
-					 cra_app_get_id_full (app));
-			continue;
-		}
-		if (cra_app_get_comment (app, "C") == NULL) {
-			cra_package_log (task->pkg,
-					 CRA_PACKAGE_LOG_LEVEL_INFO,
-					 "%s not included as has no comment",
-					 cra_app_get_id_full (app));
+			for (i = 0; i < array->len; i++) {
+				tmp = g_ptr_array_index (array, i);
+				cra_package_log (task->pkg,
+						 CRA_PACKAGE_LOG_LEVEL_WARNING,
+						 " - %s", tmp);
+			}
 			continue;
 		}
 

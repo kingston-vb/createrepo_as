@@ -801,21 +801,11 @@ cra_plugin_process_filename (CraPlugin *plugin,
 					 "using stock icon %s", key);
 		} else {
 
-			/* is icon XPM */
-			if (g_str_has_suffix (key, ".xpm")) {
-				cra_package_log (pkg,
-						 CRA_PACKAGE_LOG_LEVEL_WARNING,
-						 "XPM icons are deprecated: %s",
-						 key);
-			}
-
-			/* is icon GIF */
-			if (g_str_has_suffix (key, ".gif")) {
-				cra_package_log (pkg,
-						 CRA_PACKAGE_LOG_LEVEL_WARNING,
-						 "GIF icons are deprecated: %s",
-						 key);
-			}
+			/* is icon XPM or GIF */
+			if (g_str_has_suffix (key, ".xpm"))
+				cra_app_add_veto (app, "Uses XPM icon: %s", key);
+			else if (g_str_has_suffix (key, ".gif"))
+				cra_app_add_veto (app, "Uses GIF icon: %s", key);
 
 			/* find icon */
 			pixbuf = cra_app_find_icon (tmpdir, key, error);

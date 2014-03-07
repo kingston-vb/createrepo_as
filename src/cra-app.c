@@ -38,6 +38,7 @@ struct _CraAppPrivate
 	GPtrArray	*categories;
 	GPtrArray	*keywords;
 	GPtrArray	*mimetypes;
+	GPtrArray	*vetos;
 	GPtrArray	*pkgnames;
 	GPtrArray	*screenshots;	/* of CraScreenshot */
 	GPtrArray	*releases;	/* of CraRelease */
@@ -76,6 +77,7 @@ cra_app_finalize (GObject *object)
 	g_ptr_array_unref (priv->categories);
 	g_ptr_array_unref (priv->keywords);
 	g_ptr_array_unref (priv->mimetypes);
+	g_ptr_array_unref (priv->vetos);
 	g_ptr_array_unref (priv->pkgnames);
 	g_ptr_array_unref (priv->screenshots);
 	g_ptr_array_unref (priv->releases);
@@ -101,6 +103,7 @@ cra_app_init (CraApp *app)
 	priv->categories = g_ptr_array_new_with_free_func (g_free);
 	priv->keywords = g_ptr_array_new_with_free_func (g_free);
 	priv->mimetypes = g_ptr_array_new_with_free_func (g_free);
+	priv->vetos = g_ptr_array_new_with_free_func (g_free);
 	priv->pkgnames = g_ptr_array_new_with_free_func (g_free);
 	priv->screenshots = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
 	priv->releases = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
@@ -410,6 +413,21 @@ cra_app_add_mimetype (CraApp *app, const gchar *mimetype)
 }
 
 /**
+ * cra_app_add_veto:
+ **/
+void
+cra_app_add_veto (CraApp *app, const gchar *fmt, ...)
+{
+	CraAppPrivate *priv = GET_PRIVATE (app);
+	gchar *tmp;
+	va_list args;
+	va_start (args, fmt);
+	tmp = g_strdup_vprintf (fmt, args);
+	va_end (args);
+	g_ptr_array_add (priv->vetos, tmp);
+}
+
+/**
  * cra_app_add_screenshot:
  **/
 void
@@ -587,6 +605,16 @@ cra_app_get_releases (CraApp *app)
 {
 	CraAppPrivate *priv = GET_PRIVATE (app);
 	return priv->releases;
+}
+
+/**
+ * cra_app_get_vetos:
+ **/
+GPtrArray *
+cra_app_get_vetos (CraApp *app)
+{
+	CraAppPrivate *priv = GET_PRIVATE (app);
+	return priv->vetos;
 }
 
 /**
