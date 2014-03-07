@@ -384,7 +384,7 @@ cra_context_write_xml (CraContext *ctx, const gchar *basename, GError **error)
 	dom = cra_dom_new ();
 	node_root = cra_dom_get_root (dom);
 	node_apps = cra_dom_insert (node_root, "applications", NULL,
-				    "version", "0.1",
+				    "version", "0.4",
 				    NULL);
 	for (l = ctx->apps; l != NULL; l = l->next) {
 		app = CRA_APP (l->data);
