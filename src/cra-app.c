@@ -483,6 +483,13 @@ cra_app_set_pixbuf (CraApp *app, GdkPixbuf *pixbuf)
 	if (priv->pixbuf != NULL)
 		g_object_ref (priv->pixbuf);
 	priv->pixbuf = g_object_ref (pixbuf);
+
+	/* does the icon not have an alpha channel */
+	if (!gdk_pixbuf_get_has_alpha (priv->pixbuf)) {
+		cra_package_log (priv->pkg,
+				 CRA_PACKAGE_LOG_LEVEL_WARNING,
+				 "icon does not have an alpha channel");
+	}
 }
 
 /**

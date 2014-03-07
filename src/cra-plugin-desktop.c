@@ -616,6 +616,7 @@ cra_plugin_process_filename (CraPlugin *plugin,
 		/* NoDisplay */
 		if (g_strcmp0 (key, G_KEY_FILE_DESKTOP_KEY_NO_DISPLAY) == 0) {
 			cra_app_set_requires_appdata (app, TRUE);
+			cra_app_add_metadata (app, "NoDisplay", "");
 
 		/* Type */
 		} else if (g_strcmp0 (key, G_KEY_FILE_DESKTOP_KEY_TYPE) == 0) {
@@ -799,6 +800,22 @@ cra_plugin_process_filename (CraPlugin *plugin,
 					 CRA_PACKAGE_LOG_LEVEL_INFO,
 					 "using stock icon %s", key);
 		} else {
+
+			/* is icon XPM */
+			if (g_str_has_suffix (key, ".xpm")) {
+				cra_package_log (pkg,
+						 CRA_PACKAGE_LOG_LEVEL_WARNING,
+						 "XPM icons are deprecated: %s",
+						 key);
+			}
+
+			/* is icon GIF */
+			if (g_str_has_suffix (key, ".gif")) {
+				cra_package_log (pkg,
+						 CRA_PACKAGE_LOG_LEVEL_WARNING,
+						 "GIF icons are deprecated: %s",
+						 key);
+			}
 
 			/* find icon */
 			pixbuf = cra_app_find_icon (tmpdir, key, error);

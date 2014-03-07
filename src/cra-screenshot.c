@@ -198,6 +198,14 @@ cra_screenshot_load_filename (CraScreenshot *screenshot,
 	md5 = g_compute_checksum_for_data (G_CHECKSUM_MD5, (guchar *) data, len);
 	priv->basename = g_strdup_printf ("%s-%s.png", priv->app_id, md5);
 	priv->cache_filename = g_strdup (filename);
+
+	/* is the aspect ratio of the source perfectly 16:9 */
+	if ((priv->width / 16) * 9 != priv->height) {
+		cra_package_log (priv->pkg,
+				 CRA_PACKAGE_LOG_LEVEL_WARNING,
+				 "%s is not in 16:9 aspect ratio",
+				 filename);
+	}
 out:
 	g_free (md5);
 	g_free (data);

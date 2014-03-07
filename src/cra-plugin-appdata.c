@@ -159,6 +159,11 @@ cra_plugin_process_filename (CraApp *app,
 			tmp = g_hash_table_lookup (names, l->data);
 			cra_app_set_name (app, (const gchar *) l->data, tmp);
 		}
+		if (g_list_length (list) == 1) {
+			cra_package_log (cra_app_get_package (app),
+					 CRA_PACKAGE_LOG_LEVEL_WARNING,
+					 "AppData 'name' has no translations");
+		}
 		g_list_free (list);
 	}
 	if (n != NULL)
@@ -168,6 +173,11 @@ cra_plugin_process_filename (CraApp *app,
 		for (l = list; l != NULL; l = l->next) {
 			tmp = g_hash_table_lookup (comments, l->data);
 			cra_app_set_comment (app, (const gchar *) l->data, tmp);
+		}
+		if (g_list_length (list) == 1) {
+			cra_package_log (cra_app_get_package (app),
+					 CRA_PACKAGE_LOG_LEVEL_WARNING,
+					 "AppData 'summary' has no translations");
 		}
 		g_list_free (list);
 	}
@@ -265,7 +275,7 @@ cra_plugin_process_app (CraPlugin *plugin,
 							  cra_app_get_id (app));
 		if (g_file_test (appdata_filename, G_FILE_TEST_EXISTS) &&
 		    g_file_test (appdata_filename_extra, G_FILE_TEST_EXISTS)) {
-			cra_package_log (cra_app_get_package (app),
+			cra_package_log (pkg,
 					 CRA_PACKAGE_LOG_LEVEL_WARNING,
 					 "extra AppData file %s exists for no reason",
 					 appdata_filename_extra);
@@ -287,6 +297,16 @@ cra_plugin_process_app (CraPlugin *plugin,
 						   appdata_filename_extra,
 						   error);
 		goto out;
+	}
+
+	/* we're going to require this for F22 */
+	if (g_strcmp0 (cra_app_get_type_id (app), "desktop") == 0 &&
+	    cra_app_get_metadata_item (app, "NoDisplay") == NULL) {
+		cra_package_log (pkg,
+				 CRA_PACKAGE_LOG_LEVEL_WARNING,
+				 "desktop application %s has no AppData and "
+				 "will not be shown in Fedora 22 and later",
+				 cra_app_get_id (app));
 	}
 out:
 	g_free (appdata_filename);
