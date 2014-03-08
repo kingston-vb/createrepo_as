@@ -369,7 +369,7 @@ cra_package_ensure_filelist (CraPackage *pkg, GError **error)
 	gint32 *dirindex = NULL;
 	gint rc;
 	guint i;
-	rpmtd td[3];
+	rpmtd td[3] = { NULL, NULL, NULL };
 
 	if (priv->filelist != NULL)
 		goto out;
@@ -407,6 +407,8 @@ cra_package_ensure_filelist (CraPackage *pkg, GError **error)
 						     NULL);
 		i++;
 	}
+	for (i = 0; i < 3; i++)
+		rpmtdFreeData (td[i]);
 
 	/* read out the dep list */
 	rc = headerGet (priv->h, RPMTAG_REQUIRENAME, td[0], HEADERGET_MINMEM);
@@ -434,6 +436,7 @@ cra_package_ensure_filelist (CraPackage *pkg, GError **error)
 		/* TODO: deduplicate */
 		i++;
 	}
+	rpmtdFreeData (td[0]);
 
 	/* get the ChangeLog info */
 	headerGet (priv->h, RPMTAG_CHANGELOGTIME, td[0], HEADERGET_MINMEM);
@@ -448,6 +451,10 @@ cra_package_ensure_filelist (CraPackage *pkg, GError **error)
 					 rpmtdGetString (td[2]));
 	}
 out:
+	for (i = 0; i < 3; i++) {
+		rpmtdFreeData (td[i]);
+		rpmtdFree (td[i]);
+	}
 	g_free (dirindex);
 	g_free (dirnames);
 	return ret;
@@ -464,7 +471,7 @@ cra_package_open (CraPackage *pkg, const gchar *filename, GError **error)
 	gboolean ret = TRUE;
 	gchar *tmp;
 	gint rc;
-	rpmtd td;
+	rpmtd td = NULL;
 	rpmts ts;
 
 	/* open the file */
@@ -514,6 +521,8 @@ cra_package_open (CraPackage *pkg, const gchar *filename, GError **error)
 	if (tmp != NULL)
 		*tmp = '\0';
 out:
+	if (td != NULL)
+		rpmtdFree (td);
 	rpmtsFree (ts);
 	Fclose (fd);
 	return ret;

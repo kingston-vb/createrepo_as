@@ -140,6 +140,8 @@ cra_plugin_hardcoded_add_screenshots (CraApp *app,
 			goto out;
 	}
 out:
+	if (dir != NULL)
+		g_dir_close (dir);
 	return ret;
 }
 

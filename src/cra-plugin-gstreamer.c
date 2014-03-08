@@ -135,7 +135,7 @@ cra_plugin_process (CraPlugin *plugin,
 		    GError **error)
 {
 	const gchar *tmp;
-	CraApp *app;
+	CraApp *app = NULL;
 	gchar *app_id = NULL;
 	gchar **split;
 	GList *apps = NULL;
