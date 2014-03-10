@@ -539,13 +539,17 @@ cra_dom_insert_hash (GNode *parent,
 							  g_free);
 		cra_dom_data_escape_xml (data);
 		if (!swapped) {
-			g_hash_table_insert (data->attributes,
-					     g_strdup (attr_key),
-					     g_strdup (key));
+			if (key != NULL && key[0] != '\0') {
+				g_hash_table_insert (data->attributes,
+						     g_strdup (attr_key),
+						     g_strdup (key));
+			}
 		} else {
-			g_hash_table_insert (data->attributes,
-					     g_strdup (attr_key),
-					     g_strdup (value));
+			if (value != NULL && value[0] != '\0') {
+				g_hash_table_insert (data->attributes,
+						     g_strdup (attr_key),
+						     g_strdup (value));
+			}
 		}
 		g_node_insert_data (parent, -1, data);
 	}

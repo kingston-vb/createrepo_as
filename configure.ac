@@ -53,9 +53,10 @@ AC_SUBST(WARNINGFLAGS_C)
 PKG_CHECK_MODULES(GLIB, glib-2.0 >= 2.36.0 gobject-2.0 gthread-2.0 gio-2.0 >= 2.25.9 gio-unix-2.0 gmodule-2.0)
 PKG_CHECK_MODULES(RPM, rpm)
 PKG_CHECK_MODULES(LIBARCHIVE, libarchive)
-PKG_CHECK_MODULES(GDKPIXBUF, gdk-pixbuf-2.0)
+PKG_CHECK_MODULES(GDKPIXBUF, gtk+-3.0 gdk-pixbuf-2.0)
 PKG_CHECK_MODULES(SQLITE, sqlite3)
 PKG_CHECK_MODULES(LIBSOUP, libsoup-2.4)
+PKG_CHECK_MODULES(FREETYPE, pango fontconfig freetype2 >= 9.10.0)
 
 AC_CONFIG_FILES([
 Makefile

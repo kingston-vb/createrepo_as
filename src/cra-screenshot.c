@@ -22,7 +22,6 @@
 #include "config.h"
 
 #include <libsoup/soup.h>
-#include <gdk-pixbuf/gdk-pixbuf.h>
 
 #include "cra-dom.h"
 #include "cra-plugin.h"
@@ -39,6 +38,7 @@ struct _CraScreenshotPrivate
 	guint		 height;
 	SoupSession	*session;
 	gboolean	 is_default;
+	gboolean	 only_source;
 	GdkPixbuf	*pixbuf;
 	CraPackage	*pkg;
 };
@@ -106,8 +106,25 @@ cra_screenshot_insert_into_dom (CraScreenshot *screenshot, GNode *parent)
 	if (priv->caption != NULL)
 		cra_dom_insert (node_ss, "caption", priv->caption, NULL);
 
-	/* add each of the resampled images */
+	/* only write a source image, e.g. font screnshots */
 	mirror_uri = cra_package_get_config (priv->pkg, "MirrorURI");
+	if (priv->only_source) {
+		g_snprintf (tmp_width, sizeof (tmp_width), "%u", priv->width);
+		g_snprintf (tmp_height, sizeof (tmp_height), "%u", priv->height);
+		url_tmp = g_build_filename (mirror_uri,
+					    "source",
+					    priv->basename,
+					    NULL);
+		cra_dom_insert (node_ss, "image", url_tmp,
+				"width", tmp_width,
+				"height", tmp_height,
+				"type", "normal",
+				NULL);
+		g_free (url_tmp);
+		return;
+	}
+
+	/* add each of the resampled images */
 	for (i = 0; sizes[i] != 0; i += 2) {
 		g_snprintf (tmp_width, sizeof (tmp_width), "%u", sizes[i]);
 		g_snprintf (tmp_height, sizeof (tmp_height), "%u", sizes[i+1]);
@@ -164,6 +181,38 @@ cra_screenshot_get_height (CraScreenshot *screenshot)
 {
 	CraScreenshotPrivate *priv = GET_PRIVATE (screenshot);
 	return priv->height;
+}
+
+/**
+ * cra_screenshot_set_caption:
+ **/
+void
+cra_screenshot_set_caption (CraScreenshot *screenshot, const gchar *caption)
+{
+	CraScreenshotPrivate *priv = GET_PRIVATE (screenshot);
+	g_free (priv->caption);
+	priv->caption = g_strdup (caption);
+}
+
+/**
+ * cra_screenshot_set_pixbuf:
+ **/
+void
+cra_screenshot_set_pixbuf (CraScreenshot *screenshot, GdkPixbuf *pixbuf)
+{
+	CraScreenshotPrivate *priv = GET_PRIVATE (screenshot);
+	gchar *md5 = NULL;
+	guint len;
+	guchar *data;
+
+	priv->pixbuf = g_object_ref (pixbuf);
+	priv->width = gdk_pixbuf_get_width (pixbuf);
+	priv->height = gdk_pixbuf_get_height (pixbuf);
+
+	data = gdk_pixbuf_get_pixels_with_length (pixbuf, &len);
+	md5 = g_compute_checksum_for_data (G_CHECKSUM_MD5, data, len);
+	priv->basename = g_strdup_printf ("%s-%s.png", priv->app_id, md5);
+	g_free (md5);
 }
 
 /**
@@ -297,6 +346,46 @@ out:
 }
 
 /**
+ * cra_screenshot_save_source:
+ **/
+static gboolean
+cra_screenshot_save_source (CraScreenshot *screenshot, GError **error)
+{
+	CraScreenshotPrivate *priv = GET_PRIVATE (screenshot);
+	gboolean ret = TRUE;
+	gchar *filename = NULL;
+
+	/* does screenshot already exist */
+	filename = g_build_filename ("./screenshots",
+				     "source",
+				     priv->basename,
+				     NULL);
+	if (g_file_test (filename, G_FILE_TEST_EXISTS)) {
+		cra_package_log (priv->pkg,
+				 CRA_PACKAGE_LOG_LEVEL_DEBUG,
+				 "source screenshot already exists");
+		goto out;
+	}
+
+	/* save source file */
+	ret = gdk_pixbuf_save (priv->pixbuf,
+			       filename,
+			       "png",
+			       error,
+			       NULL);
+	if (!ret)
+		goto out;
+
+	/* set new AppStream compatible screenshot name */
+	cra_package_log (priv->pkg,
+			 CRA_PACKAGE_LOG_LEVEL_DEBUG,
+			 "saved source screenshot");
+out:
+	g_free (filename);
+	return ret;
+}
+
+/**
  * cra_screenshot_save_resources:
  **/
 gboolean
@@ -319,6 +408,14 @@ cra_screenshot_save_resources (CraScreenshot *screenshot, GError **error)
 	ret = cra_screenshot_save_pixbuf (screenshot, 752, 423, error);
 	if (!ret)
 		goto out;
+
+	/* most of the time, don't save a source image */
+	if (priv->only_source) {
+		ret = cra_screenshot_save_source (screenshot, error);
+		if (!ret)
+			goto out;
+	}
+
 out:
 	return ret;
 }
@@ -397,6 +494,16 @@ cra_screenshot_set_is_default (CraScreenshot *screenshot, gboolean is_default)
 {
 	CraScreenshotPrivate *priv = GET_PRIVATE (screenshot);
 	priv->is_default = is_default;
+}
+
+/**
+ * cra_screenshot_set_only_source:
+ **/
+void
+cra_screenshot_set_only_source (CraScreenshot *screenshot, gboolean only_source)
+{
+	CraScreenshotPrivate *priv = GET_PRIVATE (screenshot);
+	priv->only_source = only_source;
 }
 
 /**

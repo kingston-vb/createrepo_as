@@ -678,6 +678,26 @@ cra_app_get_comment (CraApp *app, const gchar *locale)
 }
 
 /**
+ * cra_app_get_language:
+ **/
+const gchar *
+cra_app_get_language (CraApp *app, const gchar *locale)
+{
+	CraAppPrivate *priv = GET_PRIVATE (app);
+	return g_hash_table_lookup (priv->languages, locale);
+}
+
+/**
+ * cra_app_get_languages:
+ **/
+GList *
+cra_app_get_languages (CraApp *app)
+{
+	CraAppPrivate *priv = GET_PRIVATE (app);
+	return g_hash_table_get_keys (priv->languages);
+}
+
+/**
  * cra_app_get_metadata_item:
  **/
 const gchar *
@@ -709,7 +729,7 @@ cra_app_set_id_full (CraApp *app, const gchar *id_full)
 	priv->id_full = g_strdup (id_full);
 	g_strdelimit (priv->id_full, "&<>", '-');
 	priv->id = g_strdup (priv->id_full);
-	tmp = g_strstr_len (priv->id, -1, ".desktop");
+	tmp = g_strrstr_len (priv->id, -1, ".");
 	if (tmp != NULL)
 		*tmp = '\0';
 }

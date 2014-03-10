@@ -74,11 +74,13 @@ cra_plugin_process_filename (CraApp *app,
 	CraDom *dom;
 	gboolean ret;
 	gchar *data = NULL;
+	gchar **split;
 	GHashTable *comments = NULL;
-	GHashTable *names = NULL;
 	GHashTable *descriptions = NULL;
+	GHashTable *names = NULL;
 	GList *l;
 	GList *list;
+	guint i;
 
 	/* parse file */
 	dom = cra_dom_new ();
@@ -249,8 +251,10 @@ cra_plugin_process_filename (CraApp *app,
 				continue;
 			tmp = cra_dom_get_node_attribute (c, "key");
 			if (g_strcmp0 (tmp, "ExtraPackages") == 0) {
-				cra_app_add_pkgname (app,
-						     cra_dom_get_node_data (c));
+				split = g_strsplit (cra_dom_get_node_data (c), ",", -1);
+				for (i = 0; split[i] != NULL; i++)
+					cra_app_add_pkgname (app, split[i]);
+				g_strfreev (split);
 			} else {
 				cra_app_add_metadata (app, tmp,
 						      cra_dom_get_node_data (c));
@@ -259,6 +263,7 @@ cra_plugin_process_filename (CraApp *app,
 	}
 
 	/* success */
+	cra_app_set_requires_appdata (app, FALSE);
 	ret = TRUE;
 out:
 	g_free (data);

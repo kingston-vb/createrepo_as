@@ -531,6 +531,11 @@ main (int argc, char **argv)
 		g_warning ("failed to create screenshot cache dir");
 		goto out;
 	}
+	rc = g_mkdir_with_parents ("./screenshots/source", 0700);
+	if (rc != 0) {
+		g_warning ("failed to create screenshot cache dir");
+		goto out;
+	}
 	rc = g_mkdir_with_parents ("./screenshot-cache", 0700);
 	if (rc != 0) {
 		g_warning ("failed to create screenshot cache dir");

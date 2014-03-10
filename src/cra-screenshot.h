@@ -23,6 +23,7 @@
 #define CRA_SCREENSHOT_H
 
 #include <glib-object.h>
+#include <gdk-pixbuf/gdk-pixbuf.h>
 
 #include "cra-package.h"
 
@@ -57,10 +58,16 @@ guint		 cra_screenshot_get_width		(CraScreenshot	*screenshot);
 guint		 cra_screenshot_get_height		(CraScreenshot	*screenshot);
 
 void		 cra_screenshot_set_is_default		(CraScreenshot	*screenshot,
-							gboolean	 is_default);
+							 gboolean	 is_default);
+void		 cra_screenshot_set_only_source		(CraScreenshot	*screenshot,
+							 gboolean	 only_source);
+void		 cra_screenshot_set_caption		(CraScreenshot	*screenshot,
+							 const gchar	*caption);
+void		 cra_screenshot_set_pixbuf		(CraScreenshot	*screenshot,
+							 GdkPixbuf	*pixbuf);
 gboolean	 cra_screenshot_load_url		(CraScreenshot	*screenshot,
-							const gchar	*url,
-							GError		**error);
+							 const gchar	*url,
+							 GError		**error);
 gboolean	 cra_screenshot_load_filename		(CraScreenshot	*screenshot,
 							 const gchar	*filename,
 							 GError		**error);
