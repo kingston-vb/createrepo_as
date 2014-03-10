@@ -209,7 +209,7 @@ gboolean
 cra_plugin_loader_setup (GPtrArray *plugins, GError **error)
 {
 	const gchar *filename_tmp;
-	const gchar *location = "./.libs/";
+	const gchar *location = "./plugins/.libs/";
 	gboolean ret = TRUE;
 	gchar *filename_plugin;
 	GDir *dir;

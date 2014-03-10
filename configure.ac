@@ -60,5 +60,6 @@ PKG_CHECK_MODULES(LIBSOUP, libsoup-2.4)
 AC_CONFIG_FILES([
 Makefile
 src/Makefile
+src/plugins/Makefile
 ])
 AC_OUTPUT
