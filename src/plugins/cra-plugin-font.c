@@ -82,10 +82,13 @@ static void
 cra_font_fix_metadata (CraApp *app)
 {
 	const gchar *tmp;
+	const gchar *value;
+	gchar *icon_tmp;
 	GList *l;
 	GList *langs = NULL;
 	GString *str = NULL;
 	guint j;
+	PangoLanguage *plang;
 	struct {
 		const gchar	*lang;
 		const gchar	*value;
@@ -135,9 +138,28 @@ cra_font_fix_metadata (CraApp *app)
 		}
 	}
 
+	/* can we use a pango version */
+	langs = cra_app_get_languages (app);
+	if (cra_app_get_metadata_item (app, "FontIconText") == NULL) {
+		for (l = langs; l != NULL; l = l->next) {
+			tmp = l->data;
+			plang = pango_language_from_string (tmp);
+			value = pango_language_get_sample_string (plang);
+			if (value == NULL)
+				continue;
+			cra_app_add_metadata (app,
+					      "FontSampleText",
+					      value);
+			icon_tmp = g_utf8_substring (value, 0, 2);
+			cra_app_add_metadata (app,
+					      "FontIconText",
+					      icon_tmp);
+			g_free (icon_tmp);
+		}
+	}
+
 	/* still not defined? */
 	if (cra_app_get_metadata_item (app, "FontSampleText") == NULL) {
-		langs = cra_app_get_languages (app);
 		str = g_string_sized_new (1024);
 		for (l = langs; l != NULL; l = l->next) {
 			tmp = l->data;
