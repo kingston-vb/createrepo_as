@@ -174,7 +174,6 @@ cra_font_add_metadata (CraApp *app, FT_Face ft_face)
 		{ TT_NAME_ID_FONT_SUBFAMILY,		"FontSubFamily" },
 		{ TT_NAME_ID_FULL_NAME,			"FontFullName" },
 		{ TT_NAME_ID_PREFERRED_FAMILY,		"FontParent" },
-		{ TT_NAME_ID_SAMPLE_TEXT,		"FontSampleText" },
 		{ 0, NULL } };
 
 	if (!FT_IS_SFNT (ft_face))
