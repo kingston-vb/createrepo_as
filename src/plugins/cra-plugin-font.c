@@ -110,11 +110,6 @@ cra_font_fix_metadata (CraApp *app)
 				cra_app_add_metadata (app,
 						      "FontSampleText",
 						      text_sample[j].value);
-				cra_package_log (cra_app_get_package (app),
-						 CRA_PACKAGE_LOG_LEVEL_DEBUG,
-						 "FontSampleText for %s: %s",
-						 text_sample[j].lang,
-						 text_sample[j].value);
 				break;
 			}
 		}
@@ -128,11 +123,6 @@ cra_font_fix_metadata (CraApp *app)
 				cra_app_add_metadata (app,
 						      "FontIconText",
 						      text_icon[j].value);
-				cra_package_log (cra_app_get_package (app),
-						 CRA_PACKAGE_LOG_LEVEL_DEBUG,
-						 "FontIconText for %s: %s",
-						 text_icon[j].lang,
-						 text_icon[j].value);
 				break;
 			}
 		}
@@ -361,7 +351,6 @@ cra_plugin_process_filename (CraPlugin *plugin,
 	}
 	fonts = FcConfigGetFonts (FcConfigGetCurrent(), FcSetApplication);
 	pattern = fonts->fonts[0];
-	//FcPatternPrint (pattern);
 	FT_Init_FreeType (&library);
 	rc = FT_New_Face (library, filename_full, 0, &ft_face);
 	if (rc != 0) {
@@ -497,9 +486,6 @@ cra_font_get_app_sortable_idx (CraApp *app)
 		idx += 1;
 	if (g_strstr_len (font_str, -1, "Fallback") != NULL)
 		idx += 1;
-
-g_debug ("%s = %i", font_str, idx);
-
 	return idx;
 }
 
