@@ -58,6 +58,8 @@ typedef const gchar	*(*CraPluginGetNameFunc)	(void);
 typedef void		 (*CraPluginFunc)		(CraPlugin	*plugin);
 typedef void		 (*CraPluginGetGlobsFunc)	(CraPlugin	*plugin,
 							 GPtrArray	*globs);
+typedef void		 (*CraPluginMergeFunc)		(CraPlugin	*plugin,
+							 GList		**apps);
 typedef gboolean	 (*CraPluginCheckFilenameFunc)	(CraPlugin	*plugin,
 							 const gchar	*filename);
 typedef GList		*(*CraPluginProcessFunc)	(CraPlugin	*plugin,
@@ -81,6 +83,8 @@ GList		*cra_plugin_process			(CraPlugin	*plugin,
 							 GError		**error);
 void		 cra_plugin_add_globs			(CraPlugin	*plugin,
 							 GPtrArray	*globs);
+void		 cra_plugin_merge			(CraPlugin	*plugin,
+							 GList		**list);
 gboolean	 cra_plugin_process_app			(CraPlugin	*plugin,
 							 CraPackage	*pkg,
 							 CraApp		*app,

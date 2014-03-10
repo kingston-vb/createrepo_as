@@ -149,6 +149,42 @@ cra_plugin_loader_get_globs (GPtrArray *plugins)
 }
 
 /**
+ * cra_plugin_loader_merge:
+ */
+void
+cra_plugin_loader_merge (GPtrArray *plugins, GList **apps)
+{
+	CraApp *app;
+	CraPluginMergeFunc plugin_func = NULL;
+	CraPlugin *plugin;
+	gboolean ret;
+	GList *l;
+	guint i;
+
+	/* run each plugin */
+	for (i = 0; i < plugins->len; i++) {
+		plugin = g_ptr_array_index (plugins, i);
+		ret = g_module_symbol (plugin->module,
+				       "cra_plugin_merge",
+				       (gpointer *) &plugin_func);
+		if (!ret)
+			continue;
+		plugin_func (plugin, apps);
+	}
+
+	/* FIXME: move to font plugin */
+	for (l = *apps; l != NULL; l = l->next) {
+		app = CRA_APP (l->data);
+		cra_app_remove_metadata (app, "FontFamily");
+		cra_app_remove_metadata (app, "FontFullName");
+		cra_app_remove_metadata (app, "FontIconText");
+		cra_app_remove_metadata (app, "FontParent");
+		cra_app_remove_metadata (app, "FontSampleText");
+		cra_app_remove_metadata (app, "FontSubFamily");
+	}
+}
+
+/**
  * cra_plugin_loader_open_plugin:
  */
 static CraPlugin *

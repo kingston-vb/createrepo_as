@@ -454,13 +454,8 @@ void
 cra_app_add_pkgname (CraApp *app, const gchar *pkgname)
 {
 	CraAppPrivate *priv = GET_PRIVATE (app);
-	if (cra_utils_ptr_array_find_string (priv->pkgnames, pkgname)) {
-		cra_package_log (priv->pkg,
-				 CRA_PACKAGE_LOG_LEVEL_WARNING,
-				 "Already added %s to pkgnames",
-				 pkgname);
+	if (cra_utils_ptr_array_find_string (priv->pkgnames, pkgname))
 		return;
-	}
 	g_ptr_array_add (priv->pkgnames, g_strdup (pkgname));
 }
 
@@ -516,6 +511,16 @@ cra_app_add_metadata (CraApp *app, const gchar *key, const gchar *value)
 {
 	CraAppPrivate *priv = GET_PRIVATE (app);
 	g_hash_table_insert (priv->metadata, g_strdup (key), g_strdup (value));
+}
+
+/**
+ * cra_app_remove_metadata:
+ **/
+void
+cra_app_remove_metadata (CraApp *app, const gchar *key)
+{
+	CraAppPrivate *priv = GET_PRIVATE (app);
+	g_hash_table_remove (priv->metadata, key);
 }
 
 /**
@@ -615,6 +620,16 @@ cra_app_get_vetos (CraApp *app)
 {
 	CraAppPrivate *priv = GET_PRIVATE (app);
 	return priv->vetos;
+}
+
+/**
+ * cra_app_get_pkgnames:
+ **/
+GPtrArray *
+cra_app_get_pkgnames (CraApp *app)
+{
+	CraAppPrivate *priv = GET_PRIVATE (app);
+	return priv->pkgnames;
 }
 
 /**
@@ -720,7 +735,7 @@ cra_app_get_project_group (CraApp *app)
 /**
  * cra_app_set_id_full:
  **/
-static void
+void
 cra_app_set_id_full (CraApp *app, const gchar *id_full)
 {
 	CraAppPrivate *priv = GET_PRIVATE (app);
@@ -744,6 +759,50 @@ cra_app_get_package (CraApp *app)
 	return priv->pkg;
 }
 
+/**
+ * cra_app_subsume:
+ **/
+void
+cra_app_subsume (CraApp *app, CraApp *donor)
+{
+	CraAppPrivate *priv = GET_PRIVATE (donor);
+	CraScreenshot *ss;
+	const gchar *tmp;
+	const gchar *value;
+	guint i;
+	GList *l;
+	GList *langs;
+
+	g_assert (app != donor);
+
+	/* pkgnames */
+	for (i = 0; i < priv->pkgnames->len; i++) {
+		tmp = g_ptr_array_index (priv->pkgnames, i);
+		cra_app_add_pkgname (app, tmp);
+	}
+
+	/* screenshots */
+	for (i = 0; i < priv->screenshots->len; i++) {
+		ss = g_ptr_array_index (priv->screenshots, i);
+		cra_app_add_screenshot (app, ss);
+	}
+
+	/* languages */
+	langs = g_hash_table_get_keys (priv->languages);
+	for (l = langs; l != NULL; l = l->next) {
+		tmp = l->data;
+		value = g_hash_table_lookup (priv->languages, tmp);
+		cra_app_add_language (app, tmp, value);
+	}
+
+	/* icon */
+	if (priv->icon != NULL)
+		cra_app_set_icon (app, priv->icon);
+}
+
+/**
+ * cra_app_save_resources:
+ **/
 gboolean
 cra_app_save_resources (CraApp *app, GError **error)
 {

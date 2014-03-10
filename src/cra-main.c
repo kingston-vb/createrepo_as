@@ -367,6 +367,7 @@ cra_context_write_icons (CraContext *ctx, const gchar *basename, GError **error)
 	gchar *filename;
 
 	filename = g_strdup_printf ("./%s-icons.tar", basename);
+	g_debug ("Writing %s", filename);
 	ret = cra_utils_write_archive_dir (filename, "icons", error);
 	g_free (filename);
 	return ret;
@@ -416,6 +417,7 @@ cra_context_write_xml (CraContext *ctx, const gchar *basename, GError **error)
 
 	/* write file */
 	filename = g_strdup_printf ("./%s.xml.gz", basename);
+	g_debug ("Writing %s", filename);
 	ret = g_file_set_contents (filename,
 				   g_memory_output_stream_get_data (G_MEMORY_OUTPUT_STREAM (out)),
 				   g_memory_output_stream_get_size (G_MEMORY_OUTPUT_STREAM (out)),
@@ -625,6 +627,9 @@ main (int argc, char **argv)
 	/* wait for them to finish */
 	if (pool != NULL)
 		g_thread_pool_free (pool, FALSE, TRUE);
+
+	/* merge */
+	cra_plugin_loader_merge (ctx->plugins, &ctx->apps);
 
 	/* write XML file */
 	ret = cra_context_write_xml (ctx, basename, &error);

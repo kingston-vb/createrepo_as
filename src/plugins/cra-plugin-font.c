@@ -339,7 +339,7 @@ cra_plugin_process_filename (CraPlugin *plugin,
 	}
 	fonts = FcConfigGetFonts (FcConfigGetCurrent(), FcSetApplication);
 	pattern = fonts->fonts[0];
-	FcPatternPrint (pattern);
+	//FcPatternPrint (pattern);
 	FT_Init_FreeType (&library);
 	rc = FT_New_Face (library, filename_full, 0, &ft_face);
 	if (rc != 0) {
@@ -436,4 +436,119 @@ cra_plugin_process (CraPlugin *plugin,
 	}
 out:
 	return apps;
+}
+
+/**
+ * cra_font_get_app_sortable_idx:
+ */
+static guint
+cra_font_get_app_sortable_idx (CraApp *app)
+{
+	const gchar *font_str = cra_app_get_id (app);
+	guint idx = 0;
+
+	if (g_strstr_len (font_str, -1, "It") != NULL)
+		idx += 1;
+	if (g_strstr_len (font_str, -1, "Bold") != NULL)
+		idx += 1;
+	if (g_strstr_len (font_str, -1, "Semibold") != NULL)
+		idx += 1;
+	if (g_strstr_len (font_str, -1, "ExtraLight") != NULL)
+		idx += 1;
+	if (g_strstr_len (font_str, -1, "Lig") != NULL)
+		idx += 1;
+	if (g_strstr_len (font_str, -1, "Medium") != NULL)
+		idx += 1;
+	if (g_strstr_len (font_str, -1, "Bla") != NULL)
+		idx += 1;
+	if (g_strstr_len (font_str, -1, "Hai") != NULL)
+		idx += 1;
+	if (g_strstr_len (font_str, -1, "Keyboard") != NULL)
+		idx += 1;
+	if (g_strstr_len (font_str, -1, "Kufi") != NULL)
+		idx += 1;
+	if (g_strstr_len (font_str, -1, "Tamil") != NULL)
+		idx += 1;
+	if (g_strstr_len (font_str, -1, "Hebrew") != NULL)
+		idx += 1;
+	if (g_strstr_len (font_str, -1, "Arabic") != NULL)
+		idx += 1;
+	if (g_strstr_len (font_str, -1, "Fallback") != NULL)
+		idx += 1;
+
+g_debug ("%s = %i", font_str, idx);
+
+	return idx;
+}
+
+/**
+ * cra_font_merge_family:
+ */
+static void
+cra_font_merge_family (GList **list, const gchar *md_key)
+{
+	CraApp *app;
+	CraApp *found;
+	GHashTable *hash;
+	GList *hash_values = NULL;
+	GList *l;
+	GList *list_new = NULL;
+	const gchar *tmp;
+
+	hash = g_hash_table_new_full (g_str_hash, g_str_equal,
+				      g_free, (GDestroyNotify) g_object_unref);
+	for (l = *list; l != NULL; l = l->next) {
+		app = CRA_APP (l->data);
+
+		/* no family, or not a font */
+		tmp = cra_app_get_metadata_item (app, md_key);
+		if (tmp == NULL) {
+			cra_plugin_add_app (&list_new, app);
+			continue;
+		}
+
+		/* find the font family */
+		found = g_hash_table_lookup (hash, tmp);
+		if (found == NULL) {
+			g_hash_table_insert (hash,
+					     g_strdup (tmp),
+					     g_object_ref (app));
+		} else {
+			/* app is better than found */
+			if (cra_font_get_app_sortable_idx (app) <
+			    cra_font_get_app_sortable_idx (found)) {
+				g_hash_table_insert (hash,
+						     g_strdup (tmp),
+						     g_object_ref (app));
+				cra_app_subsume (app, found);
+			} else {
+				cra_app_subsume (found, app);
+			}
+		}
+	}
+
+	/* add all the best fonts to the list */
+	hash_values = g_hash_table_get_values (hash);
+	for (l = hash_values; l != NULL; l = l->next) {
+		app = CRA_APP (l->data);
+		cra_plugin_add_app (&list_new, app);
+	}
+	g_list_free (hash_values);
+
+	/* success */
+	g_list_free_full (*list, (GDestroyNotify) g_object_unref);
+	*list = list_new;
+
+
+	g_hash_table_unref (hash);
+}
+
+/**
+ * cra_plugin_merge:
+ */
+void
+cra_plugin_merge (CraPlugin *plugin, GList **list)
+{
+	cra_font_merge_family (list, "FontFamily");
+	cra_font_merge_family (list, "FontParent");
 }

@@ -29,6 +29,8 @@ G_BEGIN_DECLS
 gboolean	 cra_plugin_loader_setup	(GPtrArray	*plugins,
 						 GError		**error);
 GPtrArray	*cra_plugin_loader_get_globs	(GPtrArray	*plugins);
+void		 cra_plugin_loader_merge	(GPtrArray	*plugins,
+						 GList		**apps);
 gboolean	 cra_plugin_loader_process_app	(GPtrArray	*plugins,
 						 CraPackage	*pkg,
 						 CraApp		*app,

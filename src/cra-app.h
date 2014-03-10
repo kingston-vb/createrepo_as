@@ -62,6 +62,8 @@ GType		 cra_app_get_type		(void);
 CraApp		*cra_app_new			(CraPackage	*pkg,
 						 const gchar	*id_full);
 gchar		*cra_app_to_xml			(CraApp		*app);
+void		 cra_app_set_id_full		(CraApp		*app,
+						 const gchar	*id_full);
 void		 cra_app_set_type_id		(CraApp		*app,
 						 const gchar	*type_id);
 void		 cra_app_set_homepage_url	(CraApp		*app,
@@ -96,6 +98,8 @@ void		 cra_app_add_language		(CraApp		*app,
 void		 cra_app_add_metadata		(CraApp		*app,
 						 const gchar	*key,
 						 const gchar	*value);
+void		 cra_app_remove_metadata	(CraApp		*app,
+						 const gchar	*key);
 void		 cra_app_set_name		(CraApp		*app,
 						 const gchar	*locale,
 						 const gchar	*name);
@@ -111,6 +115,8 @@ void		 cra_app_set_icon_type		(CraApp		*app,
 						 CraAppIconType	 icon_type);
 void		 cra_app_set_pixbuf		(CraApp		*app,
 						 GdkPixbuf	*pixbuf);
+void		 cra_app_subsume		(CraApp		*app,
+						 CraApp		*donor);
 
 gboolean	 cra_app_get_requires_appdata	(CraApp		*app);
 GPtrArray	*cra_app_get_categories		(CraApp		*app);
@@ -118,6 +124,7 @@ GPtrArray	*cra_app_get_keywords		(CraApp		*app);
 GPtrArray	*cra_app_get_screenshots	(CraApp		*app);
 GPtrArray	*cra_app_get_releases		(CraApp		*app);
 GPtrArray	*cra_app_get_vetos		(CraApp		*app);
+GPtrArray	*cra_app_get_pkgnames		(CraApp		*app);
 const gchar	*cra_app_get_id			(CraApp		*app);
 const gchar	*cra_app_get_id_full		(CraApp		*app);
 const gchar	*cra_app_get_type_id		(CraApp		*app);
