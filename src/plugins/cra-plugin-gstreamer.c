@@ -181,7 +181,6 @@ cra_plugin_process (CraPlugin *plugin,
 			     CRA_PLUGIN_ERROR_FAILED,
 			     "nothing interesting in %s",
 			     cra_package_get_filename (pkg));
-		g_object_unref (app);
 		goto out;
 	}
 
