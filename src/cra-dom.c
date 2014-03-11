@@ -261,6 +261,7 @@ cra_dom_text_cb (GMarkupParseContext *context,
 	CraDom *dom = (CraDom *) user_data;
 	CraDomNodeData *data;
 	guint i;
+	gchar **split;
 
 	/* no data */
 	if (text_len == 0)
@@ -278,7 +279,23 @@ cra_dom_text_cb (GMarkupParseContext *context,
 
 	/* save cdata */
 	data = dom->priv->current->data;
-	g_string_append (data->cdata, g_strstrip ((gchar*) text));
+
+	/* split up into lines and add each with spaces stripped */
+	split = g_strsplit (text, "\n", -1);
+	for (i = 0; split[i] != NULL; i++) {
+		g_strstrip (split[i]);
+		if (split[i][0] == '\0')
+			continue;
+		g_string_append_printf (data->cdata, "%s ", split[i]);
+	}
+
+	/* remove trailing space */
+	if (data->cdata->len > 1 &&
+	    data->cdata->str[data->cdata->len - 1] == ' ') {
+		g_string_truncate (data->cdata, data->cdata->len - 1);
+	}
+
+	g_strfreev (split);
 }
 
 /**
