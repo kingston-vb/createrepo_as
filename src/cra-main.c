@@ -441,6 +441,36 @@ out:
 }
 
 /**
+ * cra_context_disable_older_packages:
+ */
+static void
+cra_context_disable_older_packages (CraContext *ctx)
+{
+	const gchar *key;
+	CraPackage *found;
+	CraPackage *pkg;
+	GHashTable *newest;
+	guint i;
+
+	newest = g_hash_table_new_full (g_str_hash, g_str_equal,
+					g_free, (GDestroyNotify) g_object_unref);
+	for (i = 0; i < ctx->packages->len; i++) {
+		pkg = CRA_PACKAGE (g_ptr_array_index (ctx->packages, i));
+		key = cra_package_get_name (pkg);
+		found = g_hash_table_lookup (newest, key);
+		if (found != NULL) {
+			if (cra_package_compare (pkg, found) < 0) {
+				cra_package_set_enabled (pkg, FALSE);
+				continue;
+			}
+			cra_package_set_enabled (found, FALSE);
+		}
+		g_hash_table_insert (newest, g_strdup (key), g_object_ref (pkg));
+	}
+	g_hash_table_unref (newest);
+}
+
+/**
  * main:
  */
 int
@@ -622,10 +652,22 @@ main (int argc, char **argv)
 		}
 	}
 
+	/* disable anything not newest */
+	cra_context_disable_older_packages (ctx);
+
 	/* add each package */
 	g_debug ("Processing packages");
 	for (i = 0; i < ctx->packages->len; i++) {
 		pkg = g_ptr_array_index (ctx->packages, i);
+		if (!cra_package_get_enabled (pkg)) {
+			cra_package_log (pkg,
+					 CRA_PACKAGE_LOG_LEVEL_DEBUG,
+					 "%s is not enabled",
+					 cra_package_get_nevr (pkg));
+			cra_package_log_flush (pkg, NULL);
+			continue;
+		}
+
 		cra_package_set_config (pkg,
 					"AppDataExtra",
 					"../../fedora-appstream/appdata-extra");

@@ -34,6 +34,7 @@
 typedef struct _CraPackagePrivate	CraPackagePrivate;
 struct _CraPackagePrivate
 {
+	gboolean	 enabled;
 	Header		 h;
 	gchar		**filelist;
 	gchar		**deps;
@@ -45,6 +46,7 @@ struct _CraPackagePrivate
 	gchar		*arch;
 	gchar		*url;
 	gchar		*nevr;
+	gchar		*evr;
 	gchar		*license;
 	gchar		*sourcerpm;
 	GString		*log;
@@ -78,6 +80,7 @@ cra_package_finalize (GObject *object)
 	g_free (priv->arch);
 	g_free (priv->url);
 	g_free (priv->nevr);
+	g_free (priv->evr);
 	g_free (priv->license);
 	g_free (priv->sourcerpm);
 	g_string_free (priv->log, TRUE);
@@ -96,6 +99,7 @@ static void
 cra_package_init (CraPackage *pkg)
 {
 	CraPackagePrivate *priv = GET_PRIVATE (pkg);
+	priv->enabled = TRUE;
 	priv->log = g_string_sized_new (1024);
 	priv->timer = g_timer_new ();
 	priv->configs = g_hash_table_new_full (g_str_hash, g_str_equal,
@@ -103,6 +107,26 @@ cra_package_init (CraPackage *pkg)
 	priv->releases = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
 	priv->releases_hash = g_hash_table_new_full (g_str_hash, g_str_equal,
 						     g_free, (GDestroyNotify) g_object_unref);
+}
+
+/**
+ * cra_package_get_enabled:
+ **/
+gboolean
+cra_package_get_enabled (CraPackage *pkg)
+{
+	CraPackagePrivate *priv = GET_PRIVATE (pkg);
+	return priv->enabled;
+}
+
+/**
+ * cra_package_set_enabled:
+ **/
+void
+cra_package_set_enabled (CraPackage *pkg, gboolean enabled)
+{
+	CraPackagePrivate *priv = GET_PRIVATE (pkg);
+	priv->enabled = enabled;
 }
 
 /**
@@ -282,6 +306,28 @@ cra_package_get_nevr (CraPackage *pkg)
 		}
 	}
 	return priv->nevr;
+}
+
+/**
+ * cra_package_get_evr:
+ **/
+const gchar *
+cra_package_get_evr (CraPackage *pkg)
+{
+	CraPackagePrivate *priv = GET_PRIVATE (pkg);
+	if (priv->evr == NULL) {
+		if (priv->epoch == 0) {
+			priv->evr = g_strdup_printf ("%s-%s",
+						     priv->version,
+						     priv->release);
+		} else {
+			priv->evr = g_strdup_printf ("%i:%s-%s",
+						     priv->epoch,
+						     priv->version,
+						     priv->release);
+		}
+	}
+	return priv->evr;
 }
 
 /**
@@ -660,6 +706,16 @@ cra_package_get_releases (CraPackage *pkg)
 {
 	CraPackagePrivate *priv = GET_PRIVATE (pkg);
 	return priv->releases;
+}
+
+/**
+ * cra_package_get_releases:
+ **/
+gint
+cra_package_compare (CraPackage *pkg1, CraPackage *pkg2)
+{
+	return rpmvercmp (cra_package_get_evr (pkg1),
+			  cra_package_get_evr (pkg2));
 }
 
 /**

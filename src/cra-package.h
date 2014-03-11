@@ -81,6 +81,7 @@ gboolean	 cra_package_ensure_filelist	(CraPackage	*pkg,
 const gchar	*cra_package_get_filename	(CraPackage	*pkg);
 const gchar	*cra_package_get_name		(CraPackage	*pkg);
 const gchar	*cra_package_get_nevr		(CraPackage	*pkg);
+const gchar	*cra_package_get_evr		(CraPackage	*pkg);
 const gchar	*cra_package_get_url		(CraPackage	*pkg);
 const gchar	*cra_package_get_license	(CraPackage	*pkg);
 const gchar	*cra_package_get_sourcerpm	(CraPackage	*pkg);
@@ -92,6 +93,11 @@ void		 cra_package_set_config		(CraPackage	*pkg,
 						 const gchar	*value);
 const gchar	*cra_package_get_config		(CraPackage	*pkg,
 						 const gchar	*key);
+gint		 cra_package_compare		(CraPackage	*pkg1,
+						 CraPackage	*pkg2);
+gboolean	 cra_package_get_enabled	(CraPackage	*pkg);
+void		 cra_package_set_enabled	(CraPackage	*pkg,
+						 gboolean	 enabled);
 
 G_END_DECLS
 
