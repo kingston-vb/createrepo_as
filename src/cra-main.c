@@ -470,7 +470,6 @@ main (int argc, char **argv)
 	gboolean verbose = FALSE;
 	gboolean no_net = FALSE;
 	gchar *basename = NULL;
-	gchar *buildone = NULL;
 	gchar *log_dir = NULL;
 	gchar *output_dir = NULL;
 	gchar *packages_dir = NULL;
@@ -498,8 +497,6 @@ main (int argc, char **argv)
 			"Set the temporary directory", NULL },
 		{ "output-dir", '\0', 0, G_OPTION_ARG_STRING, &output_dir,
 			"Set the output directory", NULL },
-		{ "buildone", '\0', 0, G_OPTION_ARG_STRING, &buildone,
-			"Set the temporary directory", NULL },
 		{ "basename", '\0', 0, G_OPTION_ARG_STRING, &basename,
 			"Set the basename, e.g. 'fedora-20'", NULL },
 		{ "screenshot-uri", '\0', 0, G_OPTION_ARG_STRING, &screenshot_uri,
@@ -610,7 +607,7 @@ main (int argc, char **argv)
 	}
 
 	/* scan each package */
-	if (buildone == NULL) {
+	if (argc == 1) {
 		g_debug ("Scanning packages");
 		dir = g_dir_open (packages_dir, 0, &error);
 		if (dir == NULL) {
@@ -630,11 +627,13 @@ main (int argc, char **argv)
 			g_free (tmp);
 		}
 	} else {
-		ret = cra_context_add_filename (ctx, buildone, &error);
-		if (!ret) {
-			g_warning ("%s", error->message);
-			g_error_free (error);
-			goto out;
+		for (i = 1; i < (guint) argc; i++) {
+			ret = cra_context_add_filename (ctx, argv[i], &error);
+			if (!ret) {
+				g_warning ("%s", error->message);
+				g_error_free (error);
+				goto out;
+			}
 		}
 	}
 
@@ -710,7 +709,6 @@ main (int argc, char **argv)
 	/* success */
 	g_debug ("Done!");
 out:
-	g_free (buildone);
 	g_free (screenshot_uri);
 	g_free (packages_dir);
 	g_free (temp_dir);
