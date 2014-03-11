@@ -446,7 +446,7 @@ cra_plugin_process (CraPlugin *plugin,
 						   tmpdir,
 						   error);
 		if (!ret) {
-			/* FIXME: free apps? */
+			g_list_free_full (apps, (GDestroyNotify) g_object_unref);
 			apps = NULL;
 			goto out;
 		}
