@@ -310,17 +310,6 @@ out:
 }
 
 /**
- * cra_task_sort_cb:
- */
-static gint
-cra_task_sort_cb (gconstpointer a, gconstpointer b, gpointer user_data)
-{
-	CraTask *task_a = (CraTask *) a;
-	CraTask *task_b = (CraTask *) b;
-	return g_strcmp0 (task_a->filename, task_b->filename);
-}
-
-/**
  * cra_context_add_filename:
  */
 static gboolean
@@ -619,9 +608,6 @@ main (int argc, char **argv)
 		g_error_free (error);
 		goto out;
 	}
-
-	/* sort by name */
-	g_thread_pool_set_sort_function (pool, cra_task_sort_cb, NULL);
 
 	/* scan each package */
 	if (buildone == NULL) {
