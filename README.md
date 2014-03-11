@@ -34,6 +34,7 @@ binary and data files, or you can build a local copy. To do the latter just do:
 To actually run the extractor you can do:
 
     ./createrepo_as --verbose   \
+                    --max-threads=8 \
                     --log-dir=/tmp/logs \
                     --packages-dir=/mnt/archive/Megarpms/21/Packages \
                     --temp-dir=/mnt/ssd/AppStream/tmp \

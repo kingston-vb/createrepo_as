@@ -479,7 +479,6 @@ int
 main (int argc, char **argv)
 {
 	const gchar *filename;
-	const gint max_threads = 1;
 	CraContext *ctx = NULL;
 	CraPackage *pkg;
 	CraTask *task;
@@ -496,6 +495,7 @@ main (int argc, char **argv)
 	gchar *tmp;
 	GDir *dir = NULL;
 	GError *error = NULL;
+	gint max_threads = 4;
 	gint rc;
 	GOptionContext *option_context;
 	GThreadPool *pool;
@@ -519,6 +519,8 @@ main (int argc, char **argv)
 			"Set the basename, e.g. 'fedora-20'", NULL },
 		{ "screenshot-uri", '\0', 0, G_OPTION_ARG_STRING, &screenshot_uri,
 			"Set the screenshot base URL", NULL },
+		{ "max-threads", '\0', 0, G_OPTION_ARG_INT, &max_threads,
+			"Set the maximum number of threads to use", NULL },
 		{ NULL}
 	};
 
