@@ -89,14 +89,15 @@ First, some key words:
 
 The current rules of inclusion are thus:
 
- * Icons **MUST** be installed in `/usr/share/pixbufs` or
-   `/usr/share/icons/hicolor`
- * Desktop files **MUST** be installed in `/usr/share/applications`
-   or `/usr/share/applications/kde4`
+ * Icons **MUST** be installed in `/usr/share/pixmaps/*`, `/usr/share/icons/*`
+   or `/usr/share/icons/hicolor/*/apps/*`
+ * Desktop files **MUST** be installed in `/usr/share/applications/`
+   or `/usr/share/applications/kde4/`
  * Desktop files **MUST** have `Name`, `Comment` and `Icon` entries
  * Valid applications with `NoDisplay=true` **MUST** have an AppData file.
  * Applications that ships a desktop file **SHOULD** include an AppData file.
- * Applications **MUST** have had an upstream release in the last 5 years.
+ * Applications **MUST** have had an upstream release in the last 5 years or
+   have an AppData file.
  * Screenshots **SHOULD** be in 16:9 aspect ratio
  * Application icons **CANNOT** use XPM or ICO format
  * Application icons **SHOULD** have an alpha channel
