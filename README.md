@@ -1,21 +1,22 @@
 createrepo_as
 =============
 
-createrepo_as is a tool to create AppStream metadata from a directory of packages.
+createrepo_as is a tool that allows us to create AppStream metadata from a
+directory of packages.
 It is typically used when generating distribution metadata, usually at the same
 time as modifyrepo or createrepo.
 
 What this tool does:
 
  * Searches a directory of packages and reads just the RPM header of each.
- * If a package conatins an interesting file, just the relevant files are
+ * If a package contains an interesting file, just the relevant files are
    decompressed from the package archive.
  * A set of plugins are run on the extracted files, and if these match certain
    criteria `CraApplication` objects are created.
  * Any screenshots referenced are downloaded to a local cache.
-  This is optional and can be disabled with `--nonet`.
+   This is optional and can be disabled with `--nonet`.
  * When all the packages are processed, some of the `CraApplication` objects are
-   merged into single applications. This is how fonts are collected for instance.
+   merged into single applications. This is how fonts are collected.
  * The `CraApplication` objects are serialized to XML and written to a
    compressed archive.
  * Any application icons or screenshots referenced are written to a .tar archive.
@@ -84,7 +85,7 @@ These guidelines explain how we filter applications from a package set.
 
 First, some key words:
  * **SHOULD**: The application should do this if possible
- * **MUST**: The application or addon must to this to be included
+ * **MUST**: The application or addon must do this to be included
  * **CANNOT**: the application or addon must not do this
 
 The current rules of inclusion are thus:
@@ -95,19 +96,19 @@ The current rules of inclusion are thus:
    or `/usr/share/applications/kde4/`
  * Desktop files **MUST** have `Name`, `Comment` and `Icon` entries
  * Valid applications with `NoDisplay=true` **MUST** have an AppData file.
- * Applications that ships a desktop file **SHOULD** include an AppData file.
+ * Applications that ship a desktop file **SHOULD** include an AppData file.
  * Applications **MUST** have had an upstream release in the last 5 years or
    have an AppData file.
- * Screenshots **SHOULD** be in 16:9 aspect ratio
- * Application icons **CANNOT** use XPM or ICO format
- * Application icons **SHOULD** have an alpha channel
  * Application icon **MUST** be available in 48x48 or larger
- * Applications **SHOULD** ship a 64x64 PNG format icon or SVG
- * Applications **CANNOT** use obsolete toolkits such as GTK+-1.2
  * Codecs **MUST** have an AppData file
  * Input methods **MUST** have an AppData file
  * If included, AppData files **MUST** be valid XML
  * AppData files **MUST** be installed into `/usr/share/appdata`
+ * Application icons **CANNOT** use XPM or ICO format
+ * Applications **CANNOT** use obsolete toolkits such as GTK+-1.2
+ * Screenshots **SHOULD** be in 16:9 aspect ratio
+ * Application icons **SHOULD** have an alpha channel
+ * Applications **SHOULD** ship a 64x64 PNG format icon or SVG
  * AppData files **SHOULD** include translations
  * Desktop files **SHOULD** include translations
 
