@@ -37,6 +37,7 @@ typedef struct {
 	gchar		*filename;
 	gchar		*tmpdir;
 	CraPackage	*pkg;
+	guint		 id;
 } CraTask;
 
 /**
@@ -80,7 +81,10 @@ cra_task_process_func (gpointer data, gpointer user_data)
 		"X-Kudo-UsesNotifications",
 		NULL };
 
-	g_debug ("Processing %s", cra_package_get_name (task->pkg));
+	g_debug ("Processing %i/%i %s",
+		 task->id + 1,
+		 ctx->packages->len,
+		 cra_package_get_name (task->pkg));
 
 	/* reset the profile timer */
 	cra_package_log_start (task->pkg);
@@ -666,6 +670,7 @@ main (int argc, char **argv)
 
 		/* create task */
 		task = g_new0 (CraTask, 1);
+		task->id = i;
 		task->filename = g_strdup (cra_package_get_filename (pkg));
 		task->tmpdir = g_build_filename (temp_dir, cra_package_get_name (pkg), NULL);
 		task->pkg = g_object_ref (pkg);
