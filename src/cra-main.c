@@ -45,10 +45,6 @@ typedef struct {
 static void
 cra_task_free (CraTask *task)
 {
-	cra_package_log (task->pkg,
-			 CRA_PACKAGE_LOG_LEVEL_DEBUG,
-			 "Flushing %s", task->filename);
-	cra_package_log_flush (task->pkg, NULL);
 	g_object_unref (task->pkg);
 	g_free (task->filename);
 	g_free (task->tmpdir);
@@ -309,9 +305,8 @@ cra_task_process_func (gpointer data, gpointer user_data)
 		goto out;
 	}
 out:
-	g_list_foreach (apps, (GFunc) g_object_unref, NULL);
-	g_list_free (apps);
-	cra_task_free (task);
+	cra_package_log_flush (task->pkg, NULL);
+	g_list_free_full (apps, (GDestroyNotify) g_object_unref);
 }
 
 /**
@@ -498,6 +493,7 @@ main (int argc, char **argv)
 	gint max_threads = 4;
 	gint rc;
 	GOptionContext *option_context;
+	GPtrArray *tasks = NULL;
 	GThreadPool *pool;
 	guint i;
 	const GOptionEntry options[] = {
@@ -661,6 +657,7 @@ main (int argc, char **argv)
 
 	/* add each package */
 	g_debug ("Processing packages");
+	tasks = g_ptr_array_new_with_free_func ((GDestroyNotify) cra_task_free);
 	for (i = 0; i < ctx->packages->len; i++) {
 		pkg = g_ptr_array_index (ctx->packages, i);
 		if (!cra_package_get_enabled (pkg)) {
@@ -687,6 +684,7 @@ main (int argc, char **argv)
 		task->filename = g_strdup (cra_package_get_filename (pkg));
 		task->tmpdir = g_build_filename (temp_dir, cra_package_get_name (pkg), NULL);
 		task->pkg = g_object_ref (pkg);
+		g_ptr_array_add (tasks, task);
 
 		/* add task to pool */
 		ret = g_thread_pool_push (pool, task, &error);
@@ -734,6 +732,8 @@ out:
 	g_free (basename);
 	g_free (log_dir);
 	g_option_context_free (option_context);
+	if (tasks != NULL)
+		g_ptr_array_unref (tasks);
 	if (ctx != NULL)
 		cra_context_free (ctx);
 	if (dir != NULL)
