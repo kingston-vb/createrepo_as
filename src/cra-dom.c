@@ -48,14 +48,49 @@ struct _CraDomPrivate
 	GNode			*current;
 };
 
+typedef enum {
+	CRA_DOM_DATA_MODE_RAW,		/* '&amp;' rather than '&' */
+	CRA_DOM_DATA_MODE_ESCAPED,	/* '&' rather than '&amp;' */
+	CRA_DOM_DATA_MODE_LAST,
+} CraDomDataMode;
+
 typedef struct
 {
 	gchar		*name;
-	GString		*cdata;		/* with "&amp;" rather than '&' */
+	GString		*cdata;
+	CraDomDataMode	 cdata_mode;
 	GHashTable	*attributes;
 } CraDomNodeData;
 
 G_DEFINE_TYPE (CraDom, cra_dom, G_TYPE_OBJECT)
+
+/**
+ * cra_dom_cdata_to_raw:
+ **/
+static void
+cra_dom_cdata_to_raw (CraDomNodeData *data)
+{
+	if (data->cdata_mode == CRA_DOM_DATA_MODE_RAW)
+		return;
+	cra_string_replace (data->cdata, "&amp;", "&");
+	cra_string_replace (data->cdata, "&lt;", "<");
+	cra_string_replace (data->cdata, "&gt;", ">");
+	data->cdata_mode = CRA_DOM_DATA_MODE_RAW;
+}
+
+/**
+ * cra_dom_cdata_to_escaped:
+ **/
+static void
+cra_dom_cdata_to_escaped (CraDomNodeData *data)
+{
+	if (data->cdata_mode == CRA_DOM_DATA_MODE_ESCAPED)
+		return;
+	cra_string_replace (data->cdata, "&", "&amp;");
+	cra_string_replace (data->cdata, "<", "&lt;");
+	cra_string_replace (data->cdata, ">", "&gt;");
+	data->cdata_mode = CRA_DOM_DATA_MODE_ESCAPED;
+}
 
 /**
  * cra_dom_add_padding:
@@ -115,6 +150,7 @@ cra_dom_to_xml_string (GString *xml, guint depth_offset, const GNode *n)
 			g_string_append_printf (xml, "<%s%s/>\n",
 						data->name, attrs);
 		} else {
+			cra_dom_cdata_to_escaped (data);
 			g_string_append_printf (xml, "<%s%s>%s</%s>\n",
 						data->name,
 						attrs,
@@ -162,17 +198,6 @@ cra_dom_to_xml (CraDom *dom, const GNode *node, gboolean add_header)
  * cra_dom_start_element_cb:
  **/
 static void
-cra_dom_data_escape_xml (CraDomNodeData *data)
-{
-	cra_string_replace (data->cdata, "&", "&amp;");
-	cra_string_replace (data->cdata, "<", "&lt;");
-	cra_string_replace (data->cdata, ">", "&gt;");
-}
-
-/**
- * cra_dom_start_element_cb:
- **/
-static void
 cra_dom_start_element_cb (GMarkupParseContext *context,
 			 const gchar         *element_name,
 			 const gchar        **attribute_names,
@@ -189,11 +214,11 @@ cra_dom_start_element_cb (GMarkupParseContext *context,
 	data = g_slice_new (CraDomNodeData);
 	data->name = g_strdup (element_name);
 	data->cdata = g_string_new (NULL);
+	data->cdata_mode = CRA_DOM_DATA_MODE_RAW;
 	data->attributes = g_hash_table_new_full (g_str_hash,
 						  g_str_equal,
 						  g_free,
 						  g_free);
-	cra_dom_data_escape_xml (data);
 	for (i = 0; attribute_names[i] != NULL; i++) {
 		g_hash_table_insert (data->attributes,
 				     g_strdup (attribute_names[i]),
@@ -220,9 +245,6 @@ cra_dom_end_element_cb (GMarkupParseContext *context,
 	data = dom->priv->current->data;
 	cra_string_replace (data->cdata, "\n", " ");
 	cra_string_replace (data->cdata, "  ", " ");
-	cra_string_replace (data->cdata, "&amp;", "&");
-	cra_string_replace (data->cdata, "&lt;", "<");
-	cra_string_replace (data->cdata, "&gt;", ">");
 	dom->priv->current = dom->priv->current->parent;
 }
 
@@ -349,10 +371,13 @@ cra_dom_get_node_name (const GNode *node)
 const gchar *
 cra_dom_get_node_data (const GNode *node)
 {
+	CraDomNodeData *data;
 	g_return_val_if_fail (node != NULL, NULL);
 	if (node->data == NULL)
 		return NULL;
-	return ((CraDomNodeData *) node->data)->cdata->str;
+	data = (CraDomNodeData *) node->data;
+	cra_dom_cdata_to_raw (data);
+	return data->cdata->str;
 }
 
 /**
@@ -421,6 +446,7 @@ cra_dom_get_root (CraDom *dom)
 
 /**
  * cra_dom_insert:
+ * @cdata is not escaped
  **/
 GNode *
 cra_dom_insert (GNode *parent,
@@ -437,11 +463,11 @@ cra_dom_insert (GNode *parent,
 	data = g_slice_new (CraDomNodeData);
 	data->name = g_strdup (name);
 	data->cdata = g_string_new (cdata);
+	data->cdata_mode = CRA_DOM_DATA_MODE_RAW;
 	data->attributes = g_hash_table_new_full (g_str_hash,
 						  g_str_equal,
 						  g_free,
 						  g_free);
-	cra_dom_data_escape_xml (data);
 
 	/* process the attrs valist */
 	va_start (args, cdata);
@@ -493,12 +519,12 @@ cra_dom_insert_localized (GNode *parent,
 		data = g_slice_new (CraDomNodeData);
 		data->name = g_strdup (name);
 		data->cdata = g_string_new (value);
+		data->cdata_mode = escape_xml ? CRA_DOM_DATA_MODE_RAW :
+						CRA_DOM_DATA_MODE_ESCAPED;
 		data->attributes = g_hash_table_new_full (g_str_hash,
 							  g_str_equal,
 							  g_free,
 							  g_free);
-		if (escape_xml)
-			cra_dom_data_escape_xml (data);
 		if (g_strcmp0 (key, "C") != 0) {
 			g_hash_table_insert (data->attributes,
 					     g_strdup ("xml:lang"),
@@ -533,11 +559,11 @@ cra_dom_insert_hash (GNode *parent,
 		data = g_slice_new (CraDomNodeData);
 		data->name = g_strdup (name);
 		data->cdata = g_string_new (!swapped ? value : key);
+		data->cdata_mode = CRA_DOM_DATA_MODE_RAW;
 		data->attributes = g_hash_table_new_full (g_str_hash,
 							  g_str_equal,
 							  g_free,
 							  g_free);
-		cra_dom_data_escape_xml (data);
 		if (!swapped) {
 			if (key != NULL && key[0] != '\0') {
 				g_hash_table_insert (data->attributes,
@@ -702,6 +728,7 @@ cd_dom_denorm_to_xml_localized (const GNode *node, GError **error)
 		 * already present */
 		if (g_strcmp0 (data->name, "p") == 0) {
 			str = cd_dom_denorm_get_str_for_lang (hash, data, TRUE);
+			cra_dom_cdata_to_escaped (data);
 			g_string_append_printf (str, "<p>%s</p>",
 						data->cdata->str);
 
@@ -726,6 +753,7 @@ cd_dom_denorm_to_xml_localized (const GNode *node, GError **error)
 					goto out;
 				}
 				if (g_strcmp0 (data_c->name, "li") == 0) {
+					cra_dom_cdata_to_escaped (data_c);
 					g_string_append_printf (str,
 								"<li>%s</li>",
 								data_c->cdata->str);
