@@ -349,10 +349,8 @@ cra_package_add_release (CraPackage *pkg,
 	/* get last string chunk */
 	name_dup = g_strchomp (g_strdup (name));
 	vr = g_strrstr (name_dup, " ");
-	if (vr == NULL) {
-		g_warning ("Cannot parse version-release from %s", name);
+	if (vr == NULL)
 		goto out;
-	}
 
 	/* get last string chunk */
 	version = vr + 1;
