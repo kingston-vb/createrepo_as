@@ -38,6 +38,7 @@ typedef struct {
 	GPtrArray	*file_globs;		/* of CraPackage */
 	GList		*apps;			/* of CraApp */
 	GMutex		 apps_mutex;		/* for ->apps */
+	gboolean	 no_net;
 } CraContext;
 
 CraContext	*cra_context_new		(void);

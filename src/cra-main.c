@@ -361,12 +361,15 @@ out:
  * cra_context_write_icons:
  */
 static gboolean
-cra_context_write_icons (CraContext *ctx, const gchar *basename, GError **error)
+cra_context_write_icons (CraContext *ctx,
+			 const gchar *output_dir,
+			 const gchar *basename,
+			 GError **error)
 {
 	gboolean ret;
 	gchar *filename;
 
-	filename = g_strdup_printf ("./%s-icons.tar", basename);
+	filename = g_strdup_printf ("%s/%s-icons.tar", output_dir, basename);
 	g_debug ("Writing %s", filename);
 	ret = cra_utils_write_archive_dir (filename, "icons", error);
 	g_free (filename);
@@ -377,7 +380,10 @@ cra_context_write_icons (CraContext *ctx, const gchar *basename, GError **error)
  * cra_context_write_xml:
  */
 static gboolean
-cra_context_write_xml (CraContext *ctx, const gchar *basename, GError **error)
+cra_context_write_xml (CraContext *ctx,
+		       const gchar *output_dir,
+		       const gchar *basename,
+		       GError **error)
 {
 	CraApp *app;
 	CraDom *dom;
@@ -416,7 +422,7 @@ cra_context_write_xml (CraContext *ctx, const gchar *basename, GError **error)
 		goto out;
 
 	/* write file */
-	filename = g_strdup_printf ("./%s.xml.gz", basename);
+	filename = g_strdup_printf ("%s/%s.xml.gz", output_dir, basename);
 	g_debug ("Writing %s", filename);
 	ret = g_file_set_contents (filename,
 				   g_memory_output_stream_get_data (G_MEMORY_OUTPUT_STREAM (out)),
@@ -447,10 +453,13 @@ main (int argc, char **argv)
 	CraTask *task;
 	gboolean ret;
 	gboolean verbose = FALSE;
-	gchar *buildone = NULL;
+	gboolean no_net = FALSE;
 	gchar *basename = NULL;
+	gchar *buildone = NULL;
 	gchar *log_dir = NULL;
+	gchar *output_dir = NULL;
 	gchar *packages_dir = NULL;
+	gchar *screenshot_uri = NULL;
 	gchar *temp_dir = NULL;
 	gchar *tmp;
 	GDir *dir = NULL;
@@ -462,16 +471,22 @@ main (int argc, char **argv)
 	const GOptionEntry options[] = {
 		{ "verbose", 'v', 0, G_OPTION_ARG_NONE, &verbose,
 			"Show extra debugging information", NULL },
+		{ "no-net", '\0', 0, G_OPTION_ARG_NONE, &no_net,
+			"Show extra debugging information", NULL },
 		{ "log-dir", '\0', 0, G_OPTION_ARG_STRING, &log_dir,
 			"Set the logging directory", NULL },
 		{ "packages-dir", '\0', 0, G_OPTION_ARG_STRING, &packages_dir,
 			"Set the packages directory", NULL },
 		{ "temp-dir", '\0', 0, G_OPTION_ARG_STRING, &temp_dir,
 			"Set the temporary directory", NULL },
+		{ "output-dir", '\0', 0, G_OPTION_ARG_STRING, &output_dir,
+			"Set the output directory", NULL },
 		{ "buildone", '\0', 0, G_OPTION_ARG_STRING, &buildone,
 			"Set the temporary directory", NULL },
 		{ "basename", '\0', 0, G_OPTION_ARG_STRING, &basename,
 			"Set the basename, e.g. 'fedora-20'", NULL },
+		{ "screenshot-uri", '\0', 0, G_OPTION_ARG_STRING, &screenshot_uri,
+			"Set the screenshot base URL", NULL },
 		{ NULL}
 	};
 
@@ -494,8 +509,12 @@ main (int argc, char **argv)
 		temp_dir = g_strdup ("./tmp");
 	if (log_dir == NULL)
 		log_dir = g_strdup ("./logs");
+	if (output_dir == NULL)
+		output_dir = g_strdup (".");
 	if (basename == NULL)
 		basename = g_strdup ("fedora-21");
+	if (screenshot_uri == NULL)
+		screenshot_uri = g_strdup ("http://alt.fedoraproject.org/pub/alt/screenshots/f21/");
 
 	rpmReadConfigFiles (NULL, NULL);
 	setlocale (LC_ALL, "");
@@ -514,6 +533,11 @@ main (int argc, char **argv)
 		goto out;
 	}
 	rc = g_mkdir_with_parents (log_dir, 0700);
+	if (rc != 0) {
+		g_warning ("failed to create log dir");
+		goto out;
+	}
+	rc = g_mkdir_with_parents (output_dir, 0700);
 	if (rc != 0) {
 		g_warning ("failed to create log dir");
 		goto out;
@@ -551,6 +575,7 @@ main (int argc, char **argv)
 		g_error_free (error);
 		goto out;
 	}
+	ctx->no_net = no_net;
 	ctx->file_globs = cra_plugin_loader_get_globs (ctx->plugins);
 
 	/* create thread pool */
@@ -609,7 +634,7 @@ main (int argc, char **argv)
 					"../../fedora-appstream/screenshots-extra");
 		cra_package_set_config (pkg,
 					"MirrorURI",
-					"http://alt.fedoraproject.org/pub/alt/screenshots/f21/");
+					screenshot_uri);
 
 		/* create task */
 		task = g_new0 (CraTask, 1);
@@ -637,7 +662,7 @@ main (int argc, char **argv)
 	cra_plugin_loader_merge (ctx->plugins, &ctx->apps);
 
 	/* write XML file */
-	ret = cra_context_write_xml (ctx, basename, &error);
+	ret = cra_context_write_xml (ctx, output_dir, basename, &error);
 	if (!ret) {
 		g_warning ("Failed to write XML file: %s", error->message);
 		g_error_free (error);
@@ -645,7 +670,7 @@ main (int argc, char **argv)
 	}
 
 	/* write icons archive */
-	ret = cra_context_write_icons (ctx, basename, &error);
+	ret = cra_context_write_icons (ctx, output_dir, basename, &error);
 	if (!ret) {
 		g_warning ("Failed to write icons archive: %s", error->message);
 		g_error_free (error);
@@ -656,8 +681,10 @@ main (int argc, char **argv)
 	g_debug ("Done!");
 out:
 	g_free (buildone);
+	g_free (screenshot_uri);
 	g_free (packages_dir);
 	g_free (temp_dir);
+	g_free (output_dir);
 	g_free (basename);
 	g_free (log_dir);
 	g_option_context_free (option_context);
