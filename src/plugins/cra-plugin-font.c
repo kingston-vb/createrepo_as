@@ -28,6 +28,7 @@
 #include <ft2build.h>
 #include FT_SFNT_NAMES_H
 #include FT_TRUETYPE_IDS_H
+#include FT_MODULE_H
 #include <pango/pango.h>
 #include <pango/pangofc-fontmap.h>
 #include <fontconfig/fontconfig.h>
@@ -341,7 +342,7 @@ cra_plugin_process_filename (CraPlugin *plugin,
 
 	/* load font */
 	filename_full = g_build_filename (tmpdir, filename, NULL);
-	ret = FcConfigAppFontAddFile (FcConfigGetCurrent(), (FcChar8 *) filename_full);
+	ret = FcConfigAppFontAddFile (NULL, (FcChar8 *) filename_full);
 	if (!ret) {
 		g_set_error (error,
 			     CRA_PLUGIN_ERROR,
@@ -349,7 +350,7 @@ cra_plugin_process_filename (CraPlugin *plugin,
 			     "Failed to AddFile %s", filename);
 		goto out;
 	}
-	fonts = FcConfigGetFonts (FcConfigGetCurrent(), FcSetApplication);
+	fonts = FcConfigGetFonts (NULL, FcSetApplication);
 	pattern = fonts->fonts[0];
 	FT_Init_FreeType (&library);
 	rc = FT_New_Face (library, filename_full, 0, &ft_face);
@@ -397,7 +398,9 @@ out:
 		g_object_unref (pixbuf);
 	if (app != NULL)
 		g_object_unref (app);
+	FcConfigAppFontClear (NULL);
 	FT_Done_Face (ft_face);
+	FT_Done_Library (library);
 	g_free (app_id);
 	g_free (comment);
 	g_free (filename_full);

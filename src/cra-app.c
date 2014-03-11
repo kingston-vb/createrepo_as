@@ -809,6 +809,7 @@ cra_app_subsume (CraApp *app, CraApp *donor)
 		value = g_hash_table_lookup (priv->languages, tmp);
 		cra_app_add_language (app, tmp, value);
 	}
+	g_list_free (langs);
 
 	/* icon */
 	if (priv->icon != NULL)

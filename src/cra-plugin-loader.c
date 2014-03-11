@@ -185,6 +185,7 @@ cra_plugin_loader_merge (GPtrArray *plugins, GList **apps)
 		cra_app_remove_metadata (app, "FontParent");
 		cra_app_remove_metadata (app, "FontSampleText");
 		cra_app_remove_metadata (app, "FontSubFamily");
+		cra_app_remove_metadata (app, "FontClassifier");
 	}
 
 	/* deduplicate */
