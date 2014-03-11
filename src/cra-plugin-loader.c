@@ -154,10 +154,14 @@ cra_plugin_loader_get_globs (GPtrArray *plugins)
 void
 cra_plugin_loader_merge (GPtrArray *plugins, GList **apps)
 {
+	const gchar *key;
+	const gchar *tmp;
 	CraApp *app;
+	CraApp *found;
 	CraPluginMergeFunc plugin_func = NULL;
 	CraPlugin *plugin;
 	gboolean ret;
+	GHashTable *hash;
 	GList *l;
 	guint i;
 
@@ -182,6 +186,27 @@ cra_plugin_loader_merge (GPtrArray *plugins, GList **apps)
 		cra_app_remove_metadata (app, "FontSampleText");
 		cra_app_remove_metadata (app, "FontSubFamily");
 	}
+
+	/* deduplicate */
+	hash = g_hash_table_new (g_str_hash, g_str_equal);
+	for (l = *apps; l != NULL; l = l->next) {
+		app = CRA_APP (l->data);
+		key = cra_app_get_id_full (app);
+		found = g_hash_table_lookup (hash, key);
+		if (found == NULL) {
+			g_hash_table_insert (hash,
+					     (gpointer) key,
+					     (gpointer) app);
+			continue;
+		}
+		tmp = cra_package_get_nevr (cra_app_get_package (found));
+		cra_app_add_veto (app, "duplicate of %s", tmp);
+		cra_package_log (cra_app_get_package (app),
+				 CRA_PACKAGE_LOG_LEVEL_WARNING,
+				 "duplicate %s not included as added from %s",
+				 key, tmp);
+	}
+	g_hash_table_unref (hash);
 }
 
 /**

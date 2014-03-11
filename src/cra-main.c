@@ -405,6 +405,8 @@ cra_context_write_xml (CraContext *ctx,
 				    NULL);
 	for (l = ctx->apps; l != NULL; l = l->next) {
 		app = CRA_APP (l->data);
+		if (cra_app_get_vetos(app)->len > 0)
+			continue;
 		cra_app_insert_into_dom (app, node_apps);
 	}
 	xml = cra_dom_to_xml (dom, NULL, TRUE);
