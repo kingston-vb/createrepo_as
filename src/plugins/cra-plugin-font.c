@@ -327,6 +327,7 @@ cra_plugin_process_filename (CraPlugin *plugin,
 			     GError **error)
 {
 	CraApp *app = NULL;
+	FcConfig *config;
 	FcFontSet *fonts;
 	FT_Error rc;
 	FT_Face ft_face = NULL;
@@ -342,7 +343,8 @@ cra_plugin_process_filename (CraPlugin *plugin,
 
 	/* load font */
 	filename_full = g_build_filename (tmpdir, filename, NULL);
-	ret = FcConfigAppFontAddFile (NULL, (FcChar8 *) filename_full);
+	config = FcConfigCreate ();
+	ret = FcConfigAppFontAddFile (config, (FcChar8 *) filename_full);
 	if (!ret) {
 		g_set_error (error,
 			     CRA_PLUGIN_ERROR,
@@ -350,7 +352,15 @@ cra_plugin_process_filename (CraPlugin *plugin,
 			     "Failed to AddFile %s", filename);
 		goto out;
 	}
-	fonts = FcConfigGetFonts (NULL, FcSetApplication);
+	fonts = FcConfigGetFonts (config, FcSetApplication);
+	if (fonts == NULL) {
+		ret = FALSE;
+		g_set_error_literal (error,
+				     CRA_PLUGIN_ERROR,
+				     CRA_PLUGIN_ERROR_FAILED,
+				     "FcConfigGetFonts failed");
+		goto out;
+	}
 	pattern = fonts->fonts[0];
 	FT_Init_FreeType (&library);
 	rc = FT_New_Face (library, filename_full, 0, &ft_face);
@@ -398,7 +408,8 @@ out:
 		g_object_unref (pixbuf);
 	if (app != NULL)
 		g_object_unref (app);
-	FcConfigAppFontClear (NULL);
+	FcConfigAppFontClear (config);
+	FcConfigDestroy (config);
 	FT_Done_Face (ft_face);
 	FT_Done_Library (library);
 	g_free (app_id);
