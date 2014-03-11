@@ -353,7 +353,7 @@ cra_plugin_process_filename (CraPlugin *plugin,
 		goto out;
 	}
 	fonts = FcConfigGetFonts (config, FcSetApplication);
-	if (fonts == NULL) {
+	if (fonts == NULL || fonts->fonts == NULL) {
 		ret = FALSE;
 		g_set_error_literal (error,
 				     CRA_PLUGIN_ERROR,
