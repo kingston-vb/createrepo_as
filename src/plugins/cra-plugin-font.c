@@ -331,7 +331,7 @@ cra_plugin_process_filename (CraPlugin *plugin,
 	FcFontSet *fonts;
 	FT_Error rc;
 	FT_Face ft_face = NULL;
-	FT_Library library;
+	FT_Library library = NULL;
 	const gchar *tmp;
 	gboolean ret = TRUE;
 	gchar *app_id = NULL;
@@ -410,8 +410,10 @@ out:
 		g_object_unref (app);
 	FcConfigAppFontClear (config);
 	FcConfigDestroy (config);
-	FT_Done_Face (ft_face);
-	FT_Done_Library (library);
+	if (ft_face != NULL)
+		FT_Done_Face (ft_face);
+	if (library != NULL)
+		FT_Done_Library (library);
 	g_free (app_id);
 	g_free (comment);
 	g_free (filename_full);
