@@ -96,7 +96,6 @@ The current rules of inclusion are thus:
    or `/usr/share/applications/kde4/`
  * Desktop files **MUST** have `Name`, `Comment` and `Icon` entries
  * Valid applications with `NoDisplay=true` **MUST** have an AppData file.
- * Applications that ship a desktop file **SHOULD** include an AppData file.
  * Applications **MUST** have had an upstream release in the last 5 years or
    have an AppData file.
  * Application icon **MUST** be available in 48x48 or larger
@@ -106,6 +105,7 @@ The current rules of inclusion are thus:
  * AppData files **MUST** be installed into `/usr/share/appdata`
  * Application icons **CANNOT** use XPM or ICO format
  * Applications **CANNOT** use obsolete toolkits such as GTK+-1.2
+ * Applications that ship a desktop file **SHOULD** include an AppData file.
  * Screenshots **SHOULD** be in 16:9 aspect ratio
  * Application icons **SHOULD** have an alpha channel
  * Applications **SHOULD** ship a 64x64 PNG format icon or SVG
