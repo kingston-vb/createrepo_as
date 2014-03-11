@@ -114,7 +114,7 @@ cra_plugin_process_filename (CraPlugin *plugin,
 	/* create new app */
 	basename = g_path_get_basename (filename);
 	app = cra_app_new (pkg, basename);
-	cra_app_set_type_id (app, "inputmethod");
+	cra_app_set_kind (app, CRA_APP_KIND_INPUT_METHOD);
 	cra_app_add_category (app, "Addons");
 	cra_app_add_category (app, "InputSources");
 	cra_app_set_icon (app, "system-run-symbolic");

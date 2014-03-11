@@ -288,6 +288,7 @@ cra_plugin_process_app (CraPlugin *plugin,
 			const gchar *tmpdir,
 			GError **error)
 {
+	const gchar *kind_str;
 	const gchar *tmp;
 	gboolean ret = TRUE;
 	gchar *appdata_filename;
@@ -298,9 +299,10 @@ cra_plugin_process_app (CraPlugin *plugin,
 					    tmpdir, cra_app_get_id (app));
 	tmp = cra_package_get_config (pkg, "AppDataExtra");
 	if (tmp != NULL) {
+		kind_str = cra_app_kind_to_string (cra_app_get_kind (app));
 		appdata_filename_extra = g_strdup_printf ("%s/%s/%s.appdata.xml",
 							  tmp,
-							  cra_app_get_type_id (app),
+							  kind_str,
 							  cra_app_get_id (app));
 		if (g_file_test (appdata_filename, G_FILE_TEST_EXISTS) &&
 		    g_file_test (appdata_filename_extra, G_FILE_TEST_EXISTS)) {
@@ -329,7 +331,7 @@ cra_plugin_process_app (CraPlugin *plugin,
 	}
 
 	/* we're going to require this for F22 */
-	if (g_strcmp0 (cra_app_get_type_id (app), "desktop") == 0 &&
+	if (cra_app_get_kind (app) == CRA_APP_KIND_DESKTOP &&
 	    cra_app_get_metadata_item (app, "NoDisplay") == NULL) {
 		cra_package_log (pkg,
 				 CRA_PACKAGE_LOG_LEVEL_WARNING,

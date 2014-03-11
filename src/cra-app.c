@@ -27,7 +27,7 @@
 typedef struct _CraAppPrivate	CraAppPrivate;
 struct _CraAppPrivate
 {
-	gchar		*type_id;
+	CraAppKind	 kind;
 	gchar		*project_group;
 	gchar		*project_license;
 	gchar		*compulsory_for_desktop;
@@ -68,7 +68,6 @@ cra_app_finalize (GObject *object)
 
 	g_free (priv->id);
 	g_free (priv->id_full);
-	g_free (priv->type_id);
 	g_free (priv->homepage_url);
 	g_free (priv->project_group);
 	g_free (priv->project_license);
@@ -142,6 +141,23 @@ cra_utils_ptr_array_find_string (GPtrArray *array, const gchar *value)
 }
 
 /**
+ * cra_app_kind_to_string:
+ **/
+const gchar *
+cra_app_kind_to_string (CraAppKind kind)
+{
+	if (kind == CRA_APP_KIND_DESKTOP)
+		return "desktop";
+	if (kind == CRA_APP_KIND_CODEC)
+		return "codec";
+	if (kind == CRA_APP_KIND_FONT)
+		return "font";
+	if (kind == CRA_APP_KIND_INPUT_METHOD)
+		return "inputmethod";
+	return "unknown";
+}
+
+/**
  * cra_app_to_xml:
  **/
 void
@@ -160,7 +176,7 @@ cra_app_insert_into_dom (CraApp *app, GNode *parent)
 
 	/* <id> */
 	cra_dom_insert (node_app, "id", priv->id_full,
-			"type", priv->type_id,
+			"type", cra_app_kind_to_string (priv->kind),
 			NULL);
 
 	/* <pkgname> */
@@ -291,14 +307,13 @@ cra_app_to_xml (CraApp *app)
 }
 
 /**
- * cra_app_set_type_id:
+ * cra_app_set_kind:
  **/
 void
-cra_app_set_type_id (CraApp *app, const gchar *type_id)
+cra_app_set_kind (CraApp *app, CraAppKind kind)
 {
 	CraAppPrivate *priv = GET_PRIVATE (app);
-	g_free (priv->type_id);
-	priv->type_id = g_strdup (type_id);
+	priv->kind = kind;
 }
 
 /**
@@ -653,13 +668,13 @@ cra_app_get_id (CraApp *app)
 }
 
 /**
- * cra_app_get_type_id:
+ * cra_app_get_kind:
  **/
-const gchar *
-cra_app_get_type_id (CraApp *app)
+CraAppKind
+cra_app_get_kind (CraApp *app)
 {
 	CraAppPrivate *priv = GET_PRIVATE (app);
-	return priv->type_id;
+	return priv->kind;
 }
 
 /**

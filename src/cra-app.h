@@ -58,14 +58,24 @@ typedef enum {
 	CRA_APP_ICON_TYPE_LAST
 } CraAppIconType;
 
+typedef enum {
+	CRA_APP_KIND_UNKNOWN,
+	CRA_APP_KIND_DESKTOP,
+	CRA_APP_KIND_FONT,
+	CRA_APP_KIND_CODEC,
+	CRA_APP_KIND_INPUT_METHOD,
+	CRA_APP_KIND_LAST
+} CraAppKind;
+
 GType		 cra_app_get_type		(void);
+const gchar	*cra_app_kind_to_string		(CraAppKind	 kind);
 CraApp		*cra_app_new			(CraPackage	*pkg,
 						 const gchar	*id_full);
 gchar		*cra_app_to_xml			(CraApp		*app);
 void		 cra_app_set_id_full		(CraApp		*app,
 						 const gchar	*id_full);
-void		 cra_app_set_type_id		(CraApp		*app,
-						 const gchar	*type_id);
+void		 cra_app_set_kind		(CraApp		*app,
+						 CraAppKind	 kind);
 void		 cra_app_set_homepage_url	(CraApp		*app,
 						 const gchar	*homepage_url);
 void		 cra_app_set_project_group	(CraApp		*app,
@@ -127,7 +137,7 @@ GPtrArray	*cra_app_get_vetos		(CraApp		*app);
 GPtrArray	*cra_app_get_pkgnames		(CraApp		*app);
 const gchar	*cra_app_get_id			(CraApp		*app);
 const gchar	*cra_app_get_id_full		(CraApp		*app);
-const gchar	*cra_app_get_type_id		(CraApp		*app);
+CraAppKind	 cra_app_get_kind		(CraApp		*app);
 const gchar	*cra_app_get_icon		(CraApp		*app);
 const gchar	*cra_app_get_project_group	(CraApp		*app);
 const gchar	*cra_app_get_name		(CraApp		*app,

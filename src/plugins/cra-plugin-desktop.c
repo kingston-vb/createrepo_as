@@ -602,7 +602,7 @@ cra_plugin_process_filename (CraPlugin *plugin,
 	/* create app */
 	app_id = g_path_get_basename (filename);
 	app = cra_app_new (pkg, app_id);
-	cra_app_set_type_id (app, "desktop");
+	cra_app_set_kind (app, CRA_APP_KIND_DESKTOP);
 
 	/* look at all the keys */
 	keys = g_key_file_get_keys (kf, G_KEY_FILE_DESKTOP_GROUP, NULL, error);

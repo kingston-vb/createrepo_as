@@ -366,7 +366,7 @@ cra_plugin_process_filename (CraPlugin *plugin,
 	/* create app that might get merged later */
 	app_id = g_path_get_basename (filename);
 	app = cra_app_new (pkg, app_id);
-	cra_app_set_type_id (app, "font");
+	cra_app_set_kind (app, CRA_APP_KIND_FONT);
 	cra_app_add_category (app, "Addons");
 	cra_app_add_category (app, "Fonts");
 	cra_app_set_requires_appdata (app, TRUE);

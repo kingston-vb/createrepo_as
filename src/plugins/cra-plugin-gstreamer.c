@@ -156,7 +156,7 @@ cra_plugin_process (CraPlugin *plugin,
 
 	/* create app */
 	app = cra_app_new (pkg, app_id);
-	cra_app_set_type_id (app, "codec");
+	cra_app_set_kind (app, CRA_APP_KIND_CODEC);
 	cra_app_set_name (app, "C", "GStreamer Multimedia Codecs");
 	cra_app_set_icon (app, "application-x-executable");
 	cra_app_set_requires_appdata (app, TRUE);

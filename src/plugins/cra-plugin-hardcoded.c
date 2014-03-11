@@ -242,7 +242,7 @@ cra_plugin_process_app (CraPlugin *plugin,
 
 	/* has there been no upstream version in the last 5 years? */
 	if (releases->len > 0 &&
-	    g_strcmp0 (cra_app_get_type_id (app), "desktop") == 0) {
+	    cra_app_get_kind (app) == CRA_APP_KIND_DESKTOP) {
 		release = g_ptr_array_index (releases, 0);
 		secs = (g_get_real_time () / G_USEC_PER_SEC) -
 			cra_release_get_timestamp (release);
