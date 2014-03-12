@@ -65,7 +65,7 @@ cra_plugin_get_name (void)
 void
 cra_plugin_add_globs (CraPlugin *plugin, GPtrArray *globs)
 {
-	cra_plugin_add_glob (globs, "./usr/share/locale/*/LC_MESSAGES/*.mo");
+	cra_plugin_add_glob (globs, "/usr/share/locale/*/LC_MESSAGES/*.mo");
 }
 
 /**
