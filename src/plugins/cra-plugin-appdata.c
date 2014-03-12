@@ -80,6 +80,7 @@ cra_plugin_process_filename (CraApp *app,
 	GHashTable *names = NULL;
 	GList *l;
 	GList *list;
+	GNode *root;
 	guint i;
 
 	/* parse file */
@@ -92,7 +93,8 @@ cra_plugin_process_filename (CraApp *app,
 		goto out;
 
 	/* check app id */
-	n = cra_dom_get_node (dom, NULL, "application/id");
+	root = cra_dom_get_root (dom);
+	n = cra_dom_get_node (root, "application/id");
 	if (n == NULL) {
 		ret = FALSE;
 		g_set_error (error,
@@ -116,7 +118,7 @@ cra_plugin_process_filename (CraApp *app,
 	}
 
 	/* check license */
-	n = cra_dom_get_node (dom, NULL, "application/licence");
+	n = cra_dom_get_node (root, "application/licence");
 	if (n == NULL) {
 		ret = FALSE;
 		g_set_error (error,
@@ -142,18 +144,18 @@ cra_plugin_process_filename (CraApp *app,
 	}
 
 	/* other optional data */
-	n = cra_dom_get_node (dom, NULL, "application/url");
+	n = cra_dom_get_node (root, "application/url");
 	if (n != NULL)
 		cra_app_set_homepage_url (app, cra_dom_get_node_data (n));
-	n = cra_dom_get_node (dom, NULL, "application/project_group");
+	n = cra_dom_get_node (root, "application/project_group");
 	if (n != NULL)
 		cra_app_set_project_group (app, cra_dom_get_node_data (n));
-	n = cra_dom_get_node (dom, NULL, "application/compulsory_for_desktop");
+	n = cra_dom_get_node (root, "application/compulsory_for_desktop");
 	if (n != NULL)
 		cra_app_set_compulsory_for_desktop (app, cra_dom_get_node_data (n));
 
 	/* perhaps get name & summary */
-	n = cra_dom_get_node (dom, NULL, "application");
+	n = cra_dom_get_node (root, "application");
 	if (n != NULL)
 		names = cra_dom_get_node_localized (n, "name");
 	if (names != NULL) {
@@ -186,9 +188,9 @@ cra_plugin_process_filename (CraApp *app,
 	}
 
 	/* get de-normalized description */
-	n = cra_dom_get_node (dom, NULL, "application/description");
+	n = cra_dom_get_node (root, "application/description");
 	if (n != NULL) {
-		descriptions = cd_dom_denorm_to_xml_localized (n, error);
+		descriptions = cra_dom_denorm_to_xml_localized (n, error);
 		if (descriptions == NULL) {
 			ret = FALSE;
 			goto out;
@@ -209,7 +211,7 @@ cra_plugin_process_filename (CraApp *app,
 	}
 
 	/* add screenshots */
-	n = cra_dom_get_node (dom, NULL, "application/screenshots");
+	n = cra_dom_get_node (root, "application/screenshots");
 	if (n != NULL && cra_app_get_screenshots(app)->len == 0) {
 		for (c = n->children; c != NULL; c = c->next) {
 			CraScreenshot *ss;
@@ -244,7 +246,7 @@ cra_plugin_process_filename (CraApp *app,
 	}
 
 	/* add metadata */
-	n = cra_dom_get_node (dom, NULL, "application/metadata");
+	n = cra_dom_get_node (root, "application/metadata");
 	if (n != NULL) {
 		for (c = n->children; c != NULL; c = c->next) {
 			if (g_strcmp0 (cra_dom_get_node_name (c), "value") != 0)

@@ -85,6 +85,7 @@ cra_plugin_process_filename (CraPlugin *plugin,
 	guint i;
 	gboolean found_header = FALSE;
 	GString *valid_xml;
+	GNode *root;
 	const GNode *n;
 
 	/* open file */
@@ -122,20 +123,21 @@ cra_plugin_process_filename (CraPlugin *plugin,
 	cra_app_set_requires_appdata (app, TRUE);
 
 	/* read the component header which all input methods have */
-	n = cra_dom_get_node (dom, NULL, "component/description");
+	root = cra_dom_get_root (dom);
+	n = cra_dom_get_node (root, "component/description");
 	if (n != NULL) {
 		cra_app_set_name (app, "C", cra_dom_get_node_data (n));
 		cra_app_set_comment (app, "C", cra_dom_get_node_data (n));
 	}
-	n = cra_dom_get_node (dom, NULL, "component/homepage");
+	n = cra_dom_get_node (root, "component/homepage");
 	if (n != NULL)
 		cra_app_set_homepage_url (app, cra_dom_get_node_data (n));
 
 	/* do we have a engine section we can use? */
-	n = cra_dom_get_node (dom, NULL, "engines/engine/longname");
+	n = cra_dom_get_node (root, "engines/engine/longname");
 	if (n != NULL)
 		cra_app_set_name (app, "C", cra_dom_get_node_data (n));
-	n = cra_dom_get_node (dom, NULL, "engines/engine/description");
+	n = cra_dom_get_node (root, "engines/engine/description");
 	if (n != NULL)
 		cra_app_set_comment (app, "C", cra_dom_get_node_data (n));
 

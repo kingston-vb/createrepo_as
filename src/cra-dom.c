@@ -438,19 +438,14 @@ cra_dom_get_node_attribute (const GNode *node, const gchar *key)
  * Return value: A #GNode, or %NULL if not found
  **/
 GNode *
-cra_dom_get_node (CraDom *dom, GNode *root, const gchar *path)
+cra_dom_get_node (GNode *root, const gchar *path)
 {
 	gchar **split;
-	GNode *node;
+	GNode *node = root;
 	guint i;
 
 	g_return_val_if_fail (path != NULL, NULL);
 
-	/* default value */
-	if (root == NULL && dom != NULL)
-		root = dom->priv->root;
-
-	node = root;
 	split = g_strsplit (path, "/", -1);
 	for (i = 0; split[i] != NULL; i++) {
 		node = cra_dom_get_child_node (node, split[i]);
@@ -715,7 +710,7 @@ cd_dom_denorm_get_str_for_lang (GHashTable *hash,
 }
 
 /**
- * cd_dom_denorm_to_xml_localized:
+ * cra_dom_denorm_to_xml_localized:
  *
  * Denormalize AppData data like this:
  *
@@ -734,7 +729,7 @@ cd_dom_denorm_get_str_for_lang (GHashTable *hash,
  * "pl" ->  "<p>Czesc</p><ul><li>Pierwszy</li></ul>"
  **/
 GHashTable *
-cd_dom_denorm_to_xml_localized (const GNode *node, GError **error)
+cra_dom_denorm_to_xml_localized (const GNode *node, GError **error)
 {
 	GNode *tmp;
 	GNode *tmp_c;

@@ -205,10 +205,12 @@ cra_utils_add_apps_from_dom (GList **apps, CraDom *dom, GError **error)
 	gboolean ret = TRUE;
 	GNode *n;
 	GNode *node_apps;
+	GNode *root;
 	CraApp *app;
 
 	/* get apps */
-	node_apps = cra_dom_get_node (dom, NULL, "applications");
+	root = cra_dom_get_root (dom);
+	node_apps = cra_dom_get_node (root, "applications");
 	if (node_apps == NULL) {
 		ret = FALSE;
 		g_set_error_literal (error,

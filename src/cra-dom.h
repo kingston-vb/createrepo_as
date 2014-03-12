@@ -64,8 +64,7 @@ gboolean	 cra_dom_parse_xml_data			(CraDom		*dom,
 							 gssize		 data_len,
 							 GError		**error)
 							 G_GNUC_WARN_UNUSED_RESULT;
-GNode		*cra_dom_get_node			(CraDom		*dom,
-							 GNode		*root,
+GNode		*cra_dom_get_node			(GNode		*root,
 							 const gchar	*path)
 							 G_GNUC_WARN_UNUSED_RESULT;
 GNode		*cra_dom_get_root			(CraDom		*dom)
@@ -90,7 +89,7 @@ const gchar	*cra_dom_get_node_attribute		(const GNode	*node,
 							 const gchar	*key);
 GHashTable	*cra_dom_get_node_localized		(const GNode	*node,
 							 const gchar	*key);
-GHashTable	*cd_dom_denorm_to_xml_localized		(const GNode	*node,
+GHashTable	*cra_dom_denorm_to_xml_localized	(const GNode	*node,
 							 GError		**error);
 
 G_END_DECLS
