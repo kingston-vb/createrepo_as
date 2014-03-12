@@ -30,17 +30,17 @@
 typedef struct _CraScreenshotPrivate	CraScreenshotPrivate;
 struct _CraScreenshotPrivate
 {
-	gchar		*app_id;
-	gchar		*cache_filename;
-	gchar		*basename;
-	gchar		*caption;
-	guint		 width;
-	guint		 height;
-	SoupSession	*session;
-	gboolean	 is_default;
-	gboolean	 only_source;
-	GdkPixbuf	*pixbuf;
-	CraPackage	*pkg;
+	gchar			*app_id;
+	gchar			*cache_filename;
+	gchar			*basename;
+	gchar			*caption;
+	guint			 width;
+	guint			 height;
+	SoupSession		*session;
+	CraScreenshotKind	 kind;
+	gboolean		 only_source;
+	GdkPixbuf		*pixbuf;
+	CraPackage		*pkg;
 };
 
 G_DEFINE_TYPE_WITH_PRIVATE (CraScreenshot, cra_screenshot, G_TYPE_OBJECT)
@@ -61,7 +61,8 @@ cra_screenshot_finalize (GObject *object)
 	g_free (priv->basename);
 	g_free (priv->caption);
 	g_object_unref (priv->session);
-	g_object_unref (priv->pkg);
+	if (priv->pkg != NULL)
+		g_object_unref (priv->pkg);
 	if (priv->pixbuf != NULL)
 		g_object_unref (priv->pixbuf);
 
@@ -83,6 +84,32 @@ cra_screenshot_init (CraScreenshot *screenshot)
 }
 
 /**
+ * cra_screenshot_kind_to_string:
+ **/
+const gchar *
+cra_screenshot_kind_to_string (CraScreenshotKind kind)
+{
+	if (kind == CRA_SCREENSHOT_KIND_DEFAULT)
+		return "default";
+	if (kind == CRA_SCREENSHOT_KIND_NORMAL)
+		return "normal";
+	return "unknown";
+}
+
+/**
+ * cra_screenshot_kind_from_string:
+ **/
+CraScreenshotKind
+cra_screenshot_kind_from_string (const gchar *kind)
+{
+	if (g_strcmp0 (kind, "default") == 0)
+		return CRA_SCREENSHOT_KIND_DEFAULT;
+	if (g_strcmp0 (kind, "normal") == 0)
+		return CRA_SCREENSHOT_KIND_NORMAL;
+	return CRA_SCREENSHOT_KIND_UNKNOWN;
+}
+
+/**
  * cra_screenshot_insert_into_dom:
  **/
 void
@@ -99,7 +126,7 @@ cra_screenshot_insert_into_dom (CraScreenshot *screenshot, GNode *parent)
 	guint sizes[] = { 624, 351, 112, 63, 752, 423, 0 };
 
 	node_ss = cra_dom_insert (parent, "screenshot", NULL,
-				  "type", priv->is_default ? "default" : "normal",
+				  "type", cra_screenshot_kind_to_string (priv->kind),
 				  NULL);
 
 	/* add caption */
@@ -487,13 +514,13 @@ out:
 }
 
 /**
- * cra_screenshot_set_is_default:
+ * cra_screenshot_set_kind:
  **/
 void
-cra_screenshot_set_is_default (CraScreenshot *screenshot, gboolean is_default)
+cra_screenshot_set_kind (CraScreenshot *screenshot, CraScreenshotKind kind)
 {
 	CraScreenshotPrivate *priv = GET_PRIVATE (screenshot);
-	priv->is_default = is_default;
+	priv->kind = kind;
 }
 
 /**
@@ -504,6 +531,39 @@ cra_screenshot_set_only_source (CraScreenshot *screenshot, gboolean only_source)
 {
 	CraScreenshotPrivate *priv = GET_PRIVATE (screenshot);
 	priv->only_source = only_source;
+}
+
+/**
+ * cra_screenshot_load_from_node:
+ **/
+gboolean
+cra_screenshot_load_from_node (CraScreenshot *screenshot, GNode *node, GError **error)
+{
+	const gchar *name;
+	const gchar *tmp;
+	gboolean ret = TRUE;
+	GNode *c;
+
+	tmp = cra_dom_get_node_attribute (node, "type");
+	cra_screenshot_set_kind (screenshot, cra_screenshot_kind_from_string (tmp));
+	for (c = node->children; c != NULL; c = c->next) {
+		name = cra_dom_get_node_name (c);
+		if (g_strcmp0 (name, "caption") == 0) {
+			cra_screenshot_set_caption (screenshot, cra_dom_get_node_data (c));
+			continue;
+		}
+		if (g_strcmp0 (name, "image") == 0) {
+			ret = FALSE;
+			g_set_error_literal (error,
+					     CRA_PLUGIN_ERROR,
+					     CRA_PLUGIN_ERROR_FAILED,
+					     "loading image screenshots "
+					     "not implemented yet");
+			goto out;
+		}
+	}
+out:
+	return ret;
 }
 
 /**
@@ -526,7 +586,8 @@ cra_screenshot_new (CraPackage *pkg, const gchar *app_id)
 	CraScreenshotPrivate *priv;
 	screenshot = g_object_new (CRA_TYPE_SCREENSHOT, NULL);
 	priv = GET_PRIVATE (screenshot);
-	priv->pkg = g_object_ref (pkg);
+	if (pkg != NULL)
+		priv->pkg = g_object_ref (pkg);
 	priv->app_id = g_strdup (app_id);
 	return CRA_SCREENSHOT (screenshot);
 }

@@ -24,6 +24,8 @@
 
 #include <glib.h>
 
+#include "cra-dom.h"
+
 G_BEGIN_DECLS
 
 typedef struct	CraGlobValue		CraGlobValue;
@@ -45,6 +47,16 @@ GPtrArray	*cra_glob_value_array_new		(void);
 guint		 cra_string_replace			(GString	*string,
 							 const gchar	*search,
 							 const gchar	*replace);
+
+gboolean	 cra_utils_add_apps_from_dom		(GList		**apps,
+							 CraDom		*dom,
+							 GError		**error);
+gboolean	 cra_utils_add_apps_from_file		(GList		**apps,
+							 const gchar	*filename,
+							 GError		**error);
+gboolean	 cra_utils_add_apps_from_dir		(GList		**apps,
+							 const gchar	*path,
+							 GError		**error);
 
 G_END_DECLS
 

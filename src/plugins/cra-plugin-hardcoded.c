@@ -97,6 +97,7 @@ cra_plugin_hardcoded_add_screenshot (CraApp *app,
 
 	screenshot = cra_screenshot_new (cra_app_get_package (app),
 					 cra_app_get_id (app));
+	cra_screenshot_set_kind (screenshot, CRA_SCREENSHOT_KIND_NORMAL);
 	ret = cra_screenshot_load_filename (screenshot,
 					    filename,
 					    error);

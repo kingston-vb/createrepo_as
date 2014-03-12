@@ -53,8 +53,10 @@ struct _CraAppClass
 };
 
 typedef enum {
+	CRA_APP_ICON_TYPE_UNKNOWN,
 	CRA_APP_ICON_TYPE_STOCK,
 	CRA_APP_ICON_TYPE_CACHED,
+	CRA_APP_ICON_TYPE_REMOTE,
 	CRA_APP_ICON_TYPE_LAST
 } CraAppIconType;
 
@@ -64,11 +66,15 @@ typedef enum {
 	CRA_APP_KIND_FONT,
 	CRA_APP_KIND_CODEC,
 	CRA_APP_KIND_INPUT_METHOD,
+	CRA_APP_KIND_WEB_APP,
 	CRA_APP_KIND_LAST
 } CraAppKind;
 
 GType		 cra_app_get_type		(void);
 const gchar	*cra_app_kind_to_string		(CraAppKind	 kind);
+CraAppKind	 cra_app_kind_from_string	(const gchar	*kind);
+const gchar	*cra_app_icon_type_to_string	(CraAppIconType	 icon_type);
+CraAppIconType	 cra_app_icon_type_from_string	(const gchar	*icon_type);
 CraApp		*cra_app_new			(CraPackage	*pkg,
 						 const gchar	*id_full);
 gchar		*cra_app_to_xml			(CraApp		*app);
@@ -154,6 +160,10 @@ CraPackage	*cra_app_get_package		(CraApp		*app);
 void		 cra_app_insert_into_dom	(CraApp		*app,
 						 GNode		*parent);
 gboolean	 cra_app_save_resources		(CraApp		*app,
+						 GError		**error);
+
+gboolean	 cra_app_load_from_node		(CraApp		*app,
+						 GNode		*node,
 						 GError		**error);
 
 G_END_DECLS

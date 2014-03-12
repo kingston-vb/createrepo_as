@@ -130,7 +130,10 @@ cra_dom_get_attr_string (GHashTable *hash)
  * cra_dom_to_xml_string:
  **/
 static void
-cra_dom_to_xml_string (GString *xml, guint depth_offset, const GNode *n)
+cra_dom_to_xml_string (GString *xml,
+		       guint depth_offset,
+		       const GNode *n,
+		       CraDomToXmlFlags flags)
 {
 	CraDomNodeData *data = n->data;
 	GNode *c;
@@ -140,35 +143,46 @@ cra_dom_to_xml_string (GString *xml, guint depth_offset, const GNode *n)
 	/* root node */
 	if (data == NULL) {
 		for (c = n->children; c != NULL; c = c->next)
-			cra_dom_to_xml_string (xml, depth_offset, c);
+			cra_dom_to_xml_string (xml, depth_offset, c, flags);
 
 	/* leaf node */
 	} else if (n->children == NULL) {
-		cra_dom_add_padding (xml, depth - depth_offset);
+		if ((flags & CRA_DOM_TO_XML_FORMAT_INDENT) > 0)
+			cra_dom_add_padding (xml, depth - depth_offset);
 		attrs = cra_dom_get_attr_string (data->attributes);
 		if (data->cdata->len == 0) {
-			g_string_append_printf (xml, "<%s%s/>\n",
+			g_string_append_printf (xml, "<%s%s/>",
 						data->name, attrs);
 		} else {
 			cra_dom_cdata_to_escaped (data);
-			g_string_append_printf (xml, "<%s%s>%s</%s>\n",
+			g_string_append_printf (xml, "<%s%s>%s</%s>",
 						data->name,
 						attrs,
 						data->cdata->str,
 						data->name);
 		}
+		if ((flags & CRA_DOM_TO_XML_FORMAT_MULTILINE) > 0)
+			g_string_append (xml, "\n");
 		g_free (attrs);
 
 	/* node with children */
 	} else {
-		cra_dom_add_padding (xml, depth - depth_offset);
+		if ((flags & CRA_DOM_TO_XML_FORMAT_INDENT) > 0)
+			cra_dom_add_padding (xml, depth - depth_offset);
 		attrs = cra_dom_get_attr_string (data->attributes);
-		g_string_append_printf (xml, "<%s%s>\n", data->name, attrs);
+		g_string_append_printf (xml, "<%s%s>", data->name, attrs);
+		if ((flags & CRA_DOM_TO_XML_FORMAT_MULTILINE) > 0)
+			g_string_append (xml, "\n");
 		g_free (attrs);
+
 		for (c = n->children; c != NULL; c = c->next)
-			cra_dom_to_xml_string (xml, depth_offset, c);
-		cra_dom_add_padding (xml, depth - depth_offset);
-		g_string_append_printf (xml, "</%s>\n", data->name);
+			cra_dom_to_xml_string (xml, depth_offset, c, flags);
+
+		if ((flags & CRA_DOM_TO_XML_FORMAT_INDENT) > 0)
+			cra_dom_add_padding (xml, depth - depth_offset);
+		g_string_append_printf (xml, "</%s>", data->name);
+		if ((flags & CRA_DOM_TO_XML_FORMAT_MULTILINE) > 0)
+			g_string_append (xml, "\n");
 	}
 }
 
@@ -181,16 +195,14 @@ cra_dom_to_xml_string (GString *xml, guint depth_offset, const GNode *n)
  * Return value: an allocated string
  **/
 GString *
-cra_dom_to_xml (CraDom *dom, const GNode *node, gboolean add_header)
+cra_dom_to_xml (const GNode *node, CraDomToXmlFlags flags)
 {
 	GString *xml;
 	guint depth_offset = g_node_depth ((GNode *) node);
 	xml = g_string_new ("");
-	if (add_header)
+	if ((flags & CRA_DOM_TO_XML_ADD_HEADER) > 0)
 		g_string_append (xml, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-	cra_dom_to_xml_string (xml,
-			       node != NULL ? depth_offset : depth_offset + 2,
-			       node != NULL ? node : dom->priv->root);
+	cra_dom_to_xml_string (xml, depth_offset, node, flags);
 	return xml;
 }
 
@@ -432,11 +444,10 @@ cra_dom_get_node (CraDom *dom, GNode *root, const gchar *path)
 	GNode *node;
 	guint i;
 
-	g_return_val_if_fail (CRA_IS_DOM (dom), NULL);
 	g_return_val_if_fail (path != NULL, NULL);
 
 	/* default value */
-	if (root == NULL)
+	if (root == NULL && dom != NULL)
 		root = dom->priv->root;
 
 	node = root;
@@ -811,7 +822,6 @@ out:
 	g_hash_table_unref (hash);
 	return results;
 }
-
 
 /**
  * cra_dom_destroy_node_cb:

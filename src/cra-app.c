@@ -21,6 +21,8 @@
 
 #include "config.h"
 
+#include <stdlib.h>
+
 #include "cra-app.h"
 #include "cra-dom.h"
 
@@ -87,7 +89,8 @@ cra_app_finalize (GObject *object)
 	g_hash_table_unref (priv->metadata);
 	if (priv->pixbuf != NULL)
 		g_object_unref (priv->pixbuf);
-	g_object_unref (priv->pkg);
+	if (priv->pkg != NULL)
+		g_object_unref (priv->pkg);
 
 	G_OBJECT_CLASS (cra_app_parent_class)->finalize (object);
 }
@@ -154,7 +157,58 @@ cra_app_kind_to_string (CraAppKind kind)
 		return "font";
 	if (kind == CRA_APP_KIND_INPUT_METHOD)
 		return "inputmethod";
+	if (kind == CRA_APP_KIND_WEB_APP)
+		return "webapp";
 	return "unknown";
+}
+
+/**
+ * cra_app_kind_from_string:
+ **/
+CraAppKind
+cra_app_kind_from_string (const gchar *kind)
+{
+	if (g_strcmp0 (kind, "desktop") == 0)
+		return CRA_APP_KIND_DESKTOP;
+	if (g_strcmp0 (kind, "codec") == 0)
+		return CRA_APP_KIND_CODEC;
+	if (g_strcmp0 (kind, "font") == 0)
+		return CRA_APP_KIND_FONT;
+	if (g_strcmp0 (kind, "inputmethod") == 0)
+		return CRA_APP_KIND_INPUT_METHOD;
+	if (g_strcmp0 (kind, "webapp") == 0)
+		return CRA_APP_KIND_WEB_APP;
+	return CRA_APP_KIND_UNKNOWN;
+}
+
+/**
+ * cra_app_icon_type_to_string:
+ **/
+const gchar *
+cra_app_icon_type_to_string (CraAppIconType icon_type)
+{
+	if (icon_type == CRA_APP_ICON_TYPE_CACHED)
+		return "cached";
+	if (icon_type == CRA_APP_ICON_TYPE_STOCK)
+		return "stock";
+	if (icon_type == CRA_APP_ICON_TYPE_REMOTE)
+		return "remote";
+	return "unknown";
+}
+
+/**
+ * cra_app_icon_type_from_string:
+ **/
+CraAppIconType
+cra_app_icon_type_from_string (const gchar *icon_type)
+{
+	if (g_strcmp0 (icon_type, "cached") == 0)
+		return CRA_APP_ICON_TYPE_CACHED;
+	if (g_strcmp0 (icon_type, "stock") == 0)
+		return CRA_APP_ICON_TYPE_STOCK;
+	if (g_strcmp0 (icon_type, "remote") == 0)
+		return CRA_APP_ICON_TYPE_REMOTE;
+	return CRA_APP_ICON_TYPE_UNKNOWN;
 }
 
 /**
@@ -196,10 +250,8 @@ cra_app_insert_into_dom (CraApp *app, GNode *parent)
 
 	/* <icon> */
 	if (priv->icon != NULL) {
-		gboolean is_cached;
-		is_cached = priv->icon_type == CRA_APP_ICON_TYPE_CACHED;
 		cra_dom_insert (node_app, "icon", priv->icon,
-				"type", is_cached ? "cached" : "stock",
+				"type", cra_app_icon_type_to_string (priv->icon_type),
 				NULL);
 	}
 
@@ -287,6 +339,196 @@ cra_app_insert_into_dom (CraApp *app, GNode *parent)
 }
 
 /**
+ * cra_app_load_from_n:
+ **/
+static gboolean
+cra_app_load_from_n (CraApp *app, GNode *n, GError **error)
+{
+	const gchar *tmp;
+	const gchar *name;
+	gboolean ret = TRUE;
+	GNode *c;
+	GString *xml;
+
+	/* <id> */
+	name = cra_dom_get_node_name (n);
+	if (g_strcmp0 (name, "id") == 0) {
+		tmp = cra_dom_get_node_attribute (n, "type");
+		cra_app_set_kind (app, cra_app_kind_from_string (tmp));
+		cra_app_set_id_full (app, cra_dom_get_node_data (n));
+		goto out;
+	}
+
+	/* <pkgname> */
+	if (g_strcmp0 (name, "pkgname") == 0) {
+		cra_app_add_pkgname (app, cra_dom_get_node_data (n));
+		goto out;
+	}
+
+	/* <name> */
+	if (g_strcmp0 (name, "name") == 0) {
+		cra_app_set_name (app,
+				  cra_dom_get_node_attribute (n, "xml:lang"),
+				  cra_dom_get_node_data (n));
+	}
+
+	/* <summary> */
+	if (g_strcmp0 (name, "summary") == 0) {
+		cra_app_set_comment (app,
+				     cra_dom_get_node_attribute (n, "xml:lang"),
+				     cra_dom_get_node_data (n));
+	}
+
+	/* <description> */
+	if (g_strcmp0 (name, "description") == 0) {
+		xml = cra_dom_to_xml (n->children, CRA_DOM_TO_XML_NONE);
+		cra_app_set_description (app,
+					 cra_dom_get_node_attribute (n, "xml:lang"),
+					 xml->str);
+		g_string_free (xml, TRUE);
+	}
+
+	/* <icon> */
+	if (g_strcmp0 (name, "icon") == 0) {
+		tmp = cra_dom_get_node_attribute (n, "type");
+		cra_app_set_icon_type (app, cra_app_icon_type_from_string (tmp));
+		cra_app_set_icon (app, cra_dom_get_node_data (n));
+		goto out;
+	}
+
+	/* <categories> */
+	if (g_strcmp0 (name, "appcategories") == 0) {
+		for (c = n->children; c != NULL; c = c->next) {
+			if (g_strcmp0 (cra_dom_get_node_name (c),
+				       "appcategory") != 0)
+				continue;
+			cra_app_add_category (app, cra_dom_get_node_data (c));
+		}
+	}
+
+	/* <keywords> */
+	if (g_strcmp0 (name, "keywords") == 0) {
+		for (c = n->children; c != NULL; c = c->next) {
+			if (g_strcmp0 (cra_dom_get_node_name (c),
+				       "keyword") != 0)
+				continue;
+			cra_app_add_keyword (app, cra_dom_get_node_data (c));
+		}
+	}
+
+	/* <mimetypes> */
+	if (g_strcmp0 (name, "mimetypes") == 0) {
+		for (c = n->children; c != NULL; c = c->next) {
+			if (g_strcmp0 (cra_dom_get_node_name (c),
+				       "mimetype") != 0)
+				continue;
+			cra_app_add_mimetype (app, cra_dom_get_node_data (c));
+		}
+	}
+
+	/* <project_license> */
+	if (g_strcmp0 (name, "project_license") == 0) {
+		cra_app_set_project_license (app, cra_dom_get_node_data (n));
+		goto out;
+	}
+
+	/* <url> */
+	if (g_strcmp0 (name, "url") == 0) {
+		tmp = cra_dom_get_node_attribute (n, "type");
+		if (g_strcmp0 (tmp, "homepage") == 0)
+			cra_app_set_homepage_url (app, cra_dom_get_node_data (n));
+		goto out;
+	}
+
+	/* <project_group> */
+	if (g_strcmp0 (name, "project_group") == 0) {
+		cra_app_set_project_group (app, cra_dom_get_node_data (n));
+		goto out;
+	}
+
+	/* <compulsory_for_desktop> */
+	if (g_strcmp0 (name, "compulsory_for_desktop") == 0) {
+		cra_app_set_compulsory_for_desktop (app, cra_dom_get_node_data (n));
+		goto out;
+	}
+
+	/* <screenshots> */
+	if (g_strcmp0 (name, "screenshots") == 0) {
+		CraScreenshot *ss;
+		for (c = n->children; c != NULL; c = c->next) {
+			if (g_strcmp0 (cra_dom_get_node_name (c), "screenshot") != 0)
+				continue;
+			ss = cra_screenshot_new (NULL, cra_app_get_id_full (app));
+			ret = cra_screenshot_load_from_node (ss, c, error);
+			if (!ret) {
+				g_object_unref (ss);
+				goto out;
+			}
+			cra_app_add_screenshot (app, ss);
+			g_object_unref (ss);
+		}
+	}
+
+	/* <releases> */
+	if (g_strcmp0 (name, "releases") == 0) {
+		CraRelease *r;
+		for (c = n->children; c != NULL; c = c->next) {
+			if (g_strcmp0 (cra_dom_get_node_name (c),
+				       "release") != 0)
+				continue;
+			r = cra_release_new ();
+			tmp = cra_dom_get_node_attribute (c, "timestamp");
+			cra_release_set_timestamp (r, atol (tmp));
+			tmp = cra_dom_get_node_attribute (c, "version");
+			cra_release_set_version (r, tmp);
+			cra_app_add_release (app, r);
+			g_object_unref (r);
+		}
+	}
+
+	/* <languages> */
+	if (g_strcmp0 (name, "languages") == 0) {
+		for (c = n->children; c != NULL; c = c->next) {
+			if (g_strcmp0 (cra_dom_get_node_name (c), "lang") != 0)
+				continue;
+			tmp = cra_dom_get_node_attribute (c, "percentage");
+			cra_app_add_language (app, cra_dom_get_node_data (c), tmp);
+		}
+	}
+
+	/* <metadata> */
+	if (g_strcmp0 (name, "metadata") == 0) {
+		for (c = n->children; c != NULL; c = c->next) {
+			if (g_strcmp0 (cra_dom_get_node_name (c), "value") != 0)
+				continue;
+			tmp = cra_dom_get_node_attribute (c, "key");
+			cra_app_add_language (app, cra_dom_get_node_data (c), tmp);
+		}
+	}
+out:
+	return ret;
+}
+
+/**
+ * cra_app_load_from_node:
+ **/
+gboolean
+cra_app_load_from_node (CraApp *app, GNode *node, GError **error)
+{
+	gboolean ret = TRUE;
+	GNode *n;
+
+	/* parse each node */
+	for (n = node->children; n != NULL; n = n->next) {
+		ret = cra_app_load_from_n (app, n, error);
+		if (!ret)
+			goto out;
+	}
+out:
+	return ret;
+}
+
+/**
  * cra_app_to_xml:
  **/
 gchar *
@@ -301,7 +543,9 @@ cra_app_to_xml (CraApp *app)
 	node_root = cra_dom_get_root (dom);
 	node_apps = cra_dom_insert (node_root, "applications", NULL, NULL);
 	cra_app_insert_into_dom (app, node_apps);
-	str = cra_dom_to_xml (dom, NULL, TRUE);
+	str = cra_dom_to_xml (cra_dom_get_root (dom),
+			      CRA_DOM_TO_XML_FORMAT_INDENT |
+			      CRA_DOM_TO_XML_FORMAT_MULTILINE);
 	g_object_unref (dom);
 	return g_string_free (str, FALSE);
 }
@@ -481,6 +725,8 @@ void
 cra_app_set_name (CraApp *app, const gchar *locale, const gchar *name)
 {
 	CraAppPrivate *priv = GET_PRIVATE (app);
+	if (locale == NULL)
+		locale = "C";
 	g_hash_table_insert (priv->names, g_strdup (locale), g_strdup (name));
 }
 
@@ -491,8 +737,9 @@ void
 cra_app_set_comment (CraApp *app, const gchar *locale, const gchar *comment)
 {
 	CraAppPrivate *priv = GET_PRIVATE (app);
-	g_return_if_fail (locale != NULL && locale[0] != '\0');
 	g_return_if_fail (comment != NULL);
+	if (locale == NULL)
+		locale = "C";
 	g_hash_table_insert (priv->comments, g_strdup (locale), g_strdup (comment));
 }
 
@@ -503,9 +750,12 @@ void
 cra_app_set_description (CraApp *app, const gchar *locale, const gchar *description)
 {
 	CraAppPrivate *priv = GET_PRIVATE (app);
-	g_return_if_fail (locale != NULL && locale[0] != '\0');
 	g_return_if_fail (description != NULL);
-	g_hash_table_insert (priv->descriptions, g_strdup (locale), g_strdup (description));
+	if (locale == NULL)
+		locale = "C";
+	g_hash_table_insert (priv->descriptions,
+			     g_strdup (locale),
+			     g_strdup (description));
 }
 
 /**
@@ -515,7 +765,11 @@ void
 cra_app_add_language (CraApp *app, const gchar *locale, const gchar *value)
 {
 	CraAppPrivate *priv = GET_PRIVATE (app);
-	g_hash_table_insert (priv->languages, g_strdup (locale), g_strdup (value));
+	if (locale == NULL)
+		locale = "C";
+	g_hash_table_insert (priv->languages,
+			     g_strdup (locale),
+			     g_strdup (value));
 }
 
 /**
@@ -868,8 +1122,11 @@ cra_app_new (CraPackage *pkg, const gchar *id_full)
 
 	app = g_object_new (CRA_TYPE_APP, NULL);
 	priv = GET_PRIVATE (app);
-	priv->pkg = g_object_ref (pkg);
-	cra_app_add_pkgname (app, cra_package_get_name (pkg));
-	cra_app_set_id_full (app, id_full);
+	if (pkg != NULL) {
+		priv->pkg = g_object_ref (pkg);
+		cra_app_add_pkgname (app, cra_package_get_name (pkg));
+	}
+	if (id_full != NULL)
+		cra_app_set_id_full (app, id_full);
 	return CRA_APP (app);
 }

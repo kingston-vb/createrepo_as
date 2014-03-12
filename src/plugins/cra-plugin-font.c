@@ -279,6 +279,7 @@ cra_font_add_screenshot (CraApp *app, FT_Face ft_face)
 	caption = g_strdup_printf ("%s – %s",
 				   cra_app_get_metadata_item (app, "FontFamily"),
 				   cra_app_get_metadata_item (app, "FontSubFamily"));
+	cra_screenshot_set_kind (ss, CRA_SCREENSHOT_KIND_NORMAL);
 	cra_screenshot_set_caption (ss, caption);
 	cra_screenshot_set_only_source (ss, TRUE);
 	cra_app_add_screenshot (app, ss);

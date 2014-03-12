@@ -397,7 +397,10 @@ cra_context_write_xml (CraContext *ctx,
 			continue;
 		cra_app_insert_into_dom (app, node_apps);
 	}
-	xml = cra_dom_to_xml (dom, NULL, TRUE);
+	xml = cra_dom_to_xml (cra_dom_get_root (dom),
+			      CRA_DOM_TO_XML_ADD_HEADER |
+			      CRA_DOM_TO_XML_FORMAT_INDENT |
+			      CRA_DOM_TO_XML_FORMAT_MULTILINE);
 
 	/* compress as a gzip file */
 	compressor = g_zlib_compressor_new (G_ZLIB_COMPRESSOR_FORMAT_GZIP, -1);
@@ -609,6 +612,17 @@ main (int argc, char **argv)
 		g_error_free (error);
 		goto out;
 	}
+
+	/* add any extra applications */
+	ret = cra_utils_add_apps_from_dir (&ctx->apps,
+					   "../../fedora-appstream/appstream-extra/",
+					   &error);
+	if (!ret) {
+		g_warning ("failed to open appstream-extra: %s", error->message);
+		g_error_free (error);
+		goto out;
+	}
+	g_debug ("Added extra %i apps", g_list_length (ctx->apps));
 
 	/* scan each package */
 	if (argc == 1) {

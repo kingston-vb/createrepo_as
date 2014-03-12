@@ -47,11 +47,18 @@ typedef struct
 	GObjectClass		 parent_class;
 } CraDomClass;
 
+typedef enum {
+	CRA_DOM_TO_XML_NONE		= 0,
+	CRA_DOM_TO_XML_ADD_HEADER	= 1,
+	CRA_DOM_TO_XML_FORMAT_MULTILINE	= 2,
+	CRA_DOM_TO_XML_FORMAT_INDENT	= 4,
+	CRA_DOM_TO_XML_LAST
+} CraDomToXmlFlags;
+
 GType		 cra_dom_get_type			(void);
 CraDom		*cra_dom_new				(void);
-GString		*cra_dom_to_xml				(CraDom		*dom,
-							 const GNode	*node,
-							 gboolean	 add_header);
+GString		*cra_dom_to_xml				(const GNode	*node,
+							 CraDomToXmlFlags flags);
 gboolean	 cra_dom_parse_xml_data			(CraDom		*dom,
 							 const gchar	*data,
 							 gssize		 data_len,

@@ -220,7 +220,7 @@ cra_plugin_process_filename (CraApp *app,
 			ss = cra_screenshot_new (cra_app_get_package (app),
 						 cra_app_get_id (app));
 			tmp = cra_dom_get_node_attribute (c, "type");
-			cra_screenshot_set_is_default (ss, g_strcmp0 (tmp, "default") == 0);
+			cra_screenshot_set_kind (ss, cra_screenshot_kind_from_string (tmp));
 			tmp = cra_dom_get_node_data (c);
 			ret = cra_screenshot_load_url (ss, tmp, &error_local);
 			if (ret) {

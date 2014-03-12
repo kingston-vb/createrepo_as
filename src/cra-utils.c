@@ -197,6 +197,98 @@ out:
 }
 
 /**
+ * cra_utils_add_apps_from_dom:
+ */
+gboolean
+cra_utils_add_apps_from_dom (GList **apps, CraDom *dom, GError **error)
+{
+	gboolean ret = TRUE;
+	GNode *n;
+	GNode *node_apps;
+	CraApp *app;
+
+	/* get apps */
+	node_apps = cra_dom_get_node (dom, NULL, "applications");
+	if (node_apps == NULL) {
+		ret = FALSE;
+		g_set_error_literal (error,
+				     CRA_PLUGIN_ERROR,
+				     CRA_PLUGIN_ERROR_FAILED,
+				     "no applications in XML document");
+		goto out;
+	}
+	for (n = node_apps->children; n != NULL; n = n->next) {
+		app = cra_app_new (NULL, NULL);
+		ret = cra_app_load_from_node (app, n, error);
+		if (!ret) {
+			g_object_unref (app);
+			goto out;
+		}
+		cra_plugin_add_app (apps, app);
+		g_object_unref (app);
+	}
+out:
+	return ret;
+}
+
+/**
+ * cra_utils_add_apps_from_file:
+ */
+gboolean
+cra_utils_add_apps_from_file (GList **apps, const gchar *filename, GError **error)
+{
+	CraDom *dom = NULL;
+	gboolean ret;
+	gchar *data;
+	gsize len;
+
+	ret = g_file_get_contents (filename, &data, &len, error);
+	if (!ret)
+		goto out;
+	dom = cra_dom_new ();
+	ret = cra_dom_parse_xml_data (dom, data, len, error);
+	if (!ret)
+		goto out;
+	ret = cra_utils_add_apps_from_dom (apps, dom, error);
+	if (!ret)
+		goto out;
+out:
+	g_free (data);
+	if (dom != NULL)
+		g_object_unref (dom);
+	return ret;
+}
+
+/**
+ * cra_utils_add_apps_from_dir:
+ */
+gboolean
+cra_utils_add_apps_from_dir (GList **apps, const gchar *path, GError **error)
+{
+	const gchar *tmp;
+	gboolean ret = TRUE;
+	gchar *filename;
+	GDir *dir;
+
+	dir = g_dir_open (path, 0, error);
+	if (dir == NULL) {
+		ret = FALSE;
+		goto out;
+	}
+	while ((tmp = g_dir_read_name (dir)) != NULL) {
+		filename = g_build_filename (path, tmp, NULL);
+		ret = cra_utils_add_apps_from_file (apps, filename, error);
+		g_free (filename);
+		if (!ret)
+			goto out;
+	}
+out:
+	if (dir != NULL)
+		g_dir_close (dir);
+	return ret;
+}
+
+/**
  * cra_string_replace:
  */
 guint

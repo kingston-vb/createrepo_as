@@ -49,16 +49,25 @@ struct _CraScreenshotClass
 	GObjectClass		parent_class;
 };
 
+typedef enum {
+	CRA_SCREENSHOT_KIND_UNKNOWN,
+	CRA_SCREENSHOT_KIND_DEFAULT,
+	CRA_SCREENSHOT_KIND_NORMAL,
+	CRA_SCREENSHOT_KIND_LAST
+} CraScreenshotKind;
+
 GType		 cra_screenshot_get_type		(void);
 CraScreenshot	*cra_screenshot_new			(CraPackage	*pkg,
 							 const gchar	*app_id);
+const gchar	*cra_screenshot_kind_to_string		(CraScreenshotKind kind);
+CraScreenshotKind cra_screenshot_kind_from_string	(const gchar	*kind);
 const gchar	*cra_screenshot_get_cache_filename	(CraScreenshot	*screenshot);
 const gchar	*cra_screenshot_get_caption		(CraScreenshot	*screenshot);
 guint		 cra_screenshot_get_width		(CraScreenshot	*screenshot);
 guint		 cra_screenshot_get_height		(CraScreenshot	*screenshot);
 
-void		 cra_screenshot_set_is_default		(CraScreenshot	*screenshot,
-							 gboolean	 is_default);
+void		 cra_screenshot_set_kind		(CraScreenshot	*screenshot,
+							 CraScreenshotKind kind);
 void		 cra_screenshot_set_only_source		(CraScreenshot	*screenshot,
 							 gboolean	 only_source);
 void		 cra_screenshot_set_caption		(CraScreenshot	*screenshot,
@@ -75,6 +84,9 @@ gboolean	 cra_screenshot_load_filename		(CraScreenshot	*screenshot,
 void		 cra_screenshot_insert_into_dom		(CraScreenshot	*screenshot,
 							GNode		*parent);
 gboolean	 cra_screenshot_save_resources		(CraScreenshot	*screenshot,
+							 GError		**error);
+gboolean	 cra_screenshot_load_from_node		(CraScreenshot	*ss,
+							 GNode		*node,
 							 GError		**error);
 
 G_END_DECLS
