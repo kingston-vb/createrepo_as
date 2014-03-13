@@ -602,7 +602,7 @@ cra_plugin_process_filename (CraPlugin *plugin,
 	/* create app */
 	app_id = g_path_get_basename (filename);
 	app = cra_app_new (pkg, app_id);
-	cra_app_set_kind (app, CRA_APP_KIND_DESKTOP);
+	as_app_set_id_kind (AS_APP (app), AS_ID_KIND_DESKTOP);
 
 	/* look at all the keys */
 	keys = g_key_file_get_keys (kf, G_KEY_FILE_DESKTOP_GROUP, NULL, error);
@@ -616,7 +616,7 @@ cra_plugin_process_filename (CraPlugin *plugin,
 		/* NoDisplay */
 		if (g_strcmp0 (key, G_KEY_FILE_DESKTOP_KEY_NO_DISPLAY) == 0) {
 			cra_app_set_requires_appdata (app, TRUE);
-			cra_app_add_metadata (app, "NoDisplay", "");
+			as_app_add_metadata (AS_APP (app), "NoDisplay", "", -1);
 
 		/* Type */
 		} else if (g_strcmp0 (key, G_KEY_FILE_DESKTOP_KEY_TYPE) == 0) {
@@ -642,7 +642,7 @@ cra_plugin_process_filename (CraPlugin *plugin,
 						     key,
 						     NULL);
 			if (tmp != NULL && tmp[0] != '\0')
-				cra_app_set_icon (app, tmp);
+				as_app_set_icon (AS_APP (app), tmp, -1);
 			g_free (tmp);
 
 		/* Categories */
@@ -662,7 +662,7 @@ cra_plugin_process_filename (CraPlugin *plugin,
 					continue;
 				if (g_str_has_prefix (tmpv[j], "X-"))
 					continue;
-				cra_app_add_category (app, tmpv[j]);
+				as_app_add_category (AS_APP (app), tmpv[j], -1);
 			}
 			g_strfreev (tmpv);
 
@@ -672,7 +672,7 @@ cra_plugin_process_filename (CraPlugin *plugin,
 							   key,
 							   NULL, NULL);
 			for (j = 0; tmpv[j] != NULL; j++)
-				cra_app_add_keyword (app, tmpv[j]);
+				as_app_add_keyword (AS_APP (app), tmpv[j], -1);
 			g_strfreev (tmpv);
 
 		} else if (g_strcmp0 (key, "MimeType") == 0) {
@@ -681,20 +681,20 @@ cra_plugin_process_filename (CraPlugin *plugin,
 							   key,
 							   NULL, NULL);
 			for (j = 0; tmpv[j] != NULL; j++)
-				cra_app_add_mimetype (app, tmpv[j]);
+				as_app_add_mimetype (AS_APP (app), tmpv[j], -1);
 			g_strfreev (tmpv);
 
 		} else if (g_strcmp0 (key, "X-GNOME-UsesNotifications") == 0) {
-			cra_app_add_metadata (app, "X-Kudo-UsesNotifications", "");
+			as_app_add_metadata (AS_APP (app), "X-Kudo-UsesNotifications", "", -1);
 
 		} else if (g_strcmp0 (key, "X-GNOME-Bugzilla-Product") == 0) {
-			cra_app_set_project_group (app, "GNOME");
+			as_app_set_project_group (AS_APP (app), "GNOME", -1);
 
 		} else if (g_strcmp0 (key, "X-MATE-Bugzilla-Product") == 0) {
-			cra_app_set_project_group (app, "MATE");
+			as_app_set_project_group (AS_APP (app), "MATE", -1);
 
 		} else if (g_strcmp0 (key, "X-KDE-StartupNotify") == 0) {
-			cra_app_set_project_group (app, "KDE");
+			as_app_set_project_group (AS_APP (app), "KDE", -1);
 
 		} else if (g_strcmp0 (key, "X-DocPath") == 0) {
 			tmp = g_key_file_get_string (kf,
@@ -702,7 +702,7 @@ cra_plugin_process_filename (CraPlugin *plugin,
 						     key,
 						     NULL);
 			if (g_str_has_prefix (tmp, "http://userbase.kde.org/"))
-				cra_app_set_project_group (app, "KDE");
+				as_app_set_project_group (AS_APP (app), "KDE", -1);
 			g_free (tmp);
 
 		/* Exec */
@@ -712,7 +712,7 @@ cra_plugin_process_filename (CraPlugin *plugin,
 						     key,
 						     NULL);
 			if (g_str_has_prefix (tmp, "xfce4-"))
-				cra_app_set_project_group (app, "XFCE");
+				as_app_set_project_group (AS_APP (app), "XFCE", -1);
 			g_free (tmp);
 
 		/* OnlyShowIn */
@@ -723,7 +723,7 @@ cra_plugin_process_filename (CraPlugin *plugin,
 							   key,
 							   NULL, NULL);
 			if (g_strv_length (tmpv) == 1)
-				cra_app_set_project_group (app, tmpv[0]);
+				as_app_set_project_group (AS_APP (app), tmpv[0], -1);
 			g_strfreev (tmpv);
 
 		/* Name */
@@ -733,7 +733,7 @@ cra_plugin_process_filename (CraPlugin *plugin,
 						     key,
 						     NULL);
 			if (tmp != NULL && tmp[0] != '\0')
-				cra_app_set_name (app, "C", tmp);
+				as_app_set_name (AS_APP (app), "C", tmp, -1);
 			g_free (tmp);
 
 		/* Name[] */
@@ -745,7 +745,7 @@ cra_plugin_process_filename (CraPlugin *plugin,
 							    locale,
 							    NULL);
 			if (tmp != NULL && tmp[0] != '\0')
-				cra_app_set_name (app, locale, tmp);
+				as_app_set_name (AS_APP (app), locale, tmp, -1);
 			g_free (locale);
 			g_free (tmp);
 
@@ -756,7 +756,7 @@ cra_plugin_process_filename (CraPlugin *plugin,
 						     key,
 						     NULL);
 			if (tmp != NULL && tmp[0] != '\0')
-				cra_app_set_comment (app, "C", tmp);
+				as_app_set_comment (AS_APP (app), "C", tmp, -1);
 			g_free (tmp);
 
 		/* Comment[] */
@@ -768,7 +768,7 @@ cra_plugin_process_filename (CraPlugin *plugin,
 							    locale,
 							    NULL);
 			if (tmp != NULL && tmp[0] != '\0')
-				cra_app_set_comment (app, locale, tmp);
+				as_app_set_comment (AS_APP (app), locale, tmp, -1);
 			g_free (locale);
 			g_free (tmp);
 
@@ -776,7 +776,7 @@ cra_plugin_process_filename (CraPlugin *plugin,
 	}
 
 	/* check for blacklisted categories */
-	categories = cra_app_get_categories (app);
+	categories = as_app_get_categories (AS_APP (app));
 	for (i = 0; i < categories->len; i++) {
 		key = g_ptr_array_index (categories, i);
 		if (cra_glob_value_search (plugin->priv->blacklist_cats,
@@ -791,11 +791,11 @@ cra_plugin_process_filename (CraPlugin *plugin,
 	}
 
 	/* is the icon a stock-icon-name? */
-	key = cra_app_get_icon (app);
+	key = as_app_get_icon (AS_APP (app));
 	if (key != NULL) {
 		if (g_hash_table_lookup (plugin->priv->stock_icon_names,
 					 key) != NULL) {
-			cra_app_set_icon_type (app, CRA_APP_ICON_TYPE_STOCK);
+			as_app_set_icon_kind (AS_APP (app), AS_ICON_KIND_STOCK);
 			cra_package_log (pkg,
 					 CRA_PACKAGE_LOG_LEVEL_DEBUG,
 					 "using stock icon %s", key);
@@ -816,9 +816,9 @@ cra_plugin_process_filename (CraPlugin *plugin,
 
 			/* save in target directory */
 			icon_filename = g_strdup_printf ("%s.png",
-							 cra_app_get_id (app));
-			cra_app_set_icon (app, icon_filename);
-			cra_app_set_icon_type (app, CRA_APP_ICON_TYPE_CACHED);
+							 as_app_get_id (AS_APP (app)));
+			as_app_set_icon (AS_APP (app), icon_filename, -1);
+			as_app_set_icon_kind (AS_APP (app), AS_ICON_KIND_CACHED);
 			cra_app_set_pixbuf (app, pixbuf);
 		}
 	}

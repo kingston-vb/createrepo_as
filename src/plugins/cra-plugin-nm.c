@@ -63,7 +63,7 @@ cra_plugin_nm_app (CraApp *app, const gchar *filename, GError **error)
 	if (!ret)
 		goto out;
 	if (g_strstr_len (data_out, -1, "gtk_application_set_app_menu") != NULL)
-		cra_app_add_metadata (app, "X-Kudo-UsesAppMenu", "");
+		as_app_add_metadata (AS_APP (app), "X-Kudo-UsesAppMenu", "", -1);
 out:
 	g_free (data_err);
 	g_free (data_out);
@@ -90,7 +90,7 @@ cra_plugin_process_app (CraPlugin *plugin,
 	for (i = 0; filelist[i] != NULL; i++) {
 		if (!g_str_has_prefix (filelist[i], "/usr/bin/"))
 			continue;
-		if (cra_app_get_metadata_item (app, "X-Kudo-UsesAppMenu") != NULL)
+		if (as_app_get_metadata_item (AS_APP (app), "X-Kudo-UsesAppMenu") != NULL)
 			break;
 		filename = g_build_filename (tmpdir, filelist[i], NULL);
 		ret = cra_plugin_nm_app (app, filename, &error_local);

@@ -1,6 +1,7 @@
 SUBDIRS = plugins
 
 AM_CPPFLAGS =						\
+	$(APPSTREAM_CFLAGS)				\
 	$(GDKPIXBUF_CFLAGS)				\
 	$(GLIB_CFLAGS)					\
 	$(LIBARCHIVE_CFLAGS)				\
@@ -14,12 +15,8 @@ noinst_PROGRAMS =					\
 createrepo_as_SOURCES =					\
 	cra-app.c					\
 	cra-app.h					\
-	cra-release.c					\
-	cra-release.h					\
 	cra-screenshot.c				\
 	cra-screenshot.h				\
-	cra-dom.c					\
-	cra-dom.h					\
 	cra-context.c					\
 	cra-context.h					\
 	cra-package.c					\
@@ -32,6 +29,7 @@ createrepo_as_SOURCES =					\
 	cra-plugin-loader.h				\
 	cra-main.c
 createrepo_as_LDADD =					\
+	$(APPSTREAM_LIBS)				\
 	$(GDKPIXBUF_LIBS)				\
 	$(GLIB_LIBS)					\
 	$(LIBARCHIVE_LIBS)				\

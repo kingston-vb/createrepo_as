@@ -22,9 +22,9 @@
 #include <config.h>
 #include <fnmatch.h>
 #include <sqlite3.h>
+#include <appstream-glib.h>
 
 #include <cra-plugin.h>
-#include <cra-dom.h>
 
 /**
  * cra_plugin_get_name:
@@ -76,7 +76,7 @@ cra_plugin_process_filename (CraPlugin *plugin,
 			     GError **error)
 {
 	CraApp *app = NULL;
-	CraDom *dom = NULL;
+	GNode *root = NULL;
 	gboolean ret;
 	gchar *basename = NULL;
 	gchar *filename_tmp;
@@ -85,7 +85,6 @@ cra_plugin_process_filename (CraPlugin *plugin,
 	guint i;
 	gboolean found_header = FALSE;
 	GString *valid_xml;
-	GNode *root;
 	const GNode *n;
 
 	/* open file */
@@ -107,39 +106,42 @@ cra_plugin_process_filename (CraPlugin *plugin,
 	}
 
 	/* parse contents */
-	dom = cra_dom_new ();
-	ret = cra_dom_parse_xml_data (dom, valid_xml->str, -1, error);
+	root = as_node_from_xml (valid_xml->str, -1,
+				 AS_NODE_FROM_XML_FLAG_NONE,
+				 error);
 	if (!ret)
 		goto out;
 
 	/* create new app */
 	basename = g_path_get_basename (filename);
 	app = cra_app_new (pkg, basename);
-	cra_app_set_kind (app, CRA_APP_KIND_INPUT_METHOD);
-	cra_app_add_category (app, "Addons");
-	cra_app_add_category (app, "InputSources");
-	cra_app_set_icon (app, "system-run-symbolic");
-	cra_app_set_icon_type (app, CRA_APP_ICON_TYPE_STOCK);
+	as_app_set_id_kind (AS_APP (app), AS_ID_KIND_INPUT_METHOD);
+	as_app_add_category (AS_APP (app), "Addons", -1);
+	as_app_add_category (AS_APP (app), "InputSources", -1);
+	as_app_set_icon (AS_APP (app), "system-run-symbolic", -1);
+	as_app_set_icon_kind (AS_APP (app), AS_ICON_KIND_STOCK);
 	cra_app_set_requires_appdata (app, TRUE);
 
 	/* read the component header which all input methods have */
-	root = cra_dom_get_root (dom);
-	n = cra_dom_get_node (root, "component/description");
+	n = as_node_find (root, "component/description");
 	if (n != NULL) {
-		cra_app_set_name (app, "C", cra_dom_get_node_data (n));
-		cra_app_set_comment (app, "C", cra_dom_get_node_data (n));
+		as_app_set_name (AS_APP (app), "C", as_node_get_data (n), -1);
+		as_app_set_comment (AS_APP (app), "C", as_node_get_data (n), -1);
 	}
-	n = cra_dom_get_node (root, "component/homepage");
-	if (n != NULL)
-		cra_app_set_homepage_url (app, cra_dom_get_node_data (n));
+	n = as_node_find (root, "component/homepage");
+	if (n != NULL) {
+		as_app_add_url (AS_APP (app),
+				AS_URL_KIND_HOMEPAGE,
+				as_node_get_data (n), -1);
+	}
 
 	/* do we have a engine section we can use? */
-	n = cra_dom_get_node (root, "engines/engine/longname");
+	n = as_node_find (root, "engines/engine/longname");
 	if (n != NULL)
-		cra_app_set_name (app, "C", cra_dom_get_node_data (n));
-	n = cra_dom_get_node (root, "engines/engine/description");
+		as_app_set_name (AS_APP (app), "C", as_node_get_data (n), -1);
+	n = as_node_find (root, "engines/engine/description");
 	if (n != NULL)
-		cra_app_set_comment (app, "C", cra_dom_get_node_data (n));
+		as_app_set_comment (AS_APP (app), "C", as_node_get_data (n), -1);
 
 	/* add */
 	cra_plugin_add_app (apps, app);
@@ -150,8 +152,8 @@ out:
 	g_free (filename_tmp);
 	if (app != NULL)
 		g_object_unref (app);
-	if (dom != NULL)
-		g_object_unref (dom);
+	if (root != NULL)
+		as_node_unref (root);
 	return ret;
 }
 

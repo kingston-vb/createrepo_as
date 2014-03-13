@@ -23,8 +23,7 @@
 #define __CRA_UTILS_H
 
 #include <glib.h>
-
-#include "cra-dom.h"
+#include <appstream-glib.h>
 
 G_BEGIN_DECLS
 
@@ -48,9 +47,6 @@ guint		 cra_string_replace			(GString	*string,
 							 const gchar	*search,
 							 const gchar	*replace);
 
-gboolean	 cra_utils_add_apps_from_dom		(GList		**apps,
-							 CraDom		*dom,
-							 GError		**error);
 gboolean	 cra_utils_add_apps_from_file		(GList		**apps,
 							 const gchar	*filename,
 							 GError		**error);

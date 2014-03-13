@@ -22,40 +22,20 @@
 #include "config.h"
 
 #include <stdlib.h>
+#include <appstream-glib.h>
 
 #include "cra-app.h"
-#include "cra-dom.h"
 
 typedef struct _CraAppPrivate	CraAppPrivate;
 struct _CraAppPrivate
 {
-	CraAppKind	 kind;
-	gchar		*project_group;
-	gchar		*project_license;
-	gchar		*compulsory_for_desktop;
-	gchar		*homepage_url;
-	gchar		*id;
-	gchar		*id_full;
-	gchar		*icon;
-	GPtrArray	*categories;
-	GPtrArray	*keywords;
-	GPtrArray	*mimetypes;
 	GPtrArray	*vetos;
-	GPtrArray	*pkgnames;
-	GPtrArray	*screenshots;	/* of CraScreenshot */
-	GPtrArray	*releases;	/* of CraRelease */
 	gboolean	 requires_appdata;
-	CraAppIconType	 icon_type;
-	GHashTable	*names;
-	GHashTable	*comments;
-	GHashTable	*descriptions;
-	GHashTable	*languages;
-	GHashTable	*metadata;
 	GdkPixbuf	*pixbuf;
 	CraPackage	*pkg;
 };
 
-G_DEFINE_TYPE_WITH_PRIVATE (CraApp, cra_app, G_TYPE_OBJECT)
+G_DEFINE_TYPE_WITH_PRIVATE (CraApp, cra_app, AS_TYPE_APP)
 
 #define GET_PRIVATE(o) (cra_app_get_instance_private (o))
 
@@ -68,25 +48,7 @@ cra_app_finalize (GObject *object)
 	CraApp *app = CRA_APP (object);
 	CraAppPrivate *priv = GET_PRIVATE (app);
 
-	g_free (priv->id);
-	g_free (priv->id_full);
-	g_free (priv->homepage_url);
-	g_free (priv->project_group);
-	g_free (priv->project_license);
-	g_free (priv->compulsory_for_desktop);
-	g_free (priv->icon);
-	g_ptr_array_unref (priv->categories);
-	g_ptr_array_unref (priv->keywords);
-	g_ptr_array_unref (priv->mimetypes);
 	g_ptr_array_unref (priv->vetos);
-	g_ptr_array_unref (priv->pkgnames);
-	g_ptr_array_unref (priv->screenshots);
-	g_ptr_array_unref (priv->releases);
-	g_hash_table_unref (priv->names);
-	g_hash_table_unref (priv->comments);
-	g_hash_table_unref (priv->descriptions);
-	g_hash_table_unref (priv->languages);
-	g_hash_table_unref (priv->metadata);
 	if (priv->pixbuf != NULL)
 		g_object_unref (priv->pixbuf);
 	if (priv->pkg != NULL)
@@ -102,18 +64,7 @@ static void
 cra_app_init (CraApp *app)
 {
 	CraAppPrivate *priv = GET_PRIVATE (app);
-	priv->categories = g_ptr_array_new_with_free_func (g_free);
-	priv->keywords = g_ptr_array_new_with_free_func (g_free);
-	priv->mimetypes = g_ptr_array_new_with_free_func (g_free);
 	priv->vetos = g_ptr_array_new_with_free_func (g_free);
-	priv->pkgnames = g_ptr_array_new_with_free_func (g_free);
-	priv->screenshots = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
-	priv->releases = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
-	priv->names = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
-	priv->comments = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
-	priv->descriptions = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
-	priv->languages = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
-	priv->metadata = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
 }
 
 /**
@@ -127,548 +78,21 @@ cra_app_class_init (CraAppClass *klass)
 }
 
 /**
- * cra_utils_ptr_array_find_string:
- **/
-static gboolean
-cra_utils_ptr_array_find_string (GPtrArray *array, const gchar *value)
-{
-	const gchar *tmp;
-	guint i;
-
-	for (i = 0; i < array->len; i++) {
-		tmp = g_ptr_array_index (array, i);
-		if (g_strcmp0 (tmp, value) == 0)
-			return TRUE;
-	}
-	return FALSE;
-}
-
-/**
- * cra_app_kind_to_string:
- **/
-const gchar *
-cra_app_kind_to_string (CraAppKind kind)
-{
-	if (kind == CRA_APP_KIND_DESKTOP)
-		return "desktop";
-	if (kind == CRA_APP_KIND_CODEC)
-		return "codec";
-	if (kind == CRA_APP_KIND_FONT)
-		return "font";
-	if (kind == CRA_APP_KIND_INPUT_METHOD)
-		return "inputmethod";
-	if (kind == CRA_APP_KIND_WEB_APP)
-		return "webapp";
-	return "unknown";
-}
-
-/**
- * cra_app_kind_from_string:
- **/
-CraAppKind
-cra_app_kind_from_string (const gchar *kind)
-{
-	if (g_strcmp0 (kind, "desktop") == 0)
-		return CRA_APP_KIND_DESKTOP;
-	if (g_strcmp0 (kind, "codec") == 0)
-		return CRA_APP_KIND_CODEC;
-	if (g_strcmp0 (kind, "font") == 0)
-		return CRA_APP_KIND_FONT;
-	if (g_strcmp0 (kind, "inputmethod") == 0)
-		return CRA_APP_KIND_INPUT_METHOD;
-	if (g_strcmp0 (kind, "webapp") == 0)
-		return CRA_APP_KIND_WEB_APP;
-	return CRA_APP_KIND_UNKNOWN;
-}
-
-/**
- * cra_app_icon_type_to_string:
- **/
-const gchar *
-cra_app_icon_type_to_string (CraAppIconType icon_type)
-{
-	if (icon_type == CRA_APP_ICON_TYPE_CACHED)
-		return "cached";
-	if (icon_type == CRA_APP_ICON_TYPE_STOCK)
-		return "stock";
-	if (icon_type == CRA_APP_ICON_TYPE_REMOTE)
-		return "remote";
-	return "unknown";
-}
-
-/**
- * cra_app_icon_type_from_string:
- **/
-CraAppIconType
-cra_app_icon_type_from_string (const gchar *icon_type)
-{
-	if (g_strcmp0 (icon_type, "cached") == 0)
-		return CRA_APP_ICON_TYPE_CACHED;
-	if (g_strcmp0 (icon_type, "stock") == 0)
-		return CRA_APP_ICON_TYPE_STOCK;
-	if (g_strcmp0 (icon_type, "remote") == 0)
-		return CRA_APP_ICON_TYPE_REMOTE;
-	return CRA_APP_ICON_TYPE_UNKNOWN;
-}
-
-/**
- * cra_app_to_xml:
- **/
-void
-cra_app_insert_into_dom (CraApp *app, GNode *parent)
-{
-	CraAppPrivate *priv = GET_PRIVATE (app);
-	const gchar *tmp;
-	CraRelease *rel;
-	CraScreenshot *ss;
-	gchar *timestamp_str;
-	GNode *node_app;
-	GNode *node_tmp;
-	guint i;
-
-	node_app = cra_dom_insert (parent, "application", NULL, NULL);
-
-	/* <id> */
-	cra_dom_insert (node_app, "id", priv->id_full,
-			"type", cra_app_kind_to_string (priv->kind),
-			NULL);
-
-	/* <pkgname> */
-	for (i = 0; i < priv->pkgnames->len; i++) {
-		tmp = g_ptr_array_index (priv->pkgnames, i);
-		cra_dom_insert (node_app, "pkgname", tmp, NULL);
-	}
-
-	/* <name> */
-	cra_dom_insert_localized (node_app, "name", priv->names, TRUE);
-
-	/* <summary> */
-	cra_dom_insert_localized (node_app, "summary", priv->comments, TRUE);
-
-	/* <description> */
-	cra_dom_insert_localized (node_app, "description", priv->descriptions, FALSE);
-
-	/* <icon> */
-	if (priv->icon != NULL) {
-		cra_dom_insert (node_app, "icon", priv->icon,
-				"type", cra_app_icon_type_to_string (priv->icon_type),
-				NULL);
-	}
-
-	/* <categories> */
-	if (priv->categories->len > 0) {
-		node_tmp = cra_dom_insert (node_app, "appcategories", NULL, NULL);
-		for (i = 0; i < priv->categories->len; i++) {
-			tmp = g_ptr_array_index (priv->categories, i);
-			cra_dom_insert (node_tmp, "appcategory", tmp, NULL);
-		}
-	}
-
-	/* <keywords> */
-	if (priv->keywords->len > 0) {
-		node_tmp = cra_dom_insert (node_app, "keywords", NULL, NULL);
-		for (i = 0; i < priv->keywords->len; i++) {
-			tmp = g_ptr_array_index (priv->keywords, i);
-			cra_dom_insert (node_tmp, "keyword", tmp, NULL);
-		}
-	}
-
-	/* <mimetypes> */
-	if (priv->mimetypes->len > 0) {
-		node_tmp = cra_dom_insert (node_app, "mimetypes", NULL, NULL);
-		for (i = 0; i < priv->mimetypes->len; i++) {
-			tmp = g_ptr_array_index (priv->mimetypes, i);
-			cra_dom_insert (node_tmp, "mimetype", tmp, NULL);
-		}
-	}
-
-	/* <project_license> */
-	if (priv->project_license != NULL)
-		cra_dom_insert (node_app, "project_license", priv->project_license, NULL);
-
-	/* <url> */
-	if (priv->homepage_url != NULL) {
-		cra_dom_insert (node_app, "url", priv->homepage_url,
-				"type", "homepage",
-				NULL);
-	}
-
-	/* <project_group> */
-	if (priv->project_group != NULL)
-		cra_dom_insert (node_app, "project_group", priv->project_group, NULL);
-
-	/* <compulsory_for_desktop> */
-	if (priv->compulsory_for_desktop != NULL)
-		cra_dom_insert (node_app, "compulsory_for_desktop", priv->compulsory_for_desktop, NULL);
-
-	/* <screenshots> */
-	if (priv->screenshots->len > 0) {
-		node_tmp = cra_dom_insert (node_app, "screenshots", NULL, NULL);
-		for (i = 0; i < priv->screenshots->len; i++) {
-			ss = g_ptr_array_index (priv->screenshots, i);
-			cra_screenshot_insert_into_dom (ss, node_tmp);
-		}
-	}
-
-	/* <releases> */
-	if (priv->releases->len > 0) {
-		node_tmp = cra_dom_insert (node_app, "releases", NULL, NULL);
-		for (i = 0; i < priv->releases->len && i < 3; i++) {
-			rel = g_ptr_array_index (priv->releases, i);
-			timestamp_str = g_strdup_printf ("%" G_GUINT64_FORMAT,
-							 cra_release_get_timestamp (rel));
-			cra_dom_insert (node_tmp, "release", NULL,
-					"timestamp", timestamp_str,
-					"version", cra_release_get_version (rel),
-					NULL);
-			g_free (timestamp_str);
-		}
-	}
-
-	/* <languages> */
-	if (g_hash_table_size (priv->languages) > 0) {
-		node_tmp = cra_dom_insert (node_app, "languages", NULL, NULL);
-		cra_dom_insert_hash (node_tmp, "lang", "percentage", priv->languages, TRUE);
-	}
-
-	/* <metadata> */
-	if (g_hash_table_size (priv->metadata) > 0) {
-		node_tmp = cra_dom_insert (node_app, "metadata", NULL, NULL);
-		cra_dom_insert_hash (node_tmp, "value", "key", priv->metadata, FALSE);
-	}
-}
-
-/**
- * cra_app_load_from_n:
- **/
-static gboolean
-cra_app_load_from_n (CraApp *app, GNode *n, GError **error)
-{
-	const gchar *tmp;
-	const gchar *name;
-	gboolean ret = TRUE;
-	GNode *c;
-	GString *xml;
-
-	/* <id> */
-	name = cra_dom_get_node_name (n);
-	if (g_strcmp0 (name, "id") == 0) {
-		tmp = cra_dom_get_node_attribute (n, "type");
-		cra_app_set_kind (app, cra_app_kind_from_string (tmp));
-		cra_app_set_id_full (app, cra_dom_get_node_data (n));
-		goto out;
-	}
-
-	/* <pkgname> */
-	if (g_strcmp0 (name, "pkgname") == 0) {
-		cra_app_add_pkgname (app, cra_dom_get_node_data (n));
-		goto out;
-	}
-
-	/* <name> */
-	if (g_strcmp0 (name, "name") == 0) {
-		cra_app_set_name (app,
-				  cra_dom_get_node_attribute (n, "xml:lang"),
-				  cra_dom_get_node_data (n));
-	}
-
-	/* <summary> */
-	if (g_strcmp0 (name, "summary") == 0) {
-		cra_app_set_comment (app,
-				     cra_dom_get_node_attribute (n, "xml:lang"),
-				     cra_dom_get_node_data (n));
-	}
-
-	/* <description> */
-	if (g_strcmp0 (name, "description") == 0) {
-		xml = cra_dom_to_xml (n->children, CRA_DOM_TO_XML_NONE);
-		cra_app_set_description (app,
-					 cra_dom_get_node_attribute (n, "xml:lang"),
-					 xml->str);
-		g_string_free (xml, TRUE);
-	}
-
-	/* <icon> */
-	if (g_strcmp0 (name, "icon") == 0) {
-		tmp = cra_dom_get_node_attribute (n, "type");
-		cra_app_set_icon_type (app, cra_app_icon_type_from_string (tmp));
-		cra_app_set_icon (app, cra_dom_get_node_data (n));
-		goto out;
-	}
-
-	/* <categories> */
-	if (g_strcmp0 (name, "appcategories") == 0) {
-		for (c = n->children; c != NULL; c = c->next) {
-			if (g_strcmp0 (cra_dom_get_node_name (c),
-				       "appcategory") != 0)
-				continue;
-			cra_app_add_category (app, cra_dom_get_node_data (c));
-		}
-	}
-
-	/* <keywords> */
-	if (g_strcmp0 (name, "keywords") == 0) {
-		for (c = n->children; c != NULL; c = c->next) {
-			if (g_strcmp0 (cra_dom_get_node_name (c),
-				       "keyword") != 0)
-				continue;
-			cra_app_add_keyword (app, cra_dom_get_node_data (c));
-		}
-	}
-
-	/* <mimetypes> */
-	if (g_strcmp0 (name, "mimetypes") == 0) {
-		for (c = n->children; c != NULL; c = c->next) {
-			if (g_strcmp0 (cra_dom_get_node_name (c),
-				       "mimetype") != 0)
-				continue;
-			cra_app_add_mimetype (app, cra_dom_get_node_data (c));
-		}
-	}
-
-	/* <project_license> */
-	if (g_strcmp0 (name, "project_license") == 0) {
-		cra_app_set_project_license (app, cra_dom_get_node_data (n));
-		goto out;
-	}
-
-	/* <url> */
-	if (g_strcmp0 (name, "url") == 0) {
-		tmp = cra_dom_get_node_attribute (n, "type");
-		if (g_strcmp0 (tmp, "homepage") == 0)
-			cra_app_set_homepage_url (app, cra_dom_get_node_data (n));
-		goto out;
-	}
-
-	/* <project_group> */
-	if (g_strcmp0 (name, "project_group") == 0) {
-		cra_app_set_project_group (app, cra_dom_get_node_data (n));
-		goto out;
-	}
-
-	/* <compulsory_for_desktop> */
-	if (g_strcmp0 (name, "compulsory_for_desktop") == 0) {
-		cra_app_set_compulsory_for_desktop (app, cra_dom_get_node_data (n));
-		goto out;
-	}
-
-	/* <screenshots> */
-	if (g_strcmp0 (name, "screenshots") == 0) {
-		CraScreenshot *ss;
-		for (c = n->children; c != NULL; c = c->next) {
-			if (g_strcmp0 (cra_dom_get_node_name (c), "screenshot") != 0)
-				continue;
-			ss = cra_screenshot_new (NULL, cra_app_get_id_full (app));
-			ret = cra_screenshot_load_from_node (ss, c, error);
-			if (!ret) {
-				g_object_unref (ss);
-				goto out;
-			}
-			cra_app_add_screenshot (app, ss);
-			g_object_unref (ss);
-		}
-	}
-
-	/* <releases> */
-	if (g_strcmp0 (name, "releases") == 0) {
-		CraRelease *r;
-		for (c = n->children; c != NULL; c = c->next) {
-			if (g_strcmp0 (cra_dom_get_node_name (c),
-				       "release") != 0)
-				continue;
-			r = cra_release_new ();
-			tmp = cra_dom_get_node_attribute (c, "timestamp");
-			cra_release_set_timestamp (r, atol (tmp));
-			tmp = cra_dom_get_node_attribute (c, "version");
-			cra_release_set_version (r, tmp);
-			cra_app_add_release (app, r);
-			g_object_unref (r);
-		}
-	}
-
-	/* <languages> */
-	if (g_strcmp0 (name, "languages") == 0) {
-		for (c = n->children; c != NULL; c = c->next) {
-			if (g_strcmp0 (cra_dom_get_node_name (c), "lang") != 0)
-				continue;
-			tmp = cra_dom_get_node_attribute (c, "percentage");
-			cra_app_add_language (app, cra_dom_get_node_data (c), tmp);
-		}
-	}
-
-	/* <metadata> */
-	if (g_strcmp0 (name, "metadata") == 0) {
-		for (c = n->children; c != NULL; c = c->next) {
-			if (g_strcmp0 (cra_dom_get_node_name (c), "value") != 0)
-				continue;
-			tmp = cra_dom_get_node_attribute (c, "key");
-			cra_app_add_language (app, cra_dom_get_node_data (c), tmp);
-		}
-	}
-out:
-	return ret;
-}
-
-/**
- * cra_app_load_from_node:
- **/
-gboolean
-cra_app_load_from_node (CraApp *app, GNode *node, GError **error)
-{
-	gboolean ret = TRUE;
-	GNode *n;
-
-	/* parse each node */
-	for (n = node->children; n != NULL; n = n->next) {
-		ret = cra_app_load_from_n (app, n, error);
-		if (!ret)
-			goto out;
-	}
-out:
-	return ret;
-}
-
-/**
  * cra_app_to_xml:
  **/
 gchar *
 cra_app_to_xml (CraApp *app)
 {
-	CraDom *dom;
+	AsStore *store;
 	GString *str;
-	GNode *node_apps;
-	GNode *node_root;
 
-	dom = cra_dom_new ();
-	node_root = cra_dom_get_root (dom);
-	node_apps = cra_dom_insert (node_root, "applications", NULL, NULL);
-	cra_app_insert_into_dom (app, node_apps);
-	str = cra_dom_to_xml (cra_dom_get_root (dom),
-			      CRA_DOM_TO_XML_FORMAT_INDENT |
-			      CRA_DOM_TO_XML_FORMAT_MULTILINE);
-	g_object_unref (dom);
+	store = as_store_new ();
+	as_store_add_app (store, AS_APP (app));
+	str = as_store_to_xml (store,
+			       AS_NODE_TO_XML_FLAG_FORMAT_INDENT |
+			       AS_NODE_TO_XML_FLAG_FORMAT_MULTILINE);
+	g_object_unref (store);
 	return g_string_free (str, FALSE);
-}
-
-/**
- * cra_app_set_kind:
- **/
-void
-cra_app_set_kind (CraApp *app, CraAppKind kind)
-{
-	CraAppPrivate *priv = GET_PRIVATE (app);
-	priv->kind = kind;
-}
-
-/**
- * cra_app_set_homepage_url:
- **/
-void
-cra_app_set_homepage_url (CraApp *app, const gchar *homepage_url)
-{
-	CraAppPrivate *priv = GET_PRIVATE (app);
-	g_free (priv->homepage_url);
-	priv->homepage_url = g_strdup (homepage_url);
-}
-
-/**
- * cra_app_set_project_group:
- **/
-void
-cra_app_set_project_group (CraApp *app, const gchar *project_group)
-{
-	CraAppPrivate *priv = GET_PRIVATE (app);
-	g_free (priv->project_group);
-	priv->project_group = g_strdup (project_group);
-}
-
-/**
- * cra_app_set_project_license:
- **/
-void
-cra_app_set_project_license (CraApp *app, const gchar *project_license)
-{
-	CraAppPrivate *priv = GET_PRIVATE (app);
-	g_free (priv->project_license);
-	priv->project_license = g_strdup (project_license);
-}
-
-/**
- * cra_app_set_compulsory_for_desktop:
- **/
-void
-cra_app_set_compulsory_for_desktop (CraApp *app, const gchar *compulsory_for_desktop)
-{
-	CraAppPrivate *priv = GET_PRIVATE (app);
-	g_free (priv->compulsory_for_desktop);
-	priv->compulsory_for_desktop = g_strdup (compulsory_for_desktop);
-}
-
-/**
- * cra_app_set_icon:
- **/
-void
-cra_app_set_icon (CraApp *app, const gchar *icon)
-{
-	CraAppPrivate *priv = GET_PRIVATE (app);
-	g_free (priv->icon);
-	priv->icon = g_strdup (icon);
-}
-
-/**
- * cra_app_add_category:
- **/
-void
-cra_app_add_category (CraApp *app, const gchar *category)
-{
-	CraAppPrivate *priv = GET_PRIVATE (app);
-
-	/* simple substitution */
-	if (g_strcmp0 (category, "Feed") == 0)
-		category = "News";
-
-	if (cra_utils_ptr_array_find_string (priv->categories, category)) {
-		cra_package_log (priv->pkg,
-				 CRA_PACKAGE_LOG_LEVEL_WARNING,
-				 "Already added %s to categories",
-				 category);
-		return;
-	}
-	g_ptr_array_add (priv->categories, g_strdup (category));
-}
-
-/**
- * cra_app_add_keyword:
- **/
-void
-cra_app_add_keyword (CraApp *app, const gchar *keyword)
-{
-	CraAppPrivate *priv = GET_PRIVATE (app);
-	if (cra_utils_ptr_array_find_string (priv->keywords, keyword)) {
-		cra_package_log (priv->pkg,
-				 CRA_PACKAGE_LOG_LEVEL_WARNING,
-				 "Already added %s to keywords",
-				 keyword);
-		return;
-	}
-	g_ptr_array_add (priv->keywords, g_strdup (keyword));
-}
-
-/**
- * cra_app_add_mimetype:
- **/
-void
-cra_app_add_mimetype (CraApp *app, const gchar *mimetype)
-{
-	CraAppPrivate *priv = GET_PRIVATE (app);
-	if (cra_utils_ptr_array_find_string (priv->mimetypes, mimetype)) {
-		cra_package_log (priv->pkg,
-				 CRA_PACKAGE_LOG_LEVEL_WARNING,
-				 "Already added %s to mimetypes",
-				 mimetype);
-		return;
-	}
-	g_ptr_array_add (priv->mimetypes, g_strdup (mimetype));
 }
 
 /**
@@ -687,112 +111,6 @@ cra_app_add_veto (CraApp *app, const gchar *fmt, ...)
 }
 
 /**
- * cra_app_add_screenshot:
- **/
-void
-cra_app_add_screenshot (CraApp *app, CraScreenshot *screenshot)
-{
-	CraAppPrivate *priv = GET_PRIVATE (app);
-	g_ptr_array_add (priv->screenshots, g_object_ref (screenshot));
-}
-
-/**
- * cra_app_add_release:
- **/
-void
-cra_app_add_release (CraApp *app, CraRelease *release)
-{
-	CraAppPrivate *priv = GET_PRIVATE (app);
-	g_ptr_array_add (priv->releases, g_object_ref (release));
-}
-
-/**
- * cra_app_add_pkgname:
- **/
-void
-cra_app_add_pkgname (CraApp *app, const gchar *pkgname)
-{
-	CraAppPrivate *priv = GET_PRIVATE (app);
-	if (cra_utils_ptr_array_find_string (priv->pkgnames, pkgname))
-		return;
-	g_ptr_array_add (priv->pkgnames, g_strdup (pkgname));
-}
-
-/**
- * cra_app_set_name:
- **/
-void
-cra_app_set_name (CraApp *app, const gchar *locale, const gchar *name)
-{
-	CraAppPrivate *priv = GET_PRIVATE (app);
-	if (locale == NULL)
-		locale = "C";
-	g_hash_table_insert (priv->names, g_strdup (locale), g_strdup (name));
-}
-
-/**
- * cra_app_set_comment:
- **/
-void
-cra_app_set_comment (CraApp *app, const gchar *locale, const gchar *comment)
-{
-	CraAppPrivate *priv = GET_PRIVATE (app);
-	g_return_if_fail (comment != NULL);
-	if (locale == NULL)
-		locale = "C";
-	g_hash_table_insert (priv->comments, g_strdup (locale), g_strdup (comment));
-}
-
-/**
- * cra_app_set_description:
- **/
-void
-cra_app_set_description (CraApp *app, const gchar *locale, const gchar *description)
-{
-	CraAppPrivate *priv = GET_PRIVATE (app);
-	g_return_if_fail (description != NULL);
-	if (locale == NULL)
-		locale = "C";
-	g_hash_table_insert (priv->descriptions,
-			     g_strdup (locale),
-			     g_strdup (description));
-}
-
-/**
- * cra_app_add_language:
- **/
-void
-cra_app_add_language (CraApp *app, const gchar *locale, const gchar *value)
-{
-	CraAppPrivate *priv = GET_PRIVATE (app);
-	if (locale == NULL)
-		locale = "C";
-	g_hash_table_insert (priv->languages,
-			     g_strdup (locale),
-			     g_strdup (value));
-}
-
-/**
- * cra_app_add_metadata:
- **/
-void
-cra_app_add_metadata (CraApp *app, const gchar *key, const gchar *value)
-{
-	CraAppPrivate *priv = GET_PRIVATE (app);
-	g_hash_table_insert (priv->metadata, g_strdup (key), g_strdup (value));
-}
-
-/**
- * cra_app_remove_metadata:
- **/
-void
-cra_app_remove_metadata (CraApp *app, const gchar *key)
-{
-	CraAppPrivate *priv = GET_PRIVATE (app);
-	g_hash_table_remove (priv->metadata, key);
-}
-
-/**
  * cra_app_set_requires_appdata:
  **/
 void
@@ -800,16 +118,6 @@ cra_app_set_requires_appdata (CraApp *app, gboolean requires_appdata)
 {
 	CraAppPrivate *priv = GET_PRIVATE (app);
 	priv->requires_appdata = requires_appdata;
-}
-
-/**
- * cra_app_set_icon_type:
- **/
-void
-cra_app_set_icon_type (CraApp *app, CraAppIconType icon_type)
-{
-	CraAppPrivate *priv = GET_PRIVATE (app);
-	priv->icon_type = icon_type;
 }
 
 /**
@@ -832,16 +140,6 @@ cra_app_set_pixbuf (CraApp *app, GdkPixbuf *pixbuf)
 }
 
 /**
- * cra_app_get_categories:
- **/
-GPtrArray *
-cra_app_get_categories (CraApp *app)
-{
-	CraAppPrivate *priv = GET_PRIVATE (app);
-	return priv->categories;
-}
-
-/**
  * cra_app_get_requires_appdata:
  **/
 gboolean
@@ -849,36 +147,6 @@ cra_app_get_requires_appdata (CraApp *app)
 {
 	CraAppPrivate *priv = GET_PRIVATE (app);
 	return priv->requires_appdata;
-}
-
-/**
- * cra_app_get_keywords:
- **/
-GPtrArray *
-cra_app_get_keywords (CraApp *app)
-{
-	CraAppPrivate *priv = GET_PRIVATE (app);
-	return priv->keywords;
-}
-
-/**
- * cra_app_get_screenshots:
- **/
-GPtrArray *
-cra_app_get_screenshots (CraApp *app)
-{
-	CraAppPrivate *priv = GET_PRIVATE (app);
-	return priv->screenshots;
-}
-
-/**
- * cra_app_get_releases:
- **/
-GPtrArray *
-cra_app_get_releases (CraApp *app)
-{
-	CraAppPrivate *priv = GET_PRIVATE (app);
-	return priv->releases;
 }
 
 /**
@@ -892,133 +160,6 @@ cra_app_get_vetos (CraApp *app)
 }
 
 /**
- * cra_app_get_pkgnames:
- **/
-GPtrArray *
-cra_app_get_pkgnames (CraApp *app)
-{
-	CraAppPrivate *priv = GET_PRIVATE (app);
-	return priv->pkgnames;
-}
-
-/**
- * cra_app_get_id_full:
- **/
-const gchar *
-cra_app_get_id_full (CraApp *app)
-{
-	CraAppPrivate *priv = GET_PRIVATE (app);
-	return priv->id_full;
-}
-
-/**
- * cra_app_get_id:
- **/
-const gchar *
-cra_app_get_id (CraApp *app)
-{
-	CraAppPrivate *priv = GET_PRIVATE (app);
-	return priv->id;
-}
-
-/**
- * cra_app_get_kind:
- **/
-CraAppKind
-cra_app_get_kind (CraApp *app)
-{
-	CraAppPrivate *priv = GET_PRIVATE (app);
-	return priv->kind;
-}
-
-/**
- * cra_app_get_icon:
- **/
-const gchar *
-cra_app_get_icon (CraApp *app)
-{
-	CraAppPrivate *priv = GET_PRIVATE (app);
-	return priv->icon;
-}
-
-/**
- * cra_app_get_name:
- **/
-const gchar *
-cra_app_get_name (CraApp *app, const gchar *locale)
-{
-	CraAppPrivate *priv = GET_PRIVATE (app);
-	return g_hash_table_lookup (priv->names, locale);
-}
-
-/**
- * cra_app_get_comment:
- **/
-const gchar *
-cra_app_get_comment (CraApp *app, const gchar *locale)
-{
-	CraAppPrivate *priv = GET_PRIVATE (app);
-	return g_hash_table_lookup (priv->comments, locale);
-}
-
-/**
- * cra_app_get_language:
- **/
-const gchar *
-cra_app_get_language (CraApp *app, const gchar *locale)
-{
-	CraAppPrivate *priv = GET_PRIVATE (app);
-	return g_hash_table_lookup (priv->languages, locale);
-}
-
-/**
- * cra_app_get_languages:
- **/
-GList *
-cra_app_get_languages (CraApp *app)
-{
-	CraAppPrivate *priv = GET_PRIVATE (app);
-	return g_hash_table_get_keys (priv->languages);
-}
-
-/**
- * cra_app_get_metadata_item:
- **/
-const gchar *
-cra_app_get_metadata_item (CraApp *app, const gchar *key)
-{
-	CraAppPrivate *priv = GET_PRIVATE (app);
-	return g_hash_table_lookup (priv->metadata, key);
-}
-
-/**
- * cra_app_get_project_group:
- **/
-const gchar *
-cra_app_get_project_group (CraApp *app)
-{
-	CraAppPrivate *priv = GET_PRIVATE (app);
-	return priv->project_group;
-}
-
-/**
- * cra_app_set_id_full:
- **/
-void
-cra_app_set_id_full (CraApp *app, const gchar *id_full)
-{
-	CraAppPrivate *priv = GET_PRIVATE (app);
-	gchar *tmp;
-
-	priv->id_full = g_strdup (id_full);
-	g_strdelimit (priv->id_full, "&<>", '-');
-	priv->id = g_strdup (priv->id_full);
-	tmp = g_strrstr_len (priv->id, -1, ".");
-	if (tmp != NULL)
-		*tmp = '\0';
-}
-
-/**
  * cra_app_get_package:
  **/
 CraPackage *
@@ -1026,48 +167,6 @@ cra_app_get_package (CraApp *app)
 {
 	CraAppPrivate *priv = GET_PRIVATE (app);
 	return priv->pkg;
-}
-
-/**
- * cra_app_subsume:
- **/
-void
-cra_app_subsume (CraApp *app, CraApp *donor)
-{
-	CraAppPrivate *priv = GET_PRIVATE (donor);
-	CraScreenshot *ss;
-	const gchar *tmp;
-	const gchar *value;
-	guint i;
-	GList *l;
-	GList *langs;
-
-	g_assert (app != donor);
-
-	/* pkgnames */
-	for (i = 0; i < priv->pkgnames->len; i++) {
-		tmp = g_ptr_array_index (priv->pkgnames, i);
-		cra_app_add_pkgname (app, tmp);
-	}
-
-	/* screenshots */
-	for (i = 0; i < priv->screenshots->len; i++) {
-		ss = g_ptr_array_index (priv->screenshots, i);
-		cra_app_add_screenshot (app, ss);
-	}
-
-	/* languages */
-	langs = g_hash_table_get_keys (priv->languages);
-	for (l = langs; l != NULL; l = l->next) {
-		tmp = l->data;
-		value = g_hash_table_lookup (priv->languages, tmp);
-		cra_app_add_language (app, tmp, value);
-	}
-	g_list_free (langs);
-
-	/* icon */
-	if (priv->icon != NULL)
-		cra_app_set_icon (app, priv->icon);
 }
 
 /**
@@ -1081,10 +180,13 @@ cra_app_save_resources (CraApp *app, GError **error)
 	gboolean ret = TRUE;
 	guint i;
 	gchar *filename = NULL;
+	GPtrArray *screenshots;
 
 	/* any non-stock icon set */
 	if (priv->pixbuf != NULL) {
-		filename = g_build_filename ("./icons", priv->icon, NULL);
+		filename = g_build_filename ("./icons",
+					     as_app_get_icon (AS_APP (app)),
+					     NULL);
 		ret = gdk_pixbuf_save (priv->pixbuf,
 				       filename,
 				       "png",
@@ -1100,8 +202,9 @@ cra_app_save_resources (CraApp *app, GError **error)
 	}
 
 	/* save any screenshots */
-	for (i = 0; i < priv->screenshots->len; i++) {
-		ss = g_ptr_array_index (priv->screenshots, i);
+	screenshots = as_app_get_screenshots (AS_APP (app));
+	for (i = 0; i < screenshots->len; i++) {
+		ss = g_ptr_array_index (screenshots, i);
 		ret = cra_screenshot_save_resources (ss, error);
 		if (!ret)
 			goto out;
@@ -1124,9 +227,10 @@ cra_app_new (CraPackage *pkg, const gchar *id_full)
 	priv = GET_PRIVATE (app);
 	if (pkg != NULL) {
 		priv->pkg = g_object_ref (pkg);
-		cra_app_add_pkgname (app, cra_package_get_name (pkg));
+		as_app_add_pkgname (AS_APP (app),
+				    cra_package_get_name (pkg), -1);
 	}
 	if (id_full != NULL)
-		cra_app_set_id_full (app, id_full);
+		as_app_set_id_full (AS_APP (app), id_full, -1);
 	return CRA_APP (app);
 }

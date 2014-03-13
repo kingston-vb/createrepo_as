@@ -156,25 +156,25 @@ cra_plugin_process (CraPlugin *plugin,
 
 	/* create app */
 	app = cra_app_new (pkg, app_id);
-	cra_app_set_kind (app, CRA_APP_KIND_CODEC);
-	cra_app_set_name (app, "C", "GStreamer Multimedia Codecs");
-	cra_app_set_icon (app, "application-x-executable");
+	as_app_set_id_kind (AS_APP (app), AS_ID_KIND_CODEC);
+	as_app_set_name (AS_APP (app), "C", "GStreamer Multimedia Codecs", -1);
+	as_app_set_icon (AS_APP (app), "application-x-executable", -1);
 	cra_app_set_requires_appdata (app, TRUE);
-	cra_app_set_icon_type (app, CRA_APP_ICON_TYPE_STOCK);
-	cra_app_add_category (app, "Addons");
-	cra_app_add_category (app, "Codecs");
+	as_app_set_icon_kind (AS_APP (app), AS_ICON_KIND_STOCK);
+	as_app_add_category (AS_APP (app), "Addons", -1);
+	as_app_add_category (AS_APP (app), "Codecs", -1);
 
 	for (i = 0; data[i].path != NULL; i++) {
 		if (!cra_utils_is_file_in_tmpdir (tmpdir, data[i].path))
 			continue;
 		split = g_strsplit (data[i].text, "|", -1);
 		for (j = 0; split[j] != NULL; j++)
-			cra_app_add_keyword (app, split[j]);
+			as_app_add_keyword (AS_APP (app), split[j], -1);
 		g_strfreev (split);
 	}
 
 	/* no codecs we care about */
-	keywords = cra_app_get_keywords (app);
+	keywords = as_app_get_keywords (AS_APP (app));
 	if (keywords->len == 0) {
 		g_set_error (error,
 			     CRA_PLUGIN_ERROR,
@@ -200,7 +200,7 @@ cra_plugin_process (CraPlugin *plugin,
 	} else {
 		g_string_append (str, g_ptr_array_index (keywords, 0));
 	}
-	cra_app_set_comment (app, "C", str->str);
+	as_app_set_comment (AS_APP (app), "C", str->str, -1);
 
 	/* add */
 	cra_plugin_add_app (&apps, app);

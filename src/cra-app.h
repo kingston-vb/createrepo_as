@@ -24,10 +24,10 @@
 
 #include <stdarg.h>
 #include <glib-object.h>
+#include <appstream-glib.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
 
 #include "cra-package.h"
-#include "cra-release.h"
 #include "cra-screenshot.h"
 
 #define CRA_TYPE_APP		(cra_app_get_type())
@@ -44,127 +44,36 @@ typedef struct _CraAppClass	CraAppClass;
 
 struct _CraApp
 {
-	GObject			parent;
+	AsApp			parent;
 };
 
 struct _CraAppClass
 {
-	GObjectClass		parent_class;
+	AsAppClass		parent_class;
 };
 
-typedef enum {
-	CRA_APP_ICON_TYPE_UNKNOWN,
-	CRA_APP_ICON_TYPE_STOCK,
-	CRA_APP_ICON_TYPE_CACHED,
-	CRA_APP_ICON_TYPE_REMOTE,
-	CRA_APP_ICON_TYPE_LAST
-} CraAppIconType;
-
-typedef enum {
-	CRA_APP_KIND_UNKNOWN,
-	CRA_APP_KIND_DESKTOP,
-	CRA_APP_KIND_FONT,
-	CRA_APP_KIND_CODEC,
-	CRA_APP_KIND_INPUT_METHOD,
-	CRA_APP_KIND_WEB_APP,
-	CRA_APP_KIND_LAST
-} CraAppKind;
-
 GType		 cra_app_get_type		(void);
-const gchar	*cra_app_kind_to_string		(CraAppKind	 kind);
-CraAppKind	 cra_app_kind_from_string	(const gchar	*kind);
-const gchar	*cra_app_icon_type_to_string	(CraAppIconType	 icon_type);
-CraAppIconType	 cra_app_icon_type_from_string	(const gchar	*icon_type);
+
+
 CraApp		*cra_app_new			(CraPackage	*pkg,
 						 const gchar	*id_full);
 gchar		*cra_app_to_xml			(CraApp		*app);
-void		 cra_app_set_id_full		(CraApp		*app,
-						 const gchar	*id_full);
-void		 cra_app_set_kind		(CraApp		*app,
-						 CraAppKind	 kind);
-void		 cra_app_set_homepage_url	(CraApp		*app,
-						 const gchar	*homepage_url);
-void		 cra_app_set_project_group	(CraApp		*app,
-						 const gchar	*project_group);
-void		 cra_app_set_project_license	(CraApp		*app,
-						 const gchar	*project_license);
-void		 cra_app_set_compulsory_for_desktop (CraApp	*app,
-						 const gchar	*compulsory_for_desktop);
-void		 cra_app_set_icon		(CraApp		*app,
-						 const gchar	*icon);
-void		 cra_app_add_category		(CraApp		*app,
-						 const gchar	*category);
-void		 cra_app_add_keyword		(CraApp		*app,
-						 const gchar	*keyword);
-void		 cra_app_add_mimetype		(CraApp		*app,
-						 const gchar	*mimetype);
 void		 cra_app_add_veto		(CraApp		*app,
 						 const gchar	*fmt,
 						 ...)
 						 G_GNUC_PRINTF(2,3);
-void		 cra_app_add_pkgname		(CraApp		*app,
-						 const gchar	*pkgname);
-void		 cra_app_add_screenshot		(CraApp		*app,
-						 CraScreenshot	*screenshot);
-void		 cra_app_add_release		(CraApp		*app,
-						 CraRelease	*release);
-void		 cra_app_add_language		(CraApp		*app,
-						 const gchar	*locale,
-						 const gchar	*value);
-void		 cra_app_add_metadata		(CraApp		*app,
-						 const gchar	*key,
-						 const gchar	*value);
-void		 cra_app_remove_metadata	(CraApp		*app,
-						 const gchar	*key);
-void		 cra_app_set_name		(CraApp		*app,
-						 const gchar	*locale,
-						 const gchar	*name);
-void		 cra_app_set_comment		(CraApp		*app,
-						 const gchar	*locale,
-						 const gchar	*comment);
-void		 cra_app_set_description	(CraApp		*app,
-						 const gchar	*locale,
-						 const gchar	*description);
 void		 cra_app_set_requires_appdata	(CraApp		*app,
 						 gboolean	 requires_appdata);
-void		 cra_app_set_icon_type		(CraApp		*app,
-						 CraAppIconType	 icon_type);
 void		 cra_app_set_pixbuf		(CraApp		*app,
 						 GdkPixbuf	*pixbuf);
-void		 cra_app_subsume		(CraApp		*app,
-						 CraApp		*donor);
 
 gboolean	 cra_app_get_requires_appdata	(CraApp		*app);
-GPtrArray	*cra_app_get_categories		(CraApp		*app);
-GPtrArray	*cra_app_get_keywords		(CraApp		*app);
-GPtrArray	*cra_app_get_screenshots	(CraApp		*app);
-GPtrArray	*cra_app_get_releases		(CraApp		*app);
 GPtrArray	*cra_app_get_vetos		(CraApp		*app);
-GPtrArray	*cra_app_get_pkgnames		(CraApp		*app);
-const gchar	*cra_app_get_id			(CraApp		*app);
-const gchar	*cra_app_get_id_full		(CraApp		*app);
-CraAppKind	 cra_app_get_kind		(CraApp		*app);
-const gchar	*cra_app_get_icon		(CraApp		*app);
-const gchar	*cra_app_get_project_group	(CraApp		*app);
-const gchar	*cra_app_get_name		(CraApp		*app,
-						 const gchar	*locale);
-const gchar	*cra_app_get_comment		(CraApp		*app,
-						 const gchar	*locale);
-const gchar	*cra_app_get_language		(CraApp		*app,
-						 const gchar	*locale);
-GList		*cra_app_get_languages		(CraApp		*app);
-const gchar	*cra_app_get_metadata_item	(CraApp		*app,
-						 const gchar	*key);
 CraPackage	*cra_app_get_package		(CraApp		*app);
 
-void		 cra_app_insert_into_dom	(CraApp		*app,
-						 GNode		*parent);
 gboolean	 cra_app_save_resources		(CraApp		*app,
 						 GError		**error);
 
-gboolean	 cra_app_load_from_node		(CraApp		*app,
-						 GNode		*node,
-						 GError		**error);
 
 G_END_DECLS
 

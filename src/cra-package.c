@@ -340,7 +340,7 @@ cra_package_add_release (CraPackage *pkg,
 			 const gchar *text)
 {
 	CraPackagePrivate *priv = GET_PRIVATE (pkg);
-	CraRelease *release;
+	AsRelease *release;
 	const gchar *version;
 	gchar *name_dup;
 	gchar *tmp;
@@ -372,14 +372,13 @@ cra_package_add_release (CraPackage *pkg,
 	if (release != NULL) {
 		/* use the earlier timestamp to ignore auto-rebuilds with just
 		 * a bumped release */
-		if (timestamp < cra_release_get_timestamp (release))
-			cra_release_set_timestamp (release, timestamp);
-		cra_release_add_text (release, text);
+		if (timestamp < as_release_get_timestamp (release))
+			as_release_set_timestamp (release, timestamp);
 	} else {
-		release = cra_release_new ();
-		cra_release_set_version (release, version);
-		cra_release_set_timestamp (release, timestamp);
-		cra_release_add_text (release, text);
+		release = as_release_new ();
+		as_release_set_version (release, version, -1);
+		as_release_set_timestamp (release, timestamp);
+		as_release_set_description (release, NULL, text, -1);
 		g_hash_table_insert (priv->releases_hash,
 				     g_strdup (version),
 				     release);

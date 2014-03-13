@@ -246,7 +246,6 @@ cra_plugin_process_app (CraPlugin *plugin,
 	CraGettextContext *ctx = NULL;
 	CraGettextEntry *e;
 	gboolean ret;
-	gchar tmp[4];
 	GList *l;
 
 	/* search */
@@ -260,8 +259,7 @@ cra_plugin_process_app (CraPlugin *plugin,
 		e = l->data;
 		if (e->percentage < 25)
 			continue;
-		g_snprintf (tmp, 4, "%i", e->percentage);
-		cra_app_add_language (app, e->locale, tmp);
+		as_app_add_language (AS_APP (app), e->percentage, e->locale, -1);
 	}
 out:
 	if (ctx != NULL)

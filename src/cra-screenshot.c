@@ -22,8 +22,8 @@
 #include "config.h"
 
 #include <libsoup/soup.h>
+#include <appstream-glib.h>
 
-#include "cra-dom.h"
 #include "cra-plugin.h"
 #include "cra-screenshot.h"
 
@@ -31,19 +31,14 @@ typedef struct _CraScreenshotPrivate	CraScreenshotPrivate;
 struct _CraScreenshotPrivate
 {
 	gchar			*app_id;
-	gchar			*cache_filename;
 	gchar			*basename;
-	gchar			*caption;
-	guint			 width;
-	guint			 height;
 	SoupSession		*session;
-	CraScreenshotKind	 kind;
 	gboolean		 only_source;
 	GdkPixbuf		*pixbuf;
 	CraPackage		*pkg;
 };
 
-G_DEFINE_TYPE_WITH_PRIVATE (CraScreenshot, cra_screenshot, G_TYPE_OBJECT)
+G_DEFINE_TYPE_WITH_PRIVATE (CraScreenshot, cra_screenshot, AS_TYPE_SCREENSHOT)
 
 #define GET_PRIVATE(o) (cra_screenshot_get_instance_private (o))
 
@@ -57,9 +52,7 @@ cra_screenshot_finalize (GObject *object)
 	CraScreenshotPrivate *priv = GET_PRIVATE (screenshot);
 
 	g_free (priv->app_id);
-	g_free (priv->cache_filename);
 	g_free (priv->basename);
-	g_free (priv->caption);
 	g_object_unref (priv->session);
 	if (priv->pkg != NULL)
 		g_object_unref (priv->pkg);
@@ -84,162 +77,62 @@ cra_screenshot_init (CraScreenshot *screenshot)
 }
 
 /**
- * cra_screenshot_kind_to_string:
- **/
-const gchar *
-cra_screenshot_kind_to_string (CraScreenshotKind kind)
-{
-	if (kind == CRA_SCREENSHOT_KIND_DEFAULT)
-		return "default";
-	if (kind == CRA_SCREENSHOT_KIND_NORMAL)
-		return "normal";
-	return "unknown";
-}
-
-/**
- * cra_screenshot_kind_from_string:
- **/
-CraScreenshotKind
-cra_screenshot_kind_from_string (const gchar *kind)
-{
-	if (g_strcmp0 (kind, "default") == 0)
-		return CRA_SCREENSHOT_KIND_DEFAULT;
-	if (g_strcmp0 (kind, "normal") == 0)
-		return CRA_SCREENSHOT_KIND_NORMAL;
-	return CRA_SCREENSHOT_KIND_UNKNOWN;
-}
-
-/**
- * cra_screenshot_insert_into_dom:
- **/
-void
-cra_screenshot_insert_into_dom (CraScreenshot *screenshot, GNode *parent)
-{
-	CraScreenshotPrivate *priv = GET_PRIVATE (screenshot);
-	const gchar *mirror_uri;
-	gchar tmp_height[6];
-	gchar tmp_width[6];
-	gchar *url_tmp;
-	gchar *size_str;
-	GNode *node_ss;
-	guint i;
-	guint sizes[] = { 624, 351, 112, 63, 752, 423, 0 };
-
-	node_ss = cra_dom_insert (parent, "screenshot", NULL,
-				  "type", cra_screenshot_kind_to_string (priv->kind),
-				  NULL);
-
-	/* add caption */
-	if (priv->caption != NULL)
-		cra_dom_insert (node_ss, "caption", priv->caption, NULL);
-
-	/* only write a source image, e.g. font screnshots */
-	mirror_uri = cra_package_get_config (priv->pkg, "MirrorURI");
-	if (priv->only_source) {
-		g_snprintf (tmp_width, sizeof (tmp_width), "%u", priv->width);
-		g_snprintf (tmp_height, sizeof (tmp_height), "%u", priv->height);
-		url_tmp = g_build_filename (mirror_uri,
-					    "source",
-					    priv->basename,
-					    NULL);
-		cra_dom_insert (node_ss, "image", url_tmp,
-				"width", tmp_width,
-				"height", tmp_height,
-				"type", "normal",
-				NULL);
-		g_free (url_tmp);
-		return;
-	}
-
-	/* add each of the resampled images */
-	for (i = 0; sizes[i] != 0; i += 2) {
-		g_snprintf (tmp_width, sizeof (tmp_width), "%u", sizes[i]);
-		g_snprintf (tmp_height, sizeof (tmp_height), "%u", sizes[i+1]);
-		size_str = g_strdup_printf ("%ix%i", sizes[i], sizes[i+1]);
-		url_tmp = g_build_filename (mirror_uri,
-					    size_str,
-					    priv->basename,
-					    NULL);
-		cra_dom_insert (node_ss, "image", url_tmp,
-				"height", tmp_height,
-				"width", tmp_width,
-				"type", "thumbnail",
-				NULL);
-		g_free (url_tmp);
-		g_free (size_str);
-	}
-}
-
-/**
- * cra_screenshot_get_cache_filename:
- **/
-const gchar *
-cra_screenshot_get_cache_filename (CraScreenshot *screenshot)
-{
-	CraScreenshotPrivate *priv = GET_PRIVATE (screenshot);
-	return priv->cache_filename;
-}
-
-/**
- * cra_screenshot_get_caption:
- **/
-const gchar *
-cra_screenshot_get_caption (CraScreenshot *screenshot)
-{
-	CraScreenshotPrivate *priv = GET_PRIVATE (screenshot);
-	return priv->caption;
-}
-
-/**
- * cra_screenshot_get_width:
- **/
-guint
-cra_screenshot_get_width (CraScreenshot *screenshot)
-{
-	CraScreenshotPrivate *priv = GET_PRIVATE (screenshot);
-	return priv->width;
-}
-
-/**
- * cra_screenshot_get_height:
- **/
-guint
-cra_screenshot_get_height (CraScreenshot *screenshot)
-{
-	CraScreenshotPrivate *priv = GET_PRIVATE (screenshot);
-	return priv->height;
-}
-
-/**
- * cra_screenshot_set_caption:
- **/
-void
-cra_screenshot_set_caption (CraScreenshot *screenshot, const gchar *caption)
-{
-	CraScreenshotPrivate *priv = GET_PRIVATE (screenshot);
-	g_free (priv->caption);
-	priv->caption = g_strdup (caption);
-}
-
-/**
  * cra_screenshot_set_pixbuf:
  **/
 void
 cra_screenshot_set_pixbuf (CraScreenshot *screenshot, GdkPixbuf *pixbuf)
 {
+	AsImage *im;
 	CraScreenshotPrivate *priv = GET_PRIVATE (screenshot);
+	const gchar *mirror_uri;
 	gchar *md5 = NULL;
-	guint len;
+	gchar *size_str;
+	gchar *url_tmp;
 	guchar *data;
+	guint i;
+	guint len;
+	guint sizes[] = { 624, 351, 112, 63, 752, 423, 0 };
 
 	priv->pixbuf = g_object_ref (pixbuf);
-	priv->width = gdk_pixbuf_get_width (pixbuf);
-	priv->height = gdk_pixbuf_get_height (pixbuf);
-
 	data = gdk_pixbuf_get_pixels_with_length (pixbuf, &len);
 	md5 = g_compute_checksum_for_data (G_CHECKSUM_MD5, data, len);
 	priv->basename = g_strdup_printf ("%s-%s.png", priv->app_id, md5);
 	g_free (md5);
+
+	/* create the source */
+	mirror_uri = cra_package_get_config (priv->pkg, "MirrorURI");
+	if (priv->only_source) {
+		im = as_image_new ();
+		as_image_set_kind (im, AS_IMAGE_KIND_SOURCE);
+		as_image_set_width (im, gdk_pixbuf_get_width (priv->pixbuf));
+		as_image_set_height (im, gdk_pixbuf_get_height (priv->pixbuf));
+		url_tmp = g_build_filename (mirror_uri,
+					    "source",
+					    priv->basename,
+					    NULL);
+		as_image_set_url (im, url_tmp, -1);
+		as_screenshot_add_image (AS_SCREENSHOT (screenshot), im);
+		g_free (url_tmp);
+
+	/* create the various images in the _baseclass_ screenshot */
+	} else {
+		for (i = 0; sizes[i] != 0; i += 2) {
+			size_str = g_strdup_printf ("%ix%i", sizes[i], sizes[i+1]);
+			url_tmp = g_build_filename (mirror_uri,
+						    size_str,
+						    priv->basename,
+						    NULL);
+			im = as_image_new ();
+			as_image_set_kind (im, AS_IMAGE_KIND_THUMBNAIL);
+			as_image_set_width (im, sizes[i]);
+			as_image_set_height (im, sizes[i+1]);
+			as_image_set_url (im, url_tmp, -1);
+			as_screenshot_add_image (AS_SCREENSHOT (screenshot), im);
+			g_free (url_tmp);
+			g_free (size_str);
+			g_object_unref (im);
+		}
+	}
 }
 
 /**
@@ -251,9 +144,9 @@ cra_screenshot_load_filename (CraScreenshot *screenshot,
 			      GError **error)
 {
 	CraScreenshotPrivate *priv = GET_PRIVATE (screenshot);
+	GdkPixbuf *pixbuf = NULL;
 	gboolean ret = TRUE;
 	gchar *data = NULL;
-	gchar *md5 = NULL;
 	gsize len;
 
 	/* get the contents so we can hash */
@@ -262,28 +155,26 @@ cra_screenshot_load_filename (CraScreenshot *screenshot,
 		goto out;
 
 	/* load the image */
-	priv->pixbuf = gdk_pixbuf_new_from_file (filename, error);
-	if (priv->pixbuf == NULL) {
+	pixbuf = gdk_pixbuf_new_from_file (filename, error);
+	if (pixbuf == NULL) {
 		ret = FALSE;
 		goto out;
 	}
 
 	/* set */
-	priv->width = gdk_pixbuf_get_width (priv->pixbuf);
-	priv->height = gdk_pixbuf_get_height (priv->pixbuf);
-	md5 = g_compute_checksum_for_data (G_CHECKSUM_MD5, (guchar *) data, len);
-	priv->basename = g_strdup_printf ("%s-%s.png", priv->app_id, md5);
-	priv->cache_filename = g_strdup (filename);
+	cra_screenshot_set_pixbuf (screenshot, pixbuf);
 
 	/* is the aspect ratio of the source perfectly 16:9 */
-	if ((priv->width / 16) * 9 != priv->height) {
+	if ((gdk_pixbuf_get_width (pixbuf) / 16) * 9 !=
+	    gdk_pixbuf_get_height (pixbuf)) {
 		cra_package_log (priv->pkg,
 				 CRA_PACKAGE_LOG_LEVEL_WARNING,
 				 "%s is not in 16:9 aspect ratio",
 				 filename);
 	}
 out:
-	g_free (md5);
+	if (pixbuf != NULL)
+		g_object_unref (pixbuf);
 	g_free (data);
 	return ret;
 }
@@ -304,6 +195,8 @@ cra_screenshot_save_pixbuf (CraScreenshot *screenshot,
 	GdkPixbuf *pixbuf_tmp = NULL;
 	guint tmp_height;
 	guint tmp_width;
+	guint pixbuf_height;
+	guint pixbuf_width;
 
 	/* does screenshot already exist */
 	size_str = g_strdup_printf ("%ix%i", width, height);
@@ -319,7 +212,9 @@ cra_screenshot_save_pixbuf (CraScreenshot *screenshot,
 	}
 
 	/* is the aspect ratio of the source perfectly 16:9 */
-	if ((priv->width / 16) * 9 == priv->height) {
+	pixbuf_width = gdk_pixbuf_get_width (priv->pixbuf);
+	pixbuf_height = gdk_pixbuf_get_height (priv->pixbuf);
+	if ((pixbuf_width / 16) * 9 == pixbuf_height) {
 		pixbuf = gdk_pixbuf_scale_simple (priv->pixbuf,
 						  width, height,
 						  GDK_INTERP_BILINEAR);
@@ -331,11 +226,11 @@ cra_screenshot_save_pixbuf (CraScreenshot *screenshot,
 					 width,
 					 height);
 		gdk_pixbuf_fill (pixbuf, 0x00000000);
-		if ((priv->width / 16) * 9 > priv->height) {
+		if ((pixbuf_width / 16) * 9 > pixbuf_height) {
 			tmp_width = width;
-			tmp_height = width * priv->height / priv->width;
+			tmp_height = width * pixbuf_height / pixbuf_width;
 		} else {
-			tmp_width = height * priv->width / priv->height;
+			tmp_width = height * pixbuf_width / pixbuf_height;
 			tmp_height = height;
 		}
 		pixbuf_tmp = gdk_pixbuf_scale_simple (priv->pixbuf,
@@ -418,22 +313,14 @@ out:
 gboolean
 cra_screenshot_save_resources (CraScreenshot *screenshot, GError **error)
 {
+	AsImage *im;
 	CraScreenshotPrivate *priv = GET_PRIVATE (screenshot);
+	GPtrArray *images;
 	gboolean ret = TRUE;
+	guint i;
 
 	/* any non-stock icon set */
 	if (priv->pixbuf == NULL)
-		goto out;
-
-	/* save each supported size */
-	ret = cra_screenshot_save_pixbuf (screenshot, 624, 351, error);
-	if (!ret)
-		goto out;
-	ret = cra_screenshot_save_pixbuf (screenshot, 112, 63, error);
-	if (!ret)
-		goto out;
-	ret = cra_screenshot_save_pixbuf (screenshot, 752, 423, error);
-	if (!ret)
 		goto out;
 
 	/* most of the time, don't save a source image */
@@ -441,8 +328,20 @@ cra_screenshot_save_resources (CraScreenshot *screenshot, GError **error)
 		ret = cra_screenshot_save_source (screenshot, error);
 		if (!ret)
 			goto out;
-	}
 
+	/* save each image */
+	} else {
+		images = as_screenshot_get_images (AS_SCREENSHOT (screenshot));
+		for (i = 0; i < images->len; i++) {
+			im = g_ptr_array_index (images, i);
+			ret = cra_screenshot_save_pixbuf (screenshot,
+							  as_image_get_width (im),
+							  as_image_get_height (im),
+							  error);
+			if (!ret)
+				goto out;
+		}
+	}
 out:
 	return ret;
 }
@@ -514,16 +413,6 @@ out:
 }
 
 /**
- * cra_screenshot_set_kind:
- **/
-void
-cra_screenshot_set_kind (CraScreenshot *screenshot, CraScreenshotKind kind)
-{
-	CraScreenshotPrivate *priv = GET_PRIVATE (screenshot);
-	priv->kind = kind;
-}
-
-/**
  * cra_screenshot_set_only_source:
  **/
 void
@@ -531,39 +420,6 @@ cra_screenshot_set_only_source (CraScreenshot *screenshot, gboolean only_source)
 {
 	CraScreenshotPrivate *priv = GET_PRIVATE (screenshot);
 	priv->only_source = only_source;
-}
-
-/**
- * cra_screenshot_load_from_node:
- **/
-gboolean
-cra_screenshot_load_from_node (CraScreenshot *screenshot, GNode *node, GError **error)
-{
-	const gchar *name;
-	const gchar *tmp;
-	gboolean ret = TRUE;
-	GNode *c;
-
-	tmp = cra_dom_get_node_attribute (node, "type");
-	cra_screenshot_set_kind (screenshot, cra_screenshot_kind_from_string (tmp));
-	for (c = node->children; c != NULL; c = c->next) {
-		name = cra_dom_get_node_name (c);
-		if (g_strcmp0 (name, "caption") == 0) {
-			cra_screenshot_set_caption (screenshot, cra_dom_get_node_data (c));
-			continue;
-		}
-		if (g_strcmp0 (name, "image") == 0) {
-			ret = FALSE;
-			g_set_error_literal (error,
-					     CRA_PLUGIN_ERROR,
-					     CRA_PLUGIN_ERROR_FAILED,
-					     "loading image screenshots "
-					     "not implemented yet");
-			goto out;
-		}
-	}
-out:
-	return ret;
 }
 
 /**

@@ -26,7 +26,7 @@
 
 #include <stdarg.h>
 
-#include "cra-release.h"
+#include <appstream-glib.h>
 
 #define CRA_TYPE_PACKAGE		(cra_package_get_type())
 #define CRA_PACKAGE(obj)		(G_TYPE_CHECK_INSTANCE_CAST((obj), CRA_TYPE_PACKAGE, CraPackage))

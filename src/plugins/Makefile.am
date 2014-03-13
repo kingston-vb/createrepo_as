@@ -1,4 +1,5 @@
 AM_CPPFLAGS =						\
+	$(APPSTREAM_CFLAGS)				\
 	$(GDKPIXBUF_CFLAGS)				\
 	$(GLIB_CFLAGS)					\
 	$(LIBARCHIVE_CFLAGS)				\

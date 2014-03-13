@@ -197,67 +197,34 @@ out:
 }
 
 /**
- * cra_utils_add_apps_from_dom:
- */
-gboolean
-cra_utils_add_apps_from_dom (GList **apps, CraDom *dom, GError **error)
-{
-	gboolean ret = TRUE;
-	GNode *n;
-	GNode *node_apps;
-	GNode *root;
-	CraApp *app;
-
-	/* get apps */
-	root = cra_dom_get_root (dom);
-	node_apps = cra_dom_get_node (root, "applications");
-	if (node_apps == NULL) {
-		ret = FALSE;
-		g_set_error_literal (error,
-				     CRA_PLUGIN_ERROR,
-				     CRA_PLUGIN_ERROR_FAILED,
-				     "no applications in XML document");
-		goto out;
-	}
-	for (n = node_apps->children; n != NULL; n = n->next) {
-		app = cra_app_new (NULL, NULL);
-		ret = cra_app_load_from_node (app, n, error);
-		if (!ret) {
-			g_object_unref (app);
-			goto out;
-		}
-		cra_plugin_add_app (apps, app);
-		g_object_unref (app);
-	}
-out:
-	return ret;
-}
-
-/**
  * cra_utils_add_apps_from_file:
  */
 gboolean
 cra_utils_add_apps_from_file (GList **apps, const gchar *filename, GError **error)
 {
-	CraDom *dom = NULL;
+	AsApp *app;
+	AsStore *store;
+	GFile *file;
+	GPtrArray *array;
 	gboolean ret;
-	gchar *data;
-	gsize len;
+	guint i;
 
-	ret = g_file_get_contents (filename, &data, &len, error);
+	/* parse file */
+	store = as_store_new ();
+	file = g_file_new_for_path (filename);
+	ret = as_store_from_file (store, file, NULL, NULL, error);
 	if (!ret)
 		goto out;
-	dom = cra_dom_new ();
-	ret = cra_dom_parse_xml_data (dom, data, len, error);
-	if (!ret)
-		goto out;
-	ret = cra_utils_add_apps_from_dom (apps, dom, error);
-	if (!ret)
-		goto out;
+
+	/* copy Asapp's into CraApp's */
+	array = as_store_get_apps (store);
+	for (i = 0; i < array->len; i++) {
+		app = g_ptr_array_index (array, i);
+		cra_plugin_add_app (apps, (CraApp *) app);
+	}
 out:
-	g_free (data);
-	if (dom != NULL)
-		g_object_unref (dom);
+	g_object_unref (file);
+	g_object_unref (store);
 	return ret;
 }
 

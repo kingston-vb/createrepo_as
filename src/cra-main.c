@@ -22,12 +22,12 @@
 #include "config.h"
 
 #include "cra-context.h"
-#include "cra-dom.h"
 #include "cra-package.h"
 #include "cra-plugin.h"
 #include "cra-plugin-loader.h"
 #include "cra-utils.h"
 
+#include <appstream-glib.h>
 #include <gio/gio.h>
 #include <glib.h>
 #include <locale.h>
@@ -63,7 +63,7 @@ cra_task_process_func (gpointer data, gpointer user_data)
 	CraContext *ctx = (CraContext *) user_data;
 	CraPackage *pkg_extra;
 	CraPlugin *plugin = NULL;
-	CraRelease *release;
+	AsRelease *release;
 	CraTask *task = (CraTask *) data;
 	gboolean ret;
 	gchar **filelist;
@@ -188,7 +188,7 @@ cra_task_process_func (gpointer data, gpointer user_data)
 		app = l->data;
 
 		/* never set */
-		if (cra_app_get_id_full (app) == NULL) {
+		if (as_app_get_id_full (AS_APP (app)) == NULL) {
 			cra_package_log (task->pkg,
 					 CRA_PACKAGE_LOG_LEVEL_INFO,
 					 "app id not set for %s",
@@ -198,7 +198,7 @@ cra_task_process_func (gpointer data, gpointer user_data)
 
 		/* is application backlisted */
 		if (cra_glob_value_search (ctx->blacklisted_ids,
-					   cra_app_get_id (app))) {
+					   as_app_get_id (AS_APP (app)))) {
 			cra_package_log (task->pkg,
 					 CRA_PACKAGE_LOG_LEVEL_INFO,
 					 "app id %s is blacklisted",
@@ -207,16 +207,21 @@ cra_task_process_func (gpointer data, gpointer user_data)
 		}
 
 		/* copy data from pkg into app */
-		if (cra_package_get_url (task->pkg) != NULL)
-			cra_app_set_homepage_url (app, cra_package_get_url (task->pkg));
+		if (cra_package_get_url (task->pkg) != NULL) {
+			as_app_add_url (AS_APP (app),
+					AS_URL_KIND_HOMEPAGE,
+					cra_package_get_url (task->pkg), -1);
+		}
 		if (cra_package_get_license (task->pkg) != NULL)
-			cra_app_set_project_license (app, cra_package_get_license (task->pkg));
+			as_app_set_project_license (AS_APP (app),
+						    cra_package_get_license (task->pkg),
+						    -1);
 
 		/* set all the releases on the app */
 		array = cra_package_get_releases (task->pkg);
 		for (i = 0; i < array->len; i++) {
 			release = g_ptr_array_index (array, i);
-			cra_app_add_release (app, release);
+			as_app_add_release (AS_APP (app), release);
 		}
 
 		/* run each refine plugin on each app */
@@ -229,7 +234,7 @@ cra_task_process_func (gpointer data, gpointer user_data)
 			cra_package_log (task->pkg,
 					 CRA_PACKAGE_LOG_LEVEL_WARNING,
 					 "Failed to run process on %s: %s",
-					 cra_app_get_id (app),
+					 as_app_get_id (AS_APP (app)),
 					 error->message);
 			g_error_free (error);
 			goto out;
@@ -240,16 +245,16 @@ cra_task_process_func (gpointer data, gpointer user_data)
 			cra_package_log (task->pkg,
 					 CRA_PACKAGE_LOG_LEVEL_INFO,
 					 "%s required appdata but none provided",
-					 cra_app_get_id_full (app));
+					 as_app_get_id_full (AS_APP (app)));
 			continue;
 		}
 
 		/* don't include apps that have no icon, name or comment */
-		if (cra_app_get_icon (app) == NULL)
+		if (as_app_get_icon (AS_APP (app)) == NULL)
 			cra_app_add_veto (app, "Has no Icon");
-		if (cra_app_get_name (app, "C") == NULL)
+		if (as_app_get_name (AS_APP (app), "C") == NULL)
 			cra_app_add_veto (app, "Has no Name");
-		if (cra_app_get_comment (app, "C") == NULL)
+		if (as_app_get_comment (AS_APP (app), "C") == NULL)
 			cra_app_add_veto (app, "Has no Comment");
 
 		/* list all the reasons we're ignoring the app */
@@ -258,7 +263,7 @@ cra_task_process_func (gpointer data, gpointer user_data)
 			cra_package_log (task->pkg,
 					 CRA_PACKAGE_LOG_LEVEL_WARNING,
 					 "%s not included in metadata:",
-					 cra_app_get_id_full (app));
+					 as_app_get_id_full (AS_APP (app)));
 			for (i = 0; i < array->len; i++) {
 				tmp = g_ptr_array_index (array, i);
 				cra_package_log (task->pkg,
@@ -281,7 +286,7 @@ cra_task_process_func (gpointer data, gpointer user_data)
 
 		/* print Kudos the might have */
 		for (i = 0; kudos[i] != NULL; i++) {
-			if (cra_app_get_metadata_item (app, kudos[i]) != NULL)
+			if (as_app_get_metadata_item (AS_APP (app), kudos[i]) != NULL)
 				continue;
 			cra_package_log (task->pkg,
 					 CRA_PACKAGE_LOG_LEVEL_INFO,
@@ -373,63 +378,39 @@ cra_context_write_xml (CraContext *ctx,
 		       const gchar *basename,
 		       GError **error)
 {
-	CraApp *app;
-	CraDom *dom;
-	gboolean ret;
+	AsApp *app;
+	AsStore *store;
 	GList *l;
-	GNode *node_apps;
-	GNode *node_root;
-	GOutputStream *out;
-	GOutputStream *out2;
-	GString *xml;
-	GZlibCompressor *compressor;
 	gchar *filename = NULL;
+	GFile *file;
+	gboolean ret;
 
-	/* get XML text */
-	dom = cra_dom_new ();
-	node_root = cra_dom_get_root (dom);
-	node_apps = cra_dom_insert (node_root, "applications", NULL,
-				    "version", "0.4",
-				    NULL);
+	store = as_store_new ();
 	for (l = ctx->apps; l != NULL; l = l->next) {
-		app = CRA_APP (l->data);
-		if (cra_app_get_vetos(app)->len > 0)
-			continue;
-		cra_app_insert_into_dom (app, node_apps);
+		app = AS_APP (l->data);
+		if (CRA_IS_APP (app)) {
+			if (cra_app_get_vetos(CRA_APP(app))->len > 0)
+				continue;
+		}
+		as_store_add_app (store, app);
 	}
-	xml = cra_dom_to_xml (cra_dom_get_root (dom),
-			      CRA_DOM_TO_XML_ADD_HEADER |
-			      CRA_DOM_TO_XML_FORMAT_INDENT |
-			      CRA_DOM_TO_XML_FORMAT_MULTILINE);
-
-	/* compress as a gzip file */
-	compressor = g_zlib_compressor_new (G_ZLIB_COMPRESSOR_FORMAT_GZIP, -1);
-	out = g_memory_output_stream_new_resizable ();
-	out2 = g_converter_output_stream_new (out, G_CONVERTER (compressor));
-	ret = g_output_stream_write_all (out2, xml->str, xml->len,
-					 NULL, NULL, error);
-	if (!ret)
-		goto out;
-	ret = g_output_stream_close (out2, NULL, error);
-	if (!ret)
-		goto out;
-
-	/* write file */
 	filename = g_strdup_printf ("%s/%s.xml.gz", output_dir, basename);
+	file = g_file_new_for_path (filename);
+
 	g_debug ("Writing %s", filename);
-	ret = g_file_set_contents (filename,
-				   g_memory_output_stream_get_data (G_MEMORY_OUTPUT_STREAM (out)),
-				   g_memory_output_stream_get_size (G_MEMORY_OUTPUT_STREAM (out)),
-				   error);
+	ret = as_store_to_file (store,
+				file,
+				AS_NODE_TO_XML_FLAG_ADD_HEADER |
+				AS_NODE_TO_XML_FLAG_FORMAT_INDENT |
+				AS_NODE_TO_XML_FLAG_FORMAT_MULTILINE,
+				NULL, error);
 	if (!ret)
 		goto out;
+
 out:
 	g_free (filename);
-	g_object_unref (dom);
-	g_object_unref (compressor);
-	g_object_unref (out);
-	g_object_unref (out2);
-	g_string_free (xml, TRUE);
+	g_object_unref (file);
+	g_object_unref (store);
 	return ret;
 }
 

@@ -21,8 +21,9 @@
 
 #include <config.h>
 
+#include <appstream-glib.h>
+
 #include <cra-plugin.h>
-#include <cra-dom.h>
 #include <cra-screenshot.h>
 
 /**
@@ -71,7 +72,6 @@ cra_plugin_process_filename (CraApp *app,
 	const gchar *tmp;
 	const GNode *c;
 	const GNode *n;
-	CraDom *dom;
 	gboolean ret;
 	gchar *data = NULL;
 	gchar **split;
@@ -80,21 +80,19 @@ cra_plugin_process_filename (CraApp *app,
 	GHashTable *names = NULL;
 	GList *l;
 	GList *list;
-	GNode *root;
+	GNode *root = NULL;
 	guint i;
 
 	/* parse file */
-	dom = cra_dom_new ();
 	ret = g_file_get_contents (filename, &data, NULL, error);
 	if (!ret)
 		goto out;
-	ret = cra_dom_parse_xml_data (dom, data, -1, error);
+	root = as_node_from_xml (data, -1, AS_NODE_FROM_XML_FLAG_NONE, error);
 	if (!ret)
 		goto out;
 
 	/* check app id */
-	root = cra_dom_get_root (dom);
-	n = cra_dom_get_node (root, "application/id");
+	n = as_node_find (root, "application/id");
 	if (n == NULL) {
 		ret = FALSE;
 		g_set_error (error,
@@ -104,21 +102,21 @@ cra_plugin_process_filename (CraApp *app,
 			     filename);
 		goto out;
 	}
-	if (g_strcmp0 (cra_dom_get_node_data (n),
-		       cra_app_get_id_full (app)) != 0) {
+	if (g_strcmp0 (as_node_get_data (n),
+		       as_app_get_id_full (AS_APP (app))) != 0) {
 		ret = FALSE;
 		g_set_error (error,
 			     CRA_PLUGIN_ERROR,
 			     CRA_PLUGIN_ERROR_FAILED,
 			     "AppData %s does not match '%s':'%s'",
 			     filename,
-			     cra_dom_get_node_data (n),
-			     cra_app_get_id_full (app));
+			     as_node_get_data (n),
+			     as_app_get_id_full (AS_APP (app)));
 		goto out;
 	}
 
 	/* check license */
-	n = cra_dom_get_node (root, "application/licence");
+	n = as_node_find (root, "application/licence");
 	if (n == NULL) {
 		ret = FALSE;
 		g_set_error (error,
@@ -128,7 +126,7 @@ cra_plugin_process_filename (CraApp *app,
 			     filename);
 		goto out;
 	}
-	tmp = cra_dom_get_node_data (n);
+	tmp = as_node_get_data (n);
 	if (g_strcmp0 (tmp, "CC BY") == 0)
 		tmp = "CC-BY";
 	if (g_strcmp0 (tmp, "CC BY-SA") == 0)
@@ -144,25 +142,34 @@ cra_plugin_process_filename (CraApp *app,
 	}
 
 	/* other optional data */
-	n = cra_dom_get_node (root, "application/url");
-	if (n != NULL)
-		cra_app_set_homepage_url (app, cra_dom_get_node_data (n));
-	n = cra_dom_get_node (root, "application/project_group");
-	if (n != NULL)
-		cra_app_set_project_group (app, cra_dom_get_node_data (n));
-	n = cra_dom_get_node (root, "application/compulsory_for_desktop");
-	if (n != NULL)
-		cra_app_set_compulsory_for_desktop (app, cra_dom_get_node_data (n));
+	n = as_node_find (root, "application/url");
+	if (n != NULL) {
+		as_app_add_url (AS_APP (app), AS_URL_KIND_HOMEPAGE,
+				as_node_get_data (n), -1);
+	}
+	n = as_node_find (root, "application/project_group");
+	if (n != NULL) {
+		as_app_set_project_group (AS_APP (app),
+					  as_node_get_data (n), -1);
+	}
+	n = as_node_find (root, "application/compulsory_for_desktop");
+	if (n != NULL) {
+		as_app_add_compulsory_for_desktop (AS_APP (app),
+						   as_node_get_data (n),
+						   -1);
+	}
 
 	/* perhaps get name & summary */
-	n = cra_dom_get_node (root, "application");
+	n = as_node_find (root, "application");
 	if (n != NULL)
-		names = cra_dom_get_node_localized (n, "name");
+		names = as_node_get_localized (n, "name");
 	if (names != NULL) {
 		list = g_hash_table_get_keys (names);
 		for (l = list; l != NULL; l = l->next) {
 			tmp = g_hash_table_lookup (names, l->data);
-			cra_app_set_name (app, (const gchar *) l->data, tmp);
+			as_app_set_name (AS_APP (app),
+					 (const gchar *) l->data,
+					 tmp, -1);
 		}
 		if (g_list_length (list) == 1) {
 			cra_package_log (cra_app_get_package (app),
@@ -172,12 +179,14 @@ cra_plugin_process_filename (CraApp *app,
 		g_list_free (list);
 	}
 	if (n != NULL)
-		comments = cra_dom_get_node_localized (n, "summary");
+		comments = as_node_get_localized (n, "summary");
 	if (comments != NULL) {
 		list = g_hash_table_get_keys (comments);
 		for (l = list; l != NULL; l = l->next) {
 			tmp = g_hash_table_lookup (comments, l->data);
-			cra_app_set_comment (app, (const gchar *) l->data, tmp);
+			as_app_set_comment (AS_APP (app),
+					    (const gchar *) l->data,
+					    tmp, -1);
 		}
 		if (g_list_length (list) == 1) {
 			cra_package_log (cra_app_get_package (app),
@@ -188,9 +197,9 @@ cra_plugin_process_filename (CraApp *app,
 	}
 
 	/* get de-normalized description */
-	n = cra_dom_get_node (root, "application/description");
+	n = as_node_find (root, "application/description");
 	if (n != NULL) {
-		descriptions = cra_dom_denorm_to_xml_localized (n, error);
+		descriptions = as_node_get_localized_unwrap (n, error);
 		if (descriptions == NULL) {
 			ret = FALSE;
 			goto out;
@@ -200,7 +209,9 @@ cra_plugin_process_filename (CraApp *app,
 		list = g_hash_table_get_keys (descriptions);
 		for (l = list; l != NULL; l = l->next) {
 			tmp = g_hash_table_lookup (descriptions, l->data);
-			cra_app_set_description (app, (const gchar *) l->data, tmp);
+			as_app_set_description (AS_APP (app),
+						(const gchar *) l->data,
+						tmp, -1);
 		}
 		if (g_list_length (list) == 1) {
 			cra_package_log (cra_app_get_package (app),
@@ -211,25 +222,27 @@ cra_plugin_process_filename (CraApp *app,
 	}
 
 	/* add screenshots */
-	n = cra_dom_get_node (root, "application/screenshots");
-	if (n != NULL && cra_app_get_screenshots(app)->len == 0) {
+	n = as_node_find (root, "application/screenshots");
+	if (n != NULL && as_app_get_screenshots(AS_APP (app))->len == 0) {
 		for (c = n->children; c != NULL; c = c->next) {
 			CraScreenshot *ss;
 			GError *error_local = NULL;
 
-			if (g_strcmp0 (cra_dom_get_node_name (c), "screenshot") != 0)
+			if (g_strcmp0 (as_node_get_name (c), "screenshot") != 0)
 				continue;
 			ss = cra_screenshot_new (cra_app_get_package (app),
-						 cra_app_get_id (app));
-			tmp = cra_dom_get_node_attribute (c, "type");
-			cra_screenshot_set_kind (ss, cra_screenshot_kind_from_string (tmp));
-			tmp = cra_dom_get_node_data (c);
+						 as_app_get_id (AS_APP (app)));
+			tmp = as_node_get_attribute (c, "type");
+			as_screenshot_set_kind (AS_SCREENSHOT (ss),
+						as_screenshot_kind_from_string (tmp));
+			tmp = as_node_get_data (c);
 			ret = cra_screenshot_load_url (ss, tmp, &error_local);
 			if (ret) {
 				cra_package_log (cra_app_get_package (app),
 						 CRA_PACKAGE_LOG_LEVEL_DEBUG,
 						 "Added screenshot %s", tmp);
-				cra_app_add_screenshot (app, ss);
+				as_app_add_screenshot (AS_APP (app),
+						       AS_SCREENSHOT (ss));
 			} else {
 				cra_package_log (cra_app_get_package (app),
 						 CRA_PACKAGE_LOG_LEVEL_WARNING,
@@ -246,20 +259,22 @@ cra_plugin_process_filename (CraApp *app,
 	}
 
 	/* add metadata */
-	n = cra_dom_get_node (root, "application/metadata");
+	n = as_node_find (root, "application/metadata");
 	if (n != NULL) {
 		for (c = n->children; c != NULL; c = c->next) {
-			if (g_strcmp0 (cra_dom_get_node_name (c), "value") != 0)
+			if (g_strcmp0 (as_node_get_name (c), "value") != 0)
 				continue;
-			tmp = cra_dom_get_node_attribute (c, "key");
+			tmp = as_node_get_attribute (c, "key");
 			if (g_strcmp0 (tmp, "ExtraPackages") == 0) {
-				split = g_strsplit (cra_dom_get_node_data (c), ",", -1);
-				for (i = 0; split[i] != NULL; i++)
-					cra_app_add_pkgname (app, split[i]);
+				split = g_strsplit (as_node_get_data (c), ",", -1);
+				for (i = 0; split[i] != NULL; i++) {
+					as_app_add_pkgname (AS_APP (app),
+							    split[i], -1);
+				}
 				g_strfreev (split);
 			} else {
-				cra_app_add_metadata (app, tmp,
-						      cra_dom_get_node_data (c));
+				as_app_add_metadata (AS_APP (app), tmp,
+						     as_node_get_data (c), -1);
 			}
 		}
 	}
@@ -275,8 +290,8 @@ out:
 		g_hash_table_unref (comments);
 	if (descriptions != NULL)
 		g_hash_table_unref (descriptions);
-	if (dom != NULL)
-		g_object_unref (dom);
+	if (root != NULL)
+		as_node_unref (root);
 	return ret;
 }
 
@@ -298,14 +313,14 @@ cra_plugin_process_app (CraPlugin *plugin,
 
 	/* get possible sources */
 	appdata_filename = g_strdup_printf ("%s/usr/share/appdata/%s.appdata.xml",
-					    tmpdir, cra_app_get_id (app));
+					    tmpdir, as_app_get_id (AS_APP (app)));
 	tmp = cra_package_get_config (pkg, "AppDataExtra");
 	if (tmp != NULL) {
-		kind_str = cra_app_kind_to_string (cra_app_get_kind (app));
+		kind_str = as_id_kind_to_string (as_app_get_id_kind (AS_APP (app)));
 		appdata_filename_extra = g_strdup_printf ("%s/%s/%s.appdata.xml",
 							  tmp,
 							  kind_str,
-							  cra_app_get_id (app));
+							  as_app_get_id (AS_APP (app)));
 		if (g_file_test (appdata_filename, G_FILE_TEST_EXISTS) &&
 		    g_file_test (appdata_filename_extra, G_FILE_TEST_EXISTS)) {
 			cra_package_log (pkg,
@@ -333,13 +348,13 @@ cra_plugin_process_app (CraPlugin *plugin,
 	}
 
 	/* we're going to require this for F22 */
-	if (cra_app_get_kind (app) == CRA_APP_KIND_DESKTOP &&
-	    cra_app_get_metadata_item (app, "NoDisplay") == NULL) {
+	if (as_app_get_id_kind (AS_APP (app)) == AS_ID_KIND_DESKTOP &&
+	    as_app_get_metadata_item (AS_APP (app), "NoDisplay") == NULL) {
 		cra_package_log (pkg,
 				 CRA_PACKAGE_LOG_LEVEL_WARNING,
 				 "desktop application %s has no AppData and "
 				 "will not be shown in Fedora 22 and later",
-				 cra_app_get_id (app));
+				 as_app_get_id (AS_APP (app)));
 	}
 out:
 	g_free (appdata_filename);

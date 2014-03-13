@@ -152,13 +152,13 @@ cra_plugin_process_filename (CraPlugin *plugin,
 	/* create new app */
 	basename = g_path_get_basename (filename);
 	app = cra_app_new (pkg, basename);
-	cra_app_set_kind (app, CRA_APP_KIND_INPUT_METHOD);
-	cra_app_add_category (app, "Addons");
-	cra_app_add_category (app, "InputSources");
-	cra_app_set_icon (app, "system-run-symbolic");
-	cra_app_set_icon_type (app, CRA_APP_ICON_TYPE_STOCK);
-	cra_app_set_name (app, "C", name);
-	cra_app_set_comment (app, "C", description);
+	as_app_set_id_kind (AS_APP (app), AS_ID_KIND_INPUT_METHOD);
+	as_app_add_category (AS_APP (app), "Addons", -1);
+	as_app_add_category (AS_APP (app), "InputSources", -1);
+	as_app_set_icon (AS_APP (app), "system-run-symbolic", -1);
+	as_app_set_icon_kind (AS_APP (app), AS_ICON_KIND_STOCK);
+	as_app_set_name (AS_APP (app), "C", name, -1);
+	as_app_set_comment (AS_APP (app), "C", description, -1);
 	cra_app_set_requires_appdata (app, TRUE);
 	cra_plugin_add_app (apps, app);
 out:

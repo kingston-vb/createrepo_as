@@ -88,6 +88,7 @@ cra_font_fix_metadata (CraApp *app)
 	GList *l;
 	GList *langs = NULL;
 	GString *str = NULL;
+	gint percentage;
 	guint j;
 	PangoLanguage *plang;
 	struct {
@@ -104,53 +105,53 @@ cra_font_fix_metadata (CraApp *app)
 		{ NULL, NULL } };
 
 	/* ensure FontSampleText is defined */
-	if (cra_app_get_metadata_item (app, "FontSampleText") == NULL) {
+	if (as_app_get_metadata_item (AS_APP (app), "FontSampleText") == NULL) {
 		for (j = 0; text_sample[j].lang != NULL; j++) {
-			tmp = cra_app_get_language (app, text_sample[j].lang);
-			if (tmp != NULL) {
-				cra_app_add_metadata (app,
+			percentage = as_app_get_language (AS_APP (app), text_sample[j].lang);
+			if (percentage > 0) {
+				as_app_add_metadata (AS_APP (app),
 						      "FontSampleText",
-						      text_sample[j].value);
+						      text_sample[j].value, -1);
 				break;
 			}
 		}
 	}
 
 	/* ensure FontIconText is defined */
-	if (cra_app_get_metadata_item (app, "FontIconText") == NULL) {
+	if (as_app_get_metadata_item (AS_APP (app), "FontIconText") == NULL) {
 		for (j = 0; text_icon[j].lang != NULL; j++) {
-			tmp = cra_app_get_language (app, text_icon[j].lang);
-			if (tmp != NULL) {
-				cra_app_add_metadata (app,
+			percentage = as_app_get_language (AS_APP (app), text_icon[j].lang);
+			if (percentage > 0) {
+				as_app_add_metadata (AS_APP (app),
 						      "FontIconText",
-						      text_icon[j].value);
+						      text_icon[j].value, -1);
 				break;
 			}
 		}
 	}
 
 	/* can we use a pango version */
-	langs = cra_app_get_languages (app);
-	if (cra_app_get_metadata_item (app, "FontIconText") == NULL) {
+	langs = as_app_get_languages (AS_APP (app));
+	if (as_app_get_metadata_item (AS_APP (app), "FontIconText") == NULL) {
 		for (l = langs; l != NULL; l = l->next) {
 			tmp = l->data;
 			plang = pango_language_from_string (tmp);
 			value = pango_language_get_sample_string (plang);
 			if (value == NULL)
 				continue;
-			cra_app_add_metadata (app,
+			as_app_add_metadata (AS_APP (app),
 					      "FontSampleText",
-					      value);
+					      value, -1);
 			icon_tmp = g_utf8_substring (value, 0, 2);
-			cra_app_add_metadata (app,
+			as_app_add_metadata (AS_APP (app),
 					      "FontIconText",
-					      icon_tmp);
+					      icon_tmp, -1);
 			g_free (icon_tmp);
 		}
 	}
 
 	/* still not defined? */
-	if (cra_app_get_metadata_item (app, "FontSampleText") == NULL) {
+	if (as_app_get_metadata_item (AS_APP (app), "FontSampleText") == NULL) {
 		str = g_string_sized_new (1024);
 		for (l = langs; l != NULL; l = l->next) {
 			tmp = l->data;
@@ -204,7 +205,9 @@ cra_font_add_metadata (CraApp *app, FT_Face ft_face)
 						NULL, NULL, NULL);
 			if (val == NULL)
 				continue;
-			cra_app_add_metadata (app, tt_idx_to_md_name[j].key, val);
+			as_app_add_metadata (AS_APP (app),
+					     tt_idx_to_md_name[j].key,
+					     val, -1);
 			g_free (val);
 		}
 	}
@@ -268,21 +271,21 @@ cra_font_add_screenshot (CraApp *app, FT_Face ft_face)
 	gchar *caption;
 	GdkPixbuf *pixbuf;
 
-	tmp = cra_app_get_metadata_item (app, "FontSampleText");
+	tmp = as_app_get_metadata_item (AS_APP (app), "FontSampleText");
 	if (tmp == NULL)
 		return;
 
 	ss = cra_screenshot_new (cra_app_get_package (app),
-				 cra_app_get_id (app));
+				 as_app_get_id (AS_APP (app)));
 	pixbuf = cra_font_get_pixbuf (ft_face, 640, 48, tmp);
 	cra_screenshot_set_pixbuf (ss, pixbuf);
 	caption = g_strdup_printf ("%s – %s",
-				   cra_app_get_metadata_item (app, "FontFamily"),
-				   cra_app_get_metadata_item (app, "FontSubFamily"));
-	cra_screenshot_set_kind (ss, CRA_SCREENSHOT_KIND_NORMAL);
-	cra_screenshot_set_caption (ss, caption);
+				   as_app_get_metadata_item (AS_APP (app), "FontFamily"),
+				   as_app_get_metadata_item (AS_APP (app), "FontSubFamily"));
+	as_screenshot_set_kind (AS_SCREENSHOT (ss), AS_SCREENSHOT_KIND_NORMAL);
+	as_screenshot_set_caption (AS_SCREENSHOT (ss), NULL, caption, -1);
 	cra_screenshot_set_only_source (ss, TRUE);
-	cra_app_add_screenshot (app, ss);
+	as_app_add_screenshot (AS_APP (app), AS_SCREENSHOT (ss));
 
 	g_free (caption);
 	g_object_unref (pixbuf);
@@ -309,7 +312,7 @@ cra_font_add_languages (CraApp *app, const FcPattern *pattern)
 			list = FcStrListCreate (langs);
 			FcStrListFirst (list);
 			while ((tmp = (const gchar*) FcStrListNext (list)) != NULL)
-				cra_app_add_language (app, tmp, "");
+				as_app_add_language (AS_APP (app), -1, tmp, -1);
 			FcStrListDone (list);
 			FcStrSetDestroy (langs);
 		}
@@ -378,27 +381,27 @@ cra_plugin_process_filename (CraPlugin *plugin,
 	/* create app that might get merged later */
 	app_id = g_path_get_basename (filename);
 	app = cra_app_new (pkg, app_id);
-	cra_app_set_kind (app, CRA_APP_KIND_FONT);
-	cra_app_add_category (app, "Addons");
-	cra_app_add_category (app, "Fonts");
+	as_app_set_id_kind (AS_APP (app), AS_ID_KIND_FONT);
+	as_app_add_category (AS_APP (app), "Addons", -1);
+	as_app_add_category (AS_APP (app), "Fonts", -1);
 	cra_app_set_requires_appdata (app, TRUE);
-	cra_app_set_name (app, "C", ft_face->family_name);
+	as_app_set_name (AS_APP (app), "C", ft_face->family_name, -1);
 	comment = g_strdup_printf ("A %s font from %s",
 				   ft_face->style_name,
 				   ft_face->family_name);
-	cra_app_set_comment (app, "C", comment);
+	as_app_set_comment (AS_APP (app), "C", comment, -1);
 	cra_font_add_languages (app, pattern);
 	cra_font_add_metadata (app, ft_face);
 	cra_font_fix_metadata (app);
 	cra_font_add_screenshot (app, ft_face);
 
 	/* generate icon */
-	tmp = cra_app_get_metadata_item (app, "FontIconText");
+	tmp = as_app_get_metadata_item (AS_APP (app), "FontIconText");
 	if (tmp != NULL) {
-		icon_filename = g_strdup_printf ("%s.png", cra_app_get_id (app));
-		cra_app_set_icon (app, icon_filename);
+		icon_filename = g_strdup_printf ("%s.png", as_app_get_id (AS_APP (app)));
+		as_app_set_icon (AS_APP (app), icon_filename, -1);
 		pixbuf = cra_font_get_pixbuf (ft_face, 64, 64, tmp);
-		cra_app_set_icon_type (app, CRA_APP_ICON_TYPE_CACHED);
+		as_app_set_icon_kind (AS_APP (app), AS_ICON_KIND_CACHED);
 		cra_app_set_pixbuf (app, pixbuf);
 	}
 
@@ -472,7 +475,7 @@ out:
 static guint
 cra_font_get_app_sortable_idx (CraApp *app)
 {
-	const gchar *font_str = cra_app_get_id (app);
+	const gchar *font_str = as_app_get_id (AS_APP (app));
 	guint idx = 0;
 
 	if (g_strstr_len (font_str, -1, "It") != NULL)
@@ -523,10 +526,14 @@ cra_font_merge_family (GList **list, const gchar *md_key)
 	hash = g_hash_table_new_full (g_str_hash, g_str_equal,
 				      g_free, (GDestroyNotify) g_object_unref);
 	for (l = *list; l != NULL; l = l->next) {
+		if (!CRA_IS_APP (l->data)) {
+			cra_plugin_add_app (&list_new, l->data);
+			continue;
+		}
 		app = CRA_APP (l->data);
 
 		/* no family, or not a font */
-		tmp = cra_app_get_metadata_item (app, md_key);
+		tmp = as_app_get_metadata_item (AS_APP (app), md_key);
 		if (tmp == NULL) {
 			cra_plugin_add_app (&list_new, app);
 			continue;
@@ -545,9 +552,9 @@ cra_font_merge_family (GList **list, const gchar *md_key)
 				g_hash_table_insert (hash,
 						     g_strdup (tmp),
 						     g_object_ref (app));
-				cra_app_subsume (app, found);
+				as_app_subsume (AS_APP (app), AS_APP (found));
 			} else {
-				cra_app_subsume (found, app);
+				as_app_subsume (AS_APP (found), AS_APP (app));
 			}
 		}
 	}

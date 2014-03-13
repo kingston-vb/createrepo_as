@@ -178,21 +178,25 @@ cra_plugin_loader_merge (GPtrArray *plugins, GList **apps)
 
 	/* FIXME: move to font plugin */
 	for (l = *apps; l != NULL; l = l->next) {
+		if (!CRA_IS_APP (l->data))
+			continue;
 		app = CRA_APP (l->data);
-		cra_app_remove_metadata (app, "FontFamily");
-		cra_app_remove_metadata (app, "FontFullName");
-		cra_app_remove_metadata (app, "FontIconText");
-		cra_app_remove_metadata (app, "FontParent");
-		cra_app_remove_metadata (app, "FontSampleText");
-		cra_app_remove_metadata (app, "FontSubFamily");
-		cra_app_remove_metadata (app, "FontClassifier");
+		as_app_remove_metadata (AS_APP (app), "FontFamily");
+		as_app_remove_metadata (AS_APP (app), "FontFullName");
+		as_app_remove_metadata (AS_APP (app), "FontIconText");
+		as_app_remove_metadata (AS_APP (app), "FontParent");
+		as_app_remove_metadata (AS_APP (app), "FontSampleText");
+		as_app_remove_metadata (AS_APP (app), "FontSubFamily");
+		as_app_remove_metadata (AS_APP (app), "FontClassifier");
 	}
 
 	/* deduplicate */
 	hash = g_hash_table_new (g_str_hash, g_str_equal);
 	for (l = *apps; l != NULL; l = l->next) {
+		if (!CRA_IS_APP (l->data))
+			continue;
 		app = CRA_APP (l->data);
-		key = cra_app_get_id_full (app);
+		key = as_app_get_id_full (AS_APP (app));
 		found = g_hash_table_lookup (hash, key);
 		if (found == NULL) {
 			g_hash_table_insert (hash,

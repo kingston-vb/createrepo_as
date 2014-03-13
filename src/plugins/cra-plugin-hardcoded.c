@@ -96,14 +96,15 @@ cra_plugin_hardcoded_add_screenshot (CraApp *app,
 	gboolean ret;
 
 	screenshot = cra_screenshot_new (cra_app_get_package (app),
-					 cra_app_get_id (app));
-	cra_screenshot_set_kind (screenshot, CRA_SCREENSHOT_KIND_NORMAL);
+					 as_app_get_id (AS_APP (app)));
+	as_screenshot_set_kind (AS_SCREENSHOT (screenshot),
+				AS_SCREENSHOT_KIND_NORMAL);
 	ret = cra_screenshot_load_filename (screenshot,
 					    filename,
 					    error);
 	if (!ret)
 		goto out;
-	cra_app_add_screenshot (app, screenshot);
+	as_app_add_screenshot (AS_APP (app), AS_SCREENSHOT (screenshot));
 out:
 	g_object_unref (screenshot);
 	return ret;
@@ -157,7 +158,7 @@ cra_plugin_process_app (CraPlugin *plugin,
 			GError **error)
 {
 	const gchar *tmp;
-	CraRelease *release;
+	AsRelease *release;
 	gboolean ret = TRUE;
 	gchar **deps;
 	gchar *dirname = NULL;
@@ -167,30 +168,30 @@ cra_plugin_process_app (CraPlugin *plugin,
 	guint secs;
 
 	/* add extra categories */
-	tmp = cra_app_get_id (app);
+	tmp = as_app_get_id (AS_APP (app));
 	if (g_strcmp0 (tmp, "0install") == 0)
-		cra_app_add_category (app, "System");
+		as_app_add_category (AS_APP (app), "System", -1);
 	if (g_strcmp0 (tmp, "alacarte") == 0)
-		cra_app_add_category (app, "System");
+		as_app_add_category (AS_APP (app), "System", -1);
 	if (g_strcmp0 (tmp, "deja-dup") == 0)
-		cra_app_add_category (app, "Utility");
+		as_app_add_category (AS_APP (app), "Utility", -1);
 	if (g_strcmp0 (tmp, "gddccontrol") == 0)
-		cra_app_add_category (app, "System");
+		as_app_add_category (AS_APP (app), "System", -1);
 	if (g_strcmp0 (tmp, "nautilus") == 0)
-		cra_app_add_category (app, "System");
+		as_app_add_category (AS_APP (app), "System", -1);
 	if (g_strcmp0 (tmp, "pessulus") == 0)
-		cra_app_add_category (app, "System");
+		as_app_add_category (AS_APP (app), "System", -1);
 
 	/* add extra project groups */
 	if (g_strcmp0 (tmp, "nemo") == 0)
-		cra_app_set_project_group (app, "Cinnamon");
+		as_app_set_project_group (AS_APP (app), "Cinnamon", -1);
 
 	/* use the URL to guess the project group */
 	tmp = cra_package_get_url (pkg);
-	if (cra_app_get_project_group (app) == NULL && tmp != NULL) {
+	if (as_app_get_project_group (AS_APP (app)) == NULL && tmp != NULL) {
 		tmp = cra_glob_value_search (plugin->priv->project_groups, tmp);
 		if (tmp != NULL)
-			cra_app_set_project_group (app, tmp);
+			as_app_set_project_group (AS_APP (app), tmp, -1);
 	}
 
 	/* look for any installed docs */
@@ -198,7 +199,8 @@ cra_plugin_process_app (CraPlugin *plugin,
 	for (i = 0; filelist[i] != NULL; i++) {
 		if (g_str_has_prefix (filelist[i],
 				      "/usr/share/help/")) {
-			cra_app_add_metadata (app, "X-Kudo-InstallsUserDocs", "");
+			as_app_add_metadata (AS_APP (app),
+					     "X-Kudo-InstallsUserDocs", "", -1);
 			break;
 		}
 	}
@@ -207,7 +209,8 @@ cra_plugin_process_app (CraPlugin *plugin,
 	for (i = 0; filelist[i] != NULL; i++) {
 		if (g_str_has_prefix (filelist[i],
 				      "/usr/share/gnome-shell/search-providers/")) {
-			cra_app_add_metadata (app, "X-Kudo-SearchProvider", "");
+			as_app_add_metadata (AS_APP (app),
+					     "X-Kudo-SearchProvider", "", -1);
 			break;
 		}
 	}
@@ -216,7 +219,8 @@ cra_plugin_process_app (CraPlugin *plugin,
 	deps = cra_package_get_deps (pkg);
 	for (i = 0; deps[i] != NULL; i++) {
 		if (g_strcmp0 (deps[i], "libgtk-3.so.0") == 0) {
-			cra_app_add_metadata (app, "X-Kudo-GTK3", "");
+			as_app_add_metadata (AS_APP (app),
+					     "X-Kudo-GTK3", "", -1);
 			break;
 		}
 	}
@@ -230,23 +234,24 @@ cra_plugin_process_app (CraPlugin *plugin,
 	}
 
 	/* has the application been updated in the last year */
-	releases = cra_app_get_releases (app);
+	releases = as_app_get_releases (AS_APP (app));
 	for (i = 0; i < releases->len; i++) {
 		release = g_ptr_array_index (releases, i);
 		secs = (g_get_real_time () / G_USEC_PER_SEC) -
-			cra_release_get_timestamp (release);
+			as_release_get_timestamp (release);
 		if (secs / (60 * 60 * 24) < 365) {
-			cra_app_add_metadata (app, "X-Kudo-RecentRelease", "");
+			as_app_add_metadata (AS_APP (app),
+					     "X-Kudo-RecentRelease", "", -1);
 			break;
 		}
 	}
 
 	/* has there been no upstream version in the last 5 years? */
 	if (releases->len > 0 &&
-	    cra_app_get_kind (app) == CRA_APP_KIND_DESKTOP) {
+	    as_app_get_id_kind (AS_APP (app)) == AS_ID_KIND_DESKTOP) {
 		release = g_ptr_array_index (releases, 0);
 		secs = (g_get_real_time () / G_USEC_PER_SEC) -
-			cra_release_get_timestamp (release);
+			as_release_get_timestamp (release);
 		if (secs / (60 * 60 * 24) > 365 * 5) {
 			cra_app_add_veto (app, "Dead upstream for %i years",
 					  secs / (60 * 60 * 24 * 365));
@@ -256,7 +261,7 @@ cra_plugin_process_app (CraPlugin *plugin,
 	/* do any extra screenshots exist */
 	tmp = cra_package_get_config (pkg, "ScreenshotsExtra");
 	if (tmp != NULL) {
-		dirname = g_build_filename (tmp, cra_app_get_id (app), NULL);
+		dirname = g_build_filename (tmp, as_app_get_id (AS_APP (app)), NULL);
 		if (g_file_test (dirname, G_FILE_TEST_EXISTS)) {
 			ret = cra_plugin_hardcoded_add_screenshots (app,
 								    dirname,
