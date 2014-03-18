@@ -88,8 +88,10 @@ cra_plugin_process_filename (CraApp *app,
 	if (!ret)
 		goto out;
 	root = as_node_from_xml (data, -1, AS_NODE_FROM_XML_FLAG_NONE, error);
-	if (!ret)
+	if (root == NULL) {
+		ret = FALSE;
 		goto out;
+	}
 
 	/* check app id */
 	n = as_node_find (root, "application/id");
