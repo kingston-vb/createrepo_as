@@ -155,28 +155,27 @@ cra_package_log (CraPackage *pkg,
 	va_start (args, fmt);
 	tmp = g_strdup_vprintf (fmt, args);
 	va_end (args);
-	now = g_timer_elapsed (priv->timer, NULL) * 1000;
+	if (g_getenv ("CRA_PROFILE") != NULL) {
+		now = g_timer_elapsed (priv->timer, NULL) * 1000;
+		g_string_append_printf (priv->log,
+					"%05.0f\t+%05.0f\t",
+					now, now - priv->last_log);
+		priv->last_log = now;
+	}
 	switch (log_level) {
 	case CRA_PACKAGE_LOG_LEVEL_INFO:
-		g_string_append_printf (priv->log,
-					"%05.0f\t+%05.0f\tINFO:    %s\n",
-					now, now - priv->last_log, tmp);
+		g_string_append_printf (priv->log, "INFO:    %s\n", tmp);
 		break;
 	case CRA_PACKAGE_LOG_LEVEL_DEBUG:
-		g_string_append_printf (priv->log,
-					"%05.0f\t+%05.0f\tDEBUG:   %s\n",
-					now, now - priv->last_log, tmp);
+		g_string_append_printf (priv->log, "DEBUG:   %s\n", tmp);
 		break;
 	case CRA_PACKAGE_LOG_LEVEL_WARNING:
-		g_string_append_printf (priv->log,
-					"%05.0f\t+%05.0f\tWARNING: %s\n",
-					now, now - priv->last_log, tmp);
+		g_string_append_printf (priv->log, "WARNING: %s\n", tmp);
 		break;
 	default:
 		g_string_append_printf (priv->log, "%s\n", tmp);
 		break;
 	}
-	priv->last_log = now;
 	g_free (tmp);
 }
 
