@@ -848,6 +848,7 @@ cra_plugin_process (CraPlugin *plugin,
 		    GError **error)
 {
 	gboolean ret;
+	GError *error_local = NULL;
 	GList *apps = NULL;
 	guint i;
 	gchar **filelist;
@@ -861,11 +862,14 @@ cra_plugin_process (CraPlugin *plugin,
 						   filelist[i],
 						   &apps,
 						   tmpdir,
-						   error);
+						   &error_local);
 		if (!ret) {
-			g_list_free_full (apps, (GDestroyNotify) g_object_unref);
-			apps = NULL;
-			goto out;
+			cra_package_log (pkg,
+					 CRA_PACKAGE_LOG_LEVEL_INFO,
+					 "Failed to process %s: %s",
+					 filelist[i],
+					 error_local->message);
+			g_clear_error (&error_local);
 		}
 	}
 
