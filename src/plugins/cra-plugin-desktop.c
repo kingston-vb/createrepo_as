@@ -806,6 +806,8 @@ cra_plugin_process_filename (CraPlugin *plugin,
 				cra_app_add_veto (app, "Uses XPM icon: %s", key);
 			else if (g_str_has_suffix (key, ".gif"))
 				cra_app_add_veto (app, "Uses GIF icon: %s", key);
+			else if (g_str_has_suffix (key, ".ico"))
+				cra_app_add_veto (app, "Uses ICO icon: %s", key);
 
 			/* find icon */
 			pixbuf = cra_app_find_icon (tmpdir, key, error);
