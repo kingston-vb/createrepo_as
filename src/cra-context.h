@@ -39,6 +39,7 @@ typedef struct {
 	GList		*apps;			/* of CraApp */
 	GMutex		 apps_mutex;		/* for ->apps */
 	gboolean	 no_net;
+	gdouble		 api_version;
 } CraContext;
 
 CraContext	*cra_context_new		(void);

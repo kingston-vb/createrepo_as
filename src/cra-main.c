@@ -400,6 +400,7 @@ cra_context_write_xml (CraContext *ctx,
 
 	g_debug ("Writing %s", filename);
 	as_store_set_origin (store, basename);
+	as_store_set_api_version (store, ctx->api_version);
 	ret = as_store_to_file (store,
 				file,
 				AS_NODE_TO_XML_FLAG_ADD_HEADER |
@@ -459,6 +460,7 @@ main (int argc, char **argv)
 	gboolean ret;
 	gboolean verbose = FALSE;
 	gboolean no_net = FALSE;
+	gdouble api_version = 0.0f;
 	gchar *basename = NULL;
 	gchar *log_dir = NULL;
 	gchar *output_dir = NULL;
@@ -478,21 +480,23 @@ main (int argc, char **argv)
 		{ "verbose", 'v', 0, G_OPTION_ARG_NONE, &verbose,
 			"Show extra debugging information", NULL },
 		{ "no-net", '\0', 0, G_OPTION_ARG_NONE, &no_net,
-			"Show extra debugging information", NULL },
+			"Do not use the network to download screenshots", NULL },
 		{ "log-dir", '\0', 0, G_OPTION_ARG_STRING, &log_dir,
-			"Set the logging directory", NULL },
+			"Set the logging directory\t[default: ./logs]", NULL },
 		{ "packages-dir", '\0', 0, G_OPTION_ARG_STRING, &packages_dir,
-			"Set the packages directory", NULL },
+			"Set the packages directory\t[default: ./packages]", NULL },
 		{ "temp-dir", '\0', 0, G_OPTION_ARG_STRING, &temp_dir,
-			"Set the temporary directory", NULL },
+			"Set the temporary directory\t[default: ./tmp]", NULL },
 		{ "output-dir", '\0', 0, G_OPTION_ARG_STRING, &output_dir,
-			"Set the output directory", NULL },
+			"Set the output directory\t\t[default: .]", NULL },
 		{ "basename", '\0', 0, G_OPTION_ARG_STRING, &basename,
-			"Set the basename, e.g. 'fedora-20'", NULL },
+			"Set the origin name\t\t[default: fedora-21]", NULL },
+		{ "max-threads", '\0', 0, G_OPTION_ARG_INT, &max_threads,
+			"Set the number of threads\t[default: 4]", NULL },
+		{ "api-version", '\0', 0, G_OPTION_ARG_DOUBLE, &api_version,
+			"Set the AppStream version\t[default: 0.4]", NULL },
 		{ "screenshot-uri", '\0', 0, G_OPTION_ARG_STRING, &screenshot_uri,
 			"Set the screenshot base URL", NULL },
-		{ "max-threads", '\0', 0, G_OPTION_ARG_INT, &max_threads,
-			"Set the maximum number of threads to use", NULL },
 		{ NULL}
 	};
 
@@ -509,6 +513,8 @@ main (int argc, char **argv)
 		g_setenv ("G_MESSAGES_DEBUG", "all", TRUE);
 
 	/* set defaults */
+	if (api_version < 0.01)
+		api_version = 0.4;
 	if (packages_dir == NULL)
 		packages_dir = g_strdup ("./packages");
 	if (temp_dir == NULL)
@@ -582,6 +588,7 @@ main (int argc, char **argv)
 		goto out;
 	}
 	ctx->no_net = no_net;
+	ctx->api_version = api_version;
 	ctx->file_globs = cra_plugin_loader_get_globs (ctx->plugins);
 
 	/* create thread pool */
