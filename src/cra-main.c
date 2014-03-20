@@ -398,6 +398,7 @@ cra_context_write_xml (CraContext *ctx,
 	file = g_file_new_for_path (filename);
 
 	g_debug ("Writing %s", filename);
+	as_store_set_origin (store, basename);
 	ret = as_store_to_file (store,
 				file,
 				AS_NODE_TO_XML_FLAG_ADD_HEADER |
