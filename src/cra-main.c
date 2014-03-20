@@ -78,6 +78,7 @@ cra_task_process_func (gpointer data, gpointer user_data)
 		"X-Kudo-InstallsUserDocs",
 		"X-Kudo-RecentRelease",
 		"X-Kudo-SearchProvider",
+		"X-Kudo-UsesAppMenu",
 		"X-Kudo-UsesNotifications",
 		NULL };
 
