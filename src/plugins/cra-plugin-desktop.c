@@ -422,28 +422,6 @@ cra_plugin_check_filename (CraPlugin *plugin, const gchar *filename)
 }
 
 /**
- * cra_plugin_desktop_key_get_locale:
- */
-static gchar *
-cra_plugin_desktop_key_get_locale (const gchar *key)
-{
-	gchar *tmp1;
-	gchar *tmp2;
-	gchar *locale = NULL;
-
-	tmp1 = g_strstr_len (key, -1, "[");
-	if (tmp1 == NULL)
-		goto out;
-	tmp2 = g_strstr_len (tmp1, -1, "]");
-	if (tmp1 == NULL)
-		goto out;
-	locale = g_strdup (tmp1 + 1);
-	locale[tmp2 - tmp1 - 1] = '\0';
-out:
-	return locale;
-}
-
-/**
  * cra_app_load_icon:
  */
 static GdkPixbuf *
@@ -580,200 +558,24 @@ cra_plugin_process_filename (CraPlugin *plugin,
 	gchar *app_id = NULL;
 	gchar *full_filename = NULL;
 	gchar *icon_filename = NULL;
-	gchar **keys = NULL;
-	gchar *locale = NULL;
-	gchar *tmp;
-	gchar **tmpv;
 	GdkPixbuf *pixbuf = NULL;
-	GKeyFile *kf;
 	GPtrArray *categories;
 	guint i;
-	guint j;
-
-	/* load file */
-	full_filename = g_build_filename (tmpdir, filename, NULL);
-	kf = g_key_file_new ();
-	ret = g_key_file_load_from_file (kf, full_filename,
-					 G_KEY_FILE_KEEP_TRANSLATIONS,
-					 error);
-	if (!ret)
-		goto out;
 
 	/* create app */
 	app_id = g_path_get_basename (filename);
 	app = cra_app_new (pkg, app_id);
-	as_app_set_id_kind (AS_APP (app), AS_ID_KIND_DESKTOP);
-
-	/* look at all the keys */
-	keys = g_key_file_get_keys (kf, G_KEY_FILE_DESKTOP_GROUP, NULL, error);
-	if (keys == NULL) {
-		ret = FALSE;
+	full_filename = g_build_filename (tmpdir, filename, NULL);
+	ret = as_app_parse_file (AS_APP (app),
+				 full_filename,
+				 AS_APP_PARSE_FLAG_USE_HEURISTICS,
+				 error);
+	if (!ret)
 		goto out;
-	}
-	for (i = 0; keys[i] != NULL; i++) {
-		key = keys[i];
 
-		/* NoDisplay */
-		if (g_strcmp0 (key, G_KEY_FILE_DESKTOP_KEY_NO_DISPLAY) == 0) {
-			cra_app_set_requires_appdata (app, TRUE);
-			as_app_add_metadata (AS_APP (app), "NoDisplay", "", -1);
-
-		/* Type */
-		} else if (g_strcmp0 (key, G_KEY_FILE_DESKTOP_KEY_TYPE) == 0) {
-			tmp = g_key_file_get_string (kf,
-						     G_KEY_FILE_DESKTOP_GROUP,
-						     key,
-						     NULL);
-			if (g_strcmp0 (tmp, G_KEY_FILE_DESKTOP_TYPE_APPLICATION) != 0) {
-				g_set_error (error,
-					     CRA_PLUGIN_ERROR,
-					     CRA_PLUGIN_ERROR_FAILED,
-					     "not an applicaiton %s",
-					     filename);
-				ret = FALSE;
-				goto out;
-			}
-			g_free (tmp);
-
-		/* Icon */
-		} else if (g_strcmp0 (key, G_KEY_FILE_DESKTOP_KEY_ICON) == 0) {
-			tmp = g_key_file_get_string (kf,
-						     G_KEY_FILE_DESKTOP_GROUP,
-						     key,
-						     NULL);
-			if (tmp != NULL && tmp[0] != '\0')
-				as_app_set_icon (AS_APP (app), tmp, -1);
-			g_free (tmp);
-
-		/* Categories */
-		} else if (g_strcmp0 (key, G_KEY_FILE_DESKTOP_KEY_CATEGORIES) == 0) {
-			tmpv = g_key_file_get_string_list (kf,
-							   G_KEY_FILE_DESKTOP_GROUP,
-							   key,
-							   NULL, NULL);
-			for (j = 0; tmpv[j] != NULL; j++) {
-				if (g_strcmp0 (tmpv[j], "GTK") == 0)
-					continue;
-				if (g_strcmp0 (tmpv[j], "Qt") == 0)
-					continue;
-				if (g_strcmp0 (tmpv[j], "KDE") == 0)
-					continue;
-				if (g_strcmp0 (tmpv[j], "GNOME") == 0)
-					continue;
-				if (g_str_has_prefix (tmpv[j], "X-"))
-					continue;
-				as_app_add_category (AS_APP (app), tmpv[j], -1);
-			}
-			g_strfreev (tmpv);
-
-		} else if (g_strcmp0 (key, "Keywords") == 0) {
-			tmpv = g_key_file_get_string_list (kf,
-							   G_KEY_FILE_DESKTOP_GROUP,
-							   key,
-							   NULL, NULL);
-			for (j = 0; tmpv[j] != NULL; j++)
-				as_app_add_keyword (AS_APP (app), tmpv[j], -1);
-			g_strfreev (tmpv);
-
-		} else if (g_strcmp0 (key, "MimeType") == 0) {
-			tmpv = g_key_file_get_string_list (kf,
-							   G_KEY_FILE_DESKTOP_GROUP,
-							   key,
-							   NULL, NULL);
-			for (j = 0; tmpv[j] != NULL; j++)
-				as_app_add_mimetype (AS_APP (app), tmpv[j], -1);
-			g_strfreev (tmpv);
-
-		} else if (g_strcmp0 (key, "X-GNOME-UsesNotifications") == 0) {
-			as_app_add_metadata (AS_APP (app), "X-Kudo-UsesNotifications", "", -1);
-
-		} else if (g_strcmp0 (key, "X-GNOME-Bugzilla-Product") == 0) {
-			as_app_set_project_group (AS_APP (app), "GNOME", -1);
-
-		} else if (g_strcmp0 (key, "X-MATE-Bugzilla-Product") == 0) {
-			as_app_set_project_group (AS_APP (app), "MATE", -1);
-
-		} else if (g_strcmp0 (key, "X-KDE-StartupNotify") == 0) {
-			as_app_set_project_group (AS_APP (app), "KDE", -1);
-
-		} else if (g_strcmp0 (key, "X-DocPath") == 0) {
-			tmp = g_key_file_get_string (kf,
-						     G_KEY_FILE_DESKTOP_GROUP,
-						     key,
-						     NULL);
-			if (g_str_has_prefix (tmp, "http://userbase.kde.org/"))
-				as_app_set_project_group (AS_APP (app), "KDE", -1);
-			g_free (tmp);
-
-		/* Exec */
-		} else if (g_strcmp0 (key, G_KEY_FILE_DESKTOP_KEY_EXEC) == 0) {
-			tmp = g_key_file_get_string (kf,
-						     G_KEY_FILE_DESKTOP_GROUP,
-						     key,
-						     NULL);
-			if (g_str_has_prefix (tmp, "xfce4-"))
-				as_app_set_project_group (AS_APP (app), "XFCE", -1);
-			g_free (tmp);
-
-		/* OnlyShowIn */
-		} else if (g_strcmp0 (key, G_KEY_FILE_DESKTOP_KEY_ONLY_SHOW_IN) == 0) {
-			/* if an app has only one entry, it's that desktop */
-			tmpv = g_key_file_get_string_list (kf,
-							   G_KEY_FILE_DESKTOP_GROUP,
-							   key,
-							   NULL, NULL);
-			if (g_strv_length (tmpv) == 1)
-				as_app_set_project_group (AS_APP (app), tmpv[0], -1);
-			g_strfreev (tmpv);
-
-		/* Name */
-		} else if (g_strcmp0 (key, G_KEY_FILE_DESKTOP_KEY_NAME) == 0) {
-			tmp = g_key_file_get_string (kf,
-						     G_KEY_FILE_DESKTOP_GROUP,
-						     key,
-						     NULL);
-			if (tmp != NULL && tmp[0] != '\0')
-				as_app_set_name (AS_APP (app), "C", tmp, -1);
-			g_free (tmp);
-
-		/* Name[] */
-		} else if (g_str_has_prefix (key, G_KEY_FILE_DESKTOP_KEY_NAME)) {
-			locale = cra_plugin_desktop_key_get_locale (key);
-			tmp = g_key_file_get_locale_string (kf,
-							    G_KEY_FILE_DESKTOP_GROUP,
-							    G_KEY_FILE_DESKTOP_KEY_NAME,
-							    locale,
-							    NULL);
-			if (tmp != NULL && tmp[0] != '\0')
-				as_app_set_name (AS_APP (app), locale, tmp, -1);
-			g_free (locale);
-			g_free (tmp);
-
-		/* Comment */
-		} else if (g_strcmp0 (key, G_KEY_FILE_DESKTOP_KEY_COMMENT) == 0) {
-			tmp = g_key_file_get_string (kf,
-						     G_KEY_FILE_DESKTOP_GROUP,
-						     key,
-						     NULL);
-			if (tmp != NULL && tmp[0] != '\0')
-				as_app_set_comment (AS_APP (app), "C", tmp, -1);
-			g_free (tmp);
-
-		/* Comment[] */
-		} else if (g_str_has_prefix (key, G_KEY_FILE_DESKTOP_KEY_COMMENT)) {
-			locale = cra_plugin_desktop_key_get_locale (key);
-			tmp = g_key_file_get_locale_string (kf,
-							    G_KEY_FILE_DESKTOP_GROUP,
-							    G_KEY_FILE_DESKTOP_KEY_COMMENT,
-							    locale,
-							    NULL);
-			if (tmp != NULL && tmp[0] != '\0')
-				as_app_set_comment (AS_APP (app), locale, tmp, -1);
-			g_free (locale);
-			g_free (tmp);
-
-		}
-	}
+	/* NoDisplay requires AppData */
+	if (as_app_get_metadata_item (AS_APP (app), "NoDisplay") != NULL)
+		cra_app_set_requires_appdata (app, TRUE);
 
 	/* check for blacklisted categories */
 	categories = as_app_get_categories (AS_APP (app));
@@ -832,8 +634,6 @@ out:
 		g_object_unref (app);
 	if (pixbuf != NULL)
 		g_object_unref (pixbuf);
-	g_strfreev (keys);
-	g_key_file_unref (kf);
 	g_free (full_filename);
 	g_free (icon_filename);
 	g_free (app_id);
