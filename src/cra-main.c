@@ -170,10 +170,9 @@ cra_task_process_func (gpointer data, gpointer user_data)
 	/* run plugin */
 	cra_package_log (task->pkg,
 			 CRA_PACKAGE_LOG_LEVEL_DEBUG,
-			 "Processing %s with %s [%p]",
+			 "Processing %s with %s",
 			 task->filename,
-			 plugin->name,
-			 g_thread_self ());
+			 plugin->name);
 	apps = cra_plugin_process (plugin, task->pkg, task->tmpdir, &error);
 	if (apps == NULL) {
 		cra_package_log (task->pkg,
