@@ -111,6 +111,15 @@ out:
 }
 
 /**
+ * cra_plugin_hardcoded_sort_screenshots_cb:
+ */
+static gint
+cra_plugin_hardcoded_sort_screenshots_cb (gconstpointer a, gconstpointer b)
+{
+	return g_strcmp0 ((gchar *) a, (gchar *) b);
+}
+
+/**
  * cra_plugin_hardcoded_add_screenshots:
  */
 static gboolean
@@ -120,8 +129,9 @@ cra_plugin_hardcoded_add_screenshots (CraApp *app,
 {
 	const gchar *tmp;
 	gboolean ret = TRUE;
-	gchar *filename;
 	GDir *dir;
+	GList *l;
+	GList *list = NULL;
 
 	/* scan for files */
 	dir = g_dir_open (location, 0, error);
@@ -132,16 +142,20 @@ cra_plugin_hardcoded_add_screenshots (CraApp *app,
 	while ((tmp = g_dir_read_name (dir)) != NULL) {
 		if (!g_str_has_suffix (tmp, ".png"))
 			continue;
+		list = g_list_prepend (list, g_build_filename (location, tmp, NULL));
+	}
+	list = g_list_sort (list, cra_plugin_hardcoded_sort_screenshots_cb);
+	for (l = list; l != NULL; l = l->next) {
+		tmp = l->data;
 		cra_package_log (cra_app_get_package (app),
 				 CRA_PACKAGE_LOG_LEVEL_DEBUG,
 				 "Adding extra screenshot: %s", tmp);
-		filename = g_build_filename (location, tmp, NULL);
-		ret = cra_plugin_hardcoded_add_screenshot (app, filename, error);
-		g_free (filename);
+		ret = cra_plugin_hardcoded_add_screenshot (app, tmp, error);
 		if (!ret)
 			goto out;
 	}
 out:
+	g_list_free_full (list, g_free);
 	if (dir != NULL)
 		g_dir_close (dir);
 	return ret;
