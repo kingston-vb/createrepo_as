@@ -226,8 +226,7 @@ cra_plugin_process_filename (CraPlugin *plugin,
 	/* is the icon a stock-icon-name? */
 	key = as_app_get_icon (AS_APP (app));
 	if (key != NULL) {
-		if (as_utils_is_stock_icon_name (key)) {
-			as_app_set_icon_kind (AS_APP (app), AS_ICON_KIND_STOCK);
+		if (as_app_get_icon_kind (app) == AS_ICON_KIND_STOCK) {
 			cra_package_log (pkg,
 					 CRA_PACKAGE_LOG_LEVEL_DEBUG,
 					 "using stock icon %s", key);
