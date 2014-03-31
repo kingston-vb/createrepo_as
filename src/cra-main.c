@@ -446,6 +446,46 @@ cra_context_disable_older_packages (CraContext *ctx)
 	g_hash_table_unref (newest);
 }
 
+typedef struct {
+	GThreadPool	*pool;
+	GMainLoop	*loop;
+	guint		 counter;
+} CraMainLoopHelper;
+
+/**
+ * cra_main_check_pool_cb:
+ */
+static gboolean
+cra_main_check_pool_cb (gpointer user_data)
+{
+	CraMainLoopHelper *helper = (CraMainLoopHelper *) user_data;
+
+	/* check if there's anything more to do */
+	if (g_thread_pool_unprocessed (helper->pool) == 0) {
+		g_debug ("waiting for threads to finish: %i", helper->counter);
+		if (helper->counter-- == 0) {
+			g_main_loop_quit (helper->loop);
+			return G_SOURCE_REMOVE;
+		}
+	}
+	return G_SOURCE_CONTINUE;
+}
+
+/**
+ * cra_main_wait_for_pool:
+ */
+static void
+cra_main_wait_for_pool (GThreadPool *pool)
+{
+	CraMainLoopHelper helper;
+	helper.pool = pool;
+	helper.loop = g_main_loop_new (NULL, FALSE);
+	helper.counter = g_thread_pool_get_num_threads (pool);
+	g_timeout_add_seconds (1, cra_main_check_pool_cb, &helper);
+	g_main_loop_run (helper.loop);
+	g_main_loop_unref (helper.loop);
+}
+
 /**
  * main:
  */
@@ -473,7 +513,7 @@ main (int argc, char **argv)
 	gint rc;
 	GOptionContext *option_context;
 	GPtrArray *tasks = NULL;
-	GThreadPool *pool;
+	GThreadPool *pool = NULL;
 	guint i;
 	const GOptionEntry options[] = {
 		{ "verbose", 'v', 0, G_OPTION_ARG_NONE, &verbose,
@@ -692,8 +732,7 @@ main (int argc, char **argv)
 	}
 
 	/* wait for them to finish */
-	if (pool != NULL)
-		g_thread_pool_free (pool, FALSE, TRUE);
+	cra_main_wait_for_pool (pool);
 
 	/* merge */
 	cra_plugin_loader_merge (ctx->plugins, &ctx->apps);
@@ -724,6 +763,8 @@ out:
 	g_free (basename);
 	g_free (log_dir);
 	g_option_context_free (option_context);
+	if (pool != NULL)
+		g_thread_pool_free (pool, FALSE, TRUE);
 	if (tasks != NULL)
 		g_ptr_array_unref (tasks);
 	if (ctx != NULL)
