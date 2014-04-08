@@ -27,11 +27,14 @@
 #include "cra-plugin-loader.h"
 #include "cra-utils.h"
 
+#ifdef HAVE_RPM
+#include "cra-package-rpm.h"
+#endif
+
 #include <appstream-glib.h>
 #include <gio/gio.h>
 #include <glib.h>
 #include <locale.h>
-#include <rpm/rpmlib.h>
 
 typedef struct {
 	gchar		*filename;
@@ -91,23 +94,14 @@ cra_task_process_func (gpointer data, gpointer user_data)
 	/* reset the profile timer */
 	cra_package_log_start (task->pkg);
 
-	/* get file list */
-	ret = cra_package_ensure_filelist (task->pkg, &error);
-	if (!ret) {
-		cra_package_log (task->pkg,
-				 CRA_PACKAGE_LOG_LEVEL_WARNING,
-				 "Failed to get file list: %s",
-				 error->message);
-		g_error_free (error);
-		goto out;
-	}
-
 	/* did we get a file match on any plugin */
 	cra_package_log (task->pkg,
 			 CRA_PACKAGE_LOG_LEVEL_DEBUG,
 			 "Getting filename match for %s",
 			 task->filename);
 	filelist = cra_package_get_filelist (task->pkg);
+	if (filelist == NULL)
+		goto out;
 	for (i = 0; filelist[i] != NULL; i++) {
 		plugin = cra_plugin_loader_match_fn (ctx->plugins, filelist[i]);
 		if (plugin != NULL)
@@ -329,7 +323,15 @@ cra_context_add_filename (CraContext *ctx, const gchar *filename, GError **error
 	gboolean ret;
 
 	/* open */
-	pkg = cra_package_new ();
+#if HAVE_RPM
+	pkg = cra_package_rpm_new ();
+#else
+	g_set_error_literal (error,
+			     CRA_PLUGIN_ERROR,
+			     CRA_PLUGIN_ERROR_FAILED,
+			     "no package manager support");
+	return FALSE;
+#endif
 	ret = cra_package_open (pkg, filename, error);
 	if (!ret)
 		goto out;
@@ -434,6 +436,8 @@ cra_context_disable_older_packages (CraContext *ctx)
 	for (i = 0; i < ctx->packages->len; i++) {
 		pkg = CRA_PACKAGE (g_ptr_array_index (ctx->packages, i));
 		key = cra_package_get_name (pkg);
+		if (key == NULL)
+			continue;
 		found = g_hash_table_lookup (newest, key);
 		if (found != NULL) {
 			if (cra_package_compare (pkg, found) < 0) {
@@ -567,8 +571,6 @@ main (int argc, char **argv)
 		basename = g_strdup ("fedora-21");
 	if (screenshot_uri == NULL)
 		screenshot_uri = g_strdup ("http://alt.fedoraproject.org/pub/alt/screenshots/f21/");
-
-	rpmReadConfigFiles (NULL, NULL);
 	setlocale (LC_ALL, "");
 
 	/* set up state */

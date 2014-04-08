@@ -28,6 +28,13 @@ createrepo_as_SOURCES =					\
 	cra-plugin-loader.c				\
 	cra-plugin-loader.h				\
 	cra-main.c
+
+if HAVE_RPM
+createrepo_as_SOURCES +=				\
+	cra-package-rpm.c				\
+	cra-package-rpm.h
+endif
+
 createrepo_as_LDADD =					\
 	$(APPSTREAM_LIBS)				\
 	$(GDKPIXBUF_LIBS)				\

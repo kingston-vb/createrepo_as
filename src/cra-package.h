@@ -25,7 +25,6 @@
 #include <glib-object.h>
 
 #include <stdarg.h>
-
 #include <appstream-glib.h>
 
 #define CRA_TYPE_PACKAGE		(cra_package_get_type())
@@ -48,6 +47,9 @@ struct _CraPackage
 struct _CraPackageClass
 {
 	GObjectClass		parent_class;
+	gboolean		 (*open)	(CraPackage	*package,
+						 const gchar	*filename,
+						 GError		**error);
 };
 
 typedef enum {
@@ -60,7 +62,6 @@ typedef enum {
 
 GType		 cra_package_get_type		(void);
 
-CraPackage	*cra_package_new		(void);
 void		 cra_package_log_start		(CraPackage	*pkg);
 void		 cra_package_log		(CraPackage	*pkg,
 						 CraPackageLogLevel log_level,
@@ -76,15 +77,33 @@ gboolean	 cra_package_explode		(CraPackage	*pkg,
 						 const gchar	*dir,
 						 GPtrArray	*glob,
 						 GError		**error);
-gboolean	 cra_package_ensure_filelist	(CraPackage	*pkg,
-						 GError		**error);
 const gchar	*cra_package_get_filename	(CraPackage	*pkg);
 const gchar	*cra_package_get_name		(CraPackage	*pkg);
 const gchar	*cra_package_get_nevr		(CraPackage	*pkg);
 const gchar	*cra_package_get_evr		(CraPackage	*pkg);
 const gchar	*cra_package_get_url		(CraPackage	*pkg);
 const gchar	*cra_package_get_license	(CraPackage	*pkg);
-const gchar	*cra_package_get_sourcerpm	(CraPackage	*pkg);
+const gchar	*cra_package_get_source		(CraPackage	*pkg);
+void		 cra_package_set_name		(CraPackage	*pkg,
+						 const gchar	*name);
+void		 cra_package_set_version	(CraPackage	*pkg,
+						 const gchar	*version);
+void		 cra_package_set_release	(CraPackage	*pkg,
+						 const gchar	*release);
+void		 cra_package_set_arch		(CraPackage	*pkg,
+						 const gchar	*arch);
+void		 cra_package_set_epoch		(CraPackage	*pkg,
+						 guint		 epoch);
+void		 cra_package_set_url		(CraPackage	*pkg,
+						 const gchar	*url);
+void		 cra_package_set_license	(CraPackage	*pkg,
+						 const gchar	*license);
+void		 cra_package_set_source		(CraPackage	*pkg,
+						 const gchar	*source);
+void		 cra_package_set_deps		(CraPackage	*pkg,
+						 gchar		**deps);
+void		 cra_package_set_filelist	(CraPackage	*pkg,
+						 gchar		**filelist);
 gchar		**cra_package_get_filelist	(CraPackage	*pkg);
 gchar		**cra_package_get_deps		(CraPackage	*pkg);
 GPtrArray	*cra_package_get_releases	(CraPackage	*pkg);
@@ -98,6 +117,11 @@ gint		 cra_package_compare		(CraPackage	*pkg1,
 gboolean	 cra_package_get_enabled	(CraPackage	*pkg);
 void		 cra_package_set_enabled	(CraPackage	*pkg,
 						 gboolean	 enabled);
+AsRelease	*cra_package_get_release	(CraPackage	*pkg,
+						 const gchar	*version);
+void		 cra_package_add_release	(CraPackage	*pkg,
+						 const gchar	*version,
+						 AsRelease	*release);
 
 G_END_DECLS
 

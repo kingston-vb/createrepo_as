@@ -51,13 +51,28 @@ fi
 AC_SUBST(WARNINGFLAGS_C)
 
 PKG_CHECK_MODULES(GLIB, glib-2.0 >= 2.36.0 gobject-2.0 gthread-2.0 gio-2.0 >= 2.25.9 gio-unix-2.0 gmodule-2.0)
-PKG_CHECK_MODULES(RPM, rpm)
 PKG_CHECK_MODULES(LIBARCHIVE, libarchive)
 PKG_CHECK_MODULES(GDKPIXBUF, gtk+-3.0 gdk-pixbuf-2.0)
 PKG_CHECK_MODULES(SQLITE, sqlite3)
 PKG_CHECK_MODULES(LIBSOUP, libsoup-2.4)
 PKG_CHECK_MODULES(APPSTREAM, appstream-glib >= 0.1.3)
 PKG_CHECK_MODULES(FREETYPE, pango fontconfig freetype2 >= 9.10.0)
+
+# rpm (default enabled)
+AC_ARG_ENABLE(rpm, AS_HELP_STRING([--disable-rpm],[Disable rpm support]), enable_rpm=$enableval)
+if test x$enable_rpm != xno; then
+	PKG_CHECK_MODULES(RPM, rpm, HAVE_RPM="yes", HAVE_RPM="no")
+	if test "x$HAVE_RPM" = "xyes"; then
+		AC_DEFINE(HAVE_RPM, 1, [define if RPM is installed])
+	else
+		if test x$enable_rpm = xyes; then
+			AC_MSG_ERROR([rpm enabled but not found])
+		fi
+	fi
+else
+	HAVE_RPM=no
+fi
+AM_CONDITIONAL(HAVE_RPM, test x$HAVE_RPM = xyes)
 
 AC_CONFIG_FILES([
 Makefile
