@@ -237,6 +237,11 @@ cra_plugin_process_app (CraPlugin *plugin,
 					     "X-Kudo-GTK3", "", -1);
 			break;
 		}
+		if (g_strcmp0 (deps[i], "libQt5Core.so.5") == 0) {
+			as_app_add_metadata (AS_APP (app),
+					     "X-Kudo-QT5", "", -1);
+			break;
+		}
 	}
 
 	/* look for ancient toolkits */

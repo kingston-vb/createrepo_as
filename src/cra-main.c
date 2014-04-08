@@ -75,6 +75,7 @@ cra_task_process_func (gpointer data, gpointer user_data)
 	guint i;
 	const gchar *kudos[] = {
 		"X-Kudo-GTK3",
+		"X-Kudo-QT5",
 		"X-Kudo-InstallsUserDocs",
 		"X-Kudo-RecentRelease",
 		"X-Kudo-SearchProvider",
