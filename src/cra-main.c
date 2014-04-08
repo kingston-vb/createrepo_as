@@ -362,7 +362,7 @@ cra_context_write_icons (CraContext *ctx,
 	gboolean ret;
 	gchar *filename;
 
-	filename = g_strdup_printf ("%s/%s-icons.tar", output_dir, basename);
+	filename = g_strdup_printf ("%s/%s-icons.tar.gz", output_dir, basename);
 	g_debug ("Writing %s", filename);
 	ret = cra_utils_write_archive_dir (filename, "icons", error);
 	g_free (filename);
