@@ -45,6 +45,7 @@ cra_plugin_add_globs (CraPlugin *plugin, GPtrArray *globs)
 	cra_plugin_add_glob (globs, "/usr/share/icons/hicolor/*/apps/*");
 	cra_plugin_add_glob (globs, "/usr/share/pixmaps/*");
 	cra_plugin_add_glob (globs, "/usr/share/icons/*");
+	cra_plugin_add_glob (globs, "/usr/share/*/icons/*");
 }
 
 /**
