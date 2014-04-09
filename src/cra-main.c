@@ -126,8 +126,8 @@ cra_task_process_func (gpointer data, gpointer user_data)
 		cra_package_log (task->pkg,
 				 CRA_PACKAGE_LOG_LEVEL_WARNING,
 				 "Failed to explode: %s", error->message);
-		g_error_free (error);
-		goto out;
+		g_clear_error (&error);
+		goto skip;
 	}
 
 	/* add extra packages */
@@ -140,7 +140,7 @@ cra_task_process_func (gpointer data, gpointer user_data)
 					 "%s requires %s but is not available",
 					 cra_package_get_name (task->pkg),
 					 pkg_name);
-			goto out;
+			goto skip;
 		}
 		cra_package_log (task->pkg,
 				 CRA_PACKAGE_LOG_LEVEL_DEBUG,
@@ -153,8 +153,8 @@ cra_task_process_func (gpointer data, gpointer user_data)
 					 CRA_PACKAGE_LOG_LEVEL_WARNING,
 					 "Failed to explode extra file: %s",
 					 error->message);
-			g_error_free (error);
-			goto out;
+			g_clear_error (&error);
+			goto skip;
 		}
 	}
 
@@ -170,8 +170,8 @@ cra_task_process_func (gpointer data, gpointer user_data)
 				 CRA_PACKAGE_LOG_LEVEL_WARNING,
 				 "Failed to run process: %s",
 				 error->message);
-		g_error_free (error);
-		goto out;
+		g_clear_error (&error);
+		goto skip;
 	}
 
 	/* print */
@@ -227,8 +227,8 @@ cra_task_process_func (gpointer data, gpointer user_data)
 					 "Failed to run process on %s: %s",
 					 as_app_get_id (AS_APP (app)),
 					 error->message);
-			g_error_free (error);
-			goto out;
+			g_clear_error (&error);
+			goto skip;
 		}
 
 		/* don't include apps that *still* require appdata */
@@ -271,8 +271,8 @@ cra_task_process_func (gpointer data, gpointer user_data)
 					 CRA_PACKAGE_LOG_LEVEL_WARNING,
 					 "Failed to save resources: %s",
 					 error->message);
-			g_error_free (error);
-			goto out;
+			g_clear_error (&error);
+			goto skip;
 		}
 
 		/* print Kudos the might have */
@@ -293,7 +293,7 @@ cra_task_process_func (gpointer data, gpointer user_data)
 		cra_package_log (task->pkg, CRA_PACKAGE_LOG_LEVEL_NONE, "%s", tmp);
 		g_free (tmp);
 	}
-
+skip:
 	/* delete tree */
 	ret = cra_utils_rmtree (task->tmpdir, &error);
 	if (!ret) {
@@ -305,13 +305,23 @@ cra_task_process_func (gpointer data, gpointer user_data)
 		goto out;
 	}
 
+	/* write log */
+	ret = cra_package_log_flush (task->pkg, &error);
+	if (!ret) {
+		cra_package_log (task->pkg,
+				 CRA_PACKAGE_LOG_LEVEL_WARNING,
+				 "Failed to write package log: %s",
+				 error->message);
+		g_error_free (error);
+		goto out;
+	}
+
 	/* update UI */
 	g_debug ("Processed %i/%i %s",
 		 task->id + 1,
 		 ctx->packages->len,
 		 cra_package_get_name (task->pkg));
 out:
-	cra_package_log_flush (task->pkg, NULL);
 	g_list_free_full (apps, (GDestroyNotify) g_object_unref);
 }
 
