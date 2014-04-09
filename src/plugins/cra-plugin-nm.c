@@ -55,7 +55,11 @@ cra_plugin_nm_app (CraApp *app, const gchar *filename, GError **error)
 				NULL };
 
 	ret = g_spawn_sync (NULL, (gchar **) argv, NULL,
+#if GLIB_CHECK_VERSION(2,40,0)
+			    G_SPAWN_CLOEXEC_PIPES,
+#else
 			    G_SPAWN_DEFAULT,
+#endif
 			    NULL, NULL,
 			    &data_out,
 			    &data_err,
