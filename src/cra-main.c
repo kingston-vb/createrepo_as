@@ -84,6 +84,7 @@ cra_task_process_func (gpointer data, gpointer user_data)
 		"X-Kudo-SearchProvider",
 		"X-Kudo-UsesAppMenu",
 		"X-Kudo-UsesNotifications",
+		"X-Kudo-Popular",
 		NULL };
 
 	g_debug ("Processing %i/%i %s",
