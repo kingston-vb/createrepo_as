@@ -186,13 +186,15 @@ gboolean
 cra_package_log_flush (CraPackage *pkg, GError **error)
 {
 	CraPackagePrivate *priv = GET_PRIVATE (pkg);
+	const gchar *tmp;
 	gboolean ret;
 	gchar *logdir;
 	gchar *logfile;
 	gint rc;
 
 	/* overwrite old log */
-	logdir = g_build_filename ("./logs", cra_package_get_name (pkg), NULL);
+	tmp = cra_package_get_config (pkg, "LogDir");
+	logdir = g_build_filename (tmp, cra_package_get_name (pkg), NULL);
 	rc = g_mkdir_with_parents (logdir, 0700);
 	if (rc < 0) {
 		ret = FALSE;

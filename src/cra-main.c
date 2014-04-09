@@ -705,6 +705,7 @@ main (int argc, char **argv)
 		cra_package_set_config (pkg, "AppDataExtra", extra_appdata);
 		cra_package_set_config (pkg, "ScreenshotsExtra", extra_screenshots);
 		cra_package_set_config (pkg, "MirrorURI", screenshot_uri);
+		cra_package_set_config (pkg, "LogDir", log_dir);
 
 		/* create task */
 		task = g_new0 (CraTask, 1);
