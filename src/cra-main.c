@@ -507,6 +507,9 @@ main (int argc, char **argv)
 	gboolean no_net = FALSE;
 	gdouble api_version = 0.0f;
 	gchar *basename = NULL;
+	gchar *extra_appdata = NULL;
+	gchar *extra_appstream = NULL;
+	gchar *extra_screenshots = NULL;
 	gchar *log_dir = NULL;
 	gchar *output_dir = NULL;
 	gchar *packages_dir = NULL;
@@ -527,21 +530,27 @@ main (int argc, char **argv)
 		{ "no-net", '\0', 0, G_OPTION_ARG_NONE, &no_net,
 			"Do not use the network to download screenshots", NULL },
 		{ "log-dir", '\0', 0, G_OPTION_ARG_STRING, &log_dir,
-			"Set the logging directory\t[default: ./logs]", NULL },
+			"Set the logging directory       [default: ./logs]", NULL },
 		{ "packages-dir", '\0', 0, G_OPTION_ARG_STRING, &packages_dir,
-			"Set the packages directory\t[default: ./packages]", NULL },
+			"Set the packages directory      [default: ./packages]", NULL },
 		{ "temp-dir", '\0', 0, G_OPTION_ARG_STRING, &temp_dir,
-			"Set the temporary directory\t[default: ./tmp]", NULL },
+			"Set the temporary directory     [default: ./tmp]", NULL },
+		{ "extra-appstream-dir", '\0', 0, G_OPTION_ARG_STRING, &extra_appstream,
+			"Use extra appstream data        [default: ./appstream-extra]", NULL },
+		{ "extra-appdata-dir", '\0', 0, G_OPTION_ARG_STRING, &extra_appdata,
+			"Use extra appdata data          [default: ./appdata-extra]", NULL },
+		{ "extra-screenshots-dir", '\0', 0, G_OPTION_ARG_STRING, &extra_screenshots,
+			"Use extra screenshots data      [default: ./screenshots-extra]", NULL },
 		{ "output-dir", '\0', 0, G_OPTION_ARG_STRING, &output_dir,
-			"Set the output directory\t\t[default: .]", NULL },
+			"Set the output directory        [default: .]", NULL },
 		{ "basename", '\0', 0, G_OPTION_ARG_STRING, &basename,
-			"Set the origin name\t\t[default: fedora-21]", NULL },
+			"Set the origin name             [default: fedora-21]", NULL },
 		{ "max-threads", '\0', 0, G_OPTION_ARG_INT, &max_threads,
-			"Set the number of threads\t[default: 4]", NULL },
+			"Set the number of threads       [default: 4]", NULL },
 		{ "api-version", '\0', 0, G_OPTION_ARG_DOUBLE, &api_version,
-			"Set the AppStream version\t[default: 0.4]", NULL },
+			"Set the AppStream version       [default: 0.4]", NULL },
 		{ "screenshot-uri", '\0', 0, G_OPTION_ARG_STRING, &screenshot_uri,
-			"Set the screenshot base URL", NULL },
+			"Set the screenshot base URL     [default: none]", NULL },
 		{ NULL}
 	};
 
@@ -572,6 +581,12 @@ main (int argc, char **argv)
 		basename = g_strdup ("fedora-21");
 	if (screenshot_uri == NULL)
 		screenshot_uri = g_strdup ("http://alt.fedoraproject.org/pub/alt/screenshots/f21/");
+	if (extra_appstream == NULL)
+		extra_appstream = g_strdup ("./appstream-extra");
+	if (extra_appdata == NULL)
+		extra_appdata = g_strdup ("./appdata-extra");
+	if (extra_screenshots == NULL)
+		extra_screenshots = g_strdup ("./screenshots-extra");
 	setlocale (LC_ALL, "");
 
 	/* set up state */
@@ -647,15 +662,19 @@ main (int argc, char **argv)
 	}
 
 	/* add any extra applications */
-	ret = cra_utils_add_apps_from_dir (&ctx->apps,
-					   "../../fedora-appstream/appstream-extra/",
-					   &error);
-	if (!ret) {
-		g_warning ("failed to open appstream-extra: %s", error->message);
-		g_error_free (error);
-		goto out;
+	if (extra_appstream != NULL &&
+	    g_file_test (extra_appstream, G_FILE_TEST_EXISTS)) {
+		ret = cra_utils_add_apps_from_dir (&ctx->apps,
+						   extra_appstream,
+						   &error);
+		if (!ret) {
+			g_warning ("failed to open appstream-extra: %s",
+				   error->message);
+			g_error_free (error);
+			goto out;
+		}
+		g_debug ("Added extra %i apps", g_list_length (ctx->apps));
 	}
-	g_debug ("Added extra %i apps", g_list_length (ctx->apps));
 
 	/* scan each package */
 	if (argc == 1) {
@@ -705,15 +724,10 @@ main (int argc, char **argv)
 			continue;
 		}
 
-		cra_package_set_config (pkg,
-					"AppDataExtra",
-					"../../fedora-appstream/appdata-extra");
-		cra_package_set_config (pkg,
-					"ScreenshotsExtra",
-					"../../fedora-appstream/screenshots-extra");
-		cra_package_set_config (pkg,
-					"MirrorURI",
-					screenshot_uri);
+		/* set locations of external resources */
+		cra_package_set_config (pkg, "AppDataExtra", extra_appdata);
+		cra_package_set_config (pkg, "ScreenshotsExtra", extra_screenshots);
+		cra_package_set_config (pkg, "MirrorURI", screenshot_uri);
 
 		/* create task */
 		task = g_new0 (CraTask, 1);
@@ -761,6 +775,9 @@ main (int argc, char **argv)
 	g_debug ("Done!");
 out:
 	g_free (screenshot_uri);
+	g_free (extra_appstream);
+	g_free (extra_appdata);
+	g_free (extra_screenshots);
 	g_free (packages_dir);
 	g_free (temp_dir);
 	g_free (output_dir);
