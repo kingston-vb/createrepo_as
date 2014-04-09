@@ -87,11 +87,6 @@ cra_task_process_func (gpointer data, gpointer user_data)
 		"X-Kudo-Popular",
 		NULL };
 
-	g_debug ("Processing %i/%i %s",
-		 task->id + 1,
-		 ctx->packages->len,
-		 cra_package_get_name (task->pkg));
-
 	/* reset the profile timer */
 	cra_package_log_start (task->pkg);
 
@@ -309,6 +304,12 @@ cra_task_process_func (gpointer data, gpointer user_data)
 		g_error_free (error);
 		goto out;
 	}
+
+	/* update UI */
+	g_debug ("Processed %i/%i %s",
+		 task->id + 1,
+		 ctx->packages->len,
+		 cra_package_get_name (task->pkg));
 out:
 	cra_package_log_flush (task->pkg, NULL);
 	g_list_free_full (apps, (GDestroyNotify) g_object_unref);
@@ -716,10 +717,10 @@ main (int argc, char **argv)
 	}
 
 	/* wait for them to finish */
-	if (pool != NULL)
-		g_thread_pool_free (pool, FALSE, TRUE);
+	g_thread_pool_free (pool, FALSE, TRUE);
 
 	/* merge */
+	g_debug ("Merging applications...");
 	cra_plugin_loader_merge (ctx->plugins, &ctx->apps);
 
 	/* write XML file */
