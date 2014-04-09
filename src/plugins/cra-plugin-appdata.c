@@ -232,6 +232,8 @@ cra_plugin_process_filename (CraApp *app,
 
 			if (g_strcmp0 (as_node_get_name (c), "screenshot") != 0)
 				continue;
+			if (as_node_get_data (c) == NULL)
+				continue;
 			ss = cra_screenshot_new (cra_app_get_package (app),
 						 as_app_get_id (AS_APP (app)));
 			tmp = as_node_get_attribute (c, "type");
