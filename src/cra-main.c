@@ -70,6 +70,7 @@ cra_task_process_func (gpointer data, gpointer user_data)
 	CraTask *task = (CraTask *) data;
 	gboolean ret;
 	gchar **filelist;
+	gchar *basename = NULL;
 	gchar *tmp;
 	GError *error = NULL;
 	GList *apps = NULL;
@@ -91,10 +92,11 @@ cra_task_process_func (gpointer data, gpointer user_data)
 	cra_package_log_start (task->pkg);
 
 	/* did we get a file match on any plugin */
+	basename = g_path_get_basename (task->filename);
 	cra_package_log (task->pkg,
 			 CRA_PACKAGE_LOG_LEVEL_DEBUG,
 			 "Getting filename match for %s",
-			 task->filename);
+			 basename);
 	filelist = cra_package_get_filelist (task->pkg);
 	if (filelist == NULL)
 		goto out;
@@ -162,7 +164,7 @@ cra_task_process_func (gpointer data, gpointer user_data)
 	cra_package_log (task->pkg,
 			 CRA_PACKAGE_LOG_LEVEL_DEBUG,
 			 "Processing %s with %s",
-			 task->filename,
+			 basename,
 			 plugin->name);
 	apps = cra_plugin_process (plugin, task->pkg, task->tmpdir, &error);
 	if (apps == NULL) {
@@ -322,6 +324,7 @@ skip:
 		 ctx->packages->len,
 		 cra_package_get_name (task->pkg));
 out:
+	g_free (basename);
 	g_list_free_full (apps, (GDestroyNotify) g_object_unref);
 }
 
