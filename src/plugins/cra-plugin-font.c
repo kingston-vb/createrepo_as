@@ -263,21 +263,34 @@ cra_font_get_pixbuf (FT_Face ft_face,
 /**
  * cra_font_add_screenshot:
  */
-static void
-cra_font_add_screenshot (CraApp *app, FT_Face ft_face)
+static gboolean
+cra_font_add_screenshot (CraApp *app, FT_Face ft_face, GError **error)
 {
+	CraScreenshot *ss = NULL;
+	GdkPixbuf *pixbuf = NULL;
 	const gchar *tmp;
-	CraScreenshot *ss;
-	gchar *caption;
-	GdkPixbuf *pixbuf;
+	gboolean ret = TRUE;
+	gchar *cache_fn = NULL;
+	gchar *caption = NULL;
 
 	tmp = as_app_get_metadata_item (AS_APP (app), "FontSampleText");
 	if (tmp == NULL)
-		return;
+		goto out;
 
+	/* is in the cache */
 	ss = cra_screenshot_new (cra_app_get_package (app),
 				 as_app_get_id (AS_APP (app)));
-	pixbuf = cra_font_get_pixbuf (ft_face, 640, 48, tmp);
+	cache_fn = g_strdup_printf ("./screenshot-cache/%s.png",
+				    as_app_get_id (AS_APP (app)));
+	if (g_file_test (cache_fn, G_FILE_TEST_EXISTS)) {
+		pixbuf = gdk_pixbuf_new_from_file (cache_fn, error);
+		if (pixbuf == NULL) {
+			ret = FALSE;
+			goto out;
+		}
+	} else {
+		pixbuf = cra_font_get_pixbuf (ft_face, 640, 48, tmp);
+	}
 	cra_screenshot_set_pixbuf (ss, pixbuf);
 	caption = g_strdup_printf ("%s – %s",
 				   as_app_get_metadata_item (AS_APP (app), "FontFamily"),
@@ -287,9 +300,20 @@ cra_font_add_screenshot (CraApp *app, FT_Face ft_face)
 	cra_screenshot_set_only_source (ss, TRUE);
 	as_app_add_screenshot (AS_APP (app), AS_SCREENSHOT (ss));
 
+	/* save to cache */
+	if (!g_file_test (cache_fn, G_FILE_TEST_EXISTS)) {
+		ret = gdk_pixbuf_save (pixbuf, cache_fn, "png", error, NULL);
+		if (!ret)
+			goto out;
+	}
+out:
+	if (pixbuf != NULL)
+		g_object_unref (pixbuf);
+	if (ss != NULL)
+		g_object_unref (ss);
+	g_free (cache_fn);
 	g_free (caption);
-	g_object_unref (pixbuf);
-	g_object_unref (ss);
+	return ret;
 }
 
 /**
@@ -393,7 +417,9 @@ cra_plugin_process_filename (CraPlugin *plugin,
 	cra_font_add_languages (app, pattern);
 	cra_font_add_metadata (app, ft_face);
 	cra_font_fix_metadata (app);
-	cra_font_add_screenshot (app, ft_face);
+	ret = cra_font_add_screenshot (app, ft_face, error);
+	if (!ret)
+		goto out;
 
 	/* generate icon */
 	tmp = as_app_get_metadata_item (AS_APP (app), "FontIconText");
