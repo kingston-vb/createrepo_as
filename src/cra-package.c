@@ -164,15 +164,18 @@ cra_package_log (CraPackage *pkg,
 	}
 	switch (log_level) {
 	case CRA_PACKAGE_LOG_LEVEL_INFO:
+		g_debug ("INFO:    %s", tmp);
 		g_string_append_printf (priv->log, "INFO:    %s\n", tmp);
 		break;
 	case CRA_PACKAGE_LOG_LEVEL_DEBUG:
-		g_string_append_printf (priv->log, "DEBUG:   %s\n", tmp);
+		g_debug ("DEBUG:   %s", tmp);
 		break;
 	case CRA_PACKAGE_LOG_LEVEL_WARNING:
+		g_debug ("WARNING: %s", tmp);
 		g_string_append_printf (priv->log, "WARNING: %s\n", tmp);
 		break;
 	default:
+		g_debug ("%s", tmp);
 		g_string_append_printf (priv->log, "%s\n", tmp);
 		break;
 	}

@@ -319,7 +319,7 @@ skip:
 	}
 
 	/* update UI */
-	g_debug ("Processed %i/%i %s",
+	g_print ("Processed %i/%i %s\n",
 		 task->id + 1,
 		 ctx->packages->len,
 		 cra_package_get_name (task->pkg));
