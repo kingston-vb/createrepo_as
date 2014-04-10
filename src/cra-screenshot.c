@@ -385,7 +385,7 @@ cra_screenshot_load_url (CraScreenshot *screenshot, const gchar *url, GError **e
 			goto out;
 		}
 		cra_package_log (priv->pkg,
-				 CRA_PACKAGE_LOG_LEVEL_INFO,
+				 CRA_PACKAGE_LOG_LEVEL_DEBUG,
 				 "Downloading %s", url);
 		msg = soup_message_new_from_uri (SOUP_METHOD_GET, uri);
 		status = soup_session_send_message (priv->session, msg);
