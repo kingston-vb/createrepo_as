@@ -8,6 +8,7 @@ AM_CPPFLAGS =						\
 	$(LIBSOUP_CFLAGS)				\
 	$(RPM_CFLAGS)					\
 	$(SQLITE_CFLAGS)				\
+	-DCRA_PLUGIN_DIR=\"$(libdir)/cra-plugins\"	\
 	-DG_LOG_DOMAIN=\"Cra\"
 
 noinst_PROGRAMS =					\

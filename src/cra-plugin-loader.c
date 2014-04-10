@@ -280,6 +280,10 @@ cra_plugin_loader_setup (GPtrArray *plugins, GError **error)
 	gchar *filename_plugin;
 	GDir *dir;
 
+	/* search system-wide if not found locally */
+	if (!g_file_test (location, G_FILE_TEST_EXISTS))
+		location = CRA_PLUGIN_DIR;
+
 	/* search in the plugin directory for plugins */
 	dir = g_dir_open (location, 0, error);
 	if (dir == NULL) {
