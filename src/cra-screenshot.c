@@ -188,6 +188,7 @@ cra_screenshot_save_pixbuf (CraScreenshot *screenshot,
 			    GError **error)
 {
 	CraScreenshotPrivate *priv = GET_PRIVATE (screenshot);
+	const gchar *output_dir;
 	gboolean ret = TRUE;
 	gchar *filename = NULL;
 	gchar *size_str;
@@ -200,7 +201,9 @@ cra_screenshot_save_pixbuf (CraScreenshot *screenshot,
 
 	/* does screenshot already exist */
 	size_str = g_strdup_printf ("%ix%i", width, height);
-	filename = g_build_filename ("./screenshots",
+	output_dir = cra_package_get_config (priv->pkg, "OutputDir");
+	filename = g_build_filename (output_dir,
+				     "screenshots",
 				     size_str,
 				     priv->basename,
 				     NULL);
@@ -274,11 +277,14 @@ static gboolean
 cra_screenshot_save_source (CraScreenshot *screenshot, GError **error)
 {
 	CraScreenshotPrivate *priv = GET_PRIVATE (screenshot);
+	const gchar *output_dir;
 	gboolean ret = TRUE;
 	gchar *filename = NULL;
 
 	/* does screenshot already exist */
-	filename = g_build_filename ("./screenshots",
+	output_dir = cra_package_get_config (priv->pkg, "OutputDir");
+	filename = g_build_filename (output_dir,
+				     "screenshots",
 				     "source",
 				     priv->basename,
 				     NULL);
@@ -353,6 +359,7 @@ gboolean
 cra_screenshot_load_url (CraScreenshot *screenshot, const gchar *url, GError **error)
 {
 	CraScreenshotPrivate *priv = GET_PRIVATE (screenshot);
+	const gchar *cache_dir;
 	gboolean ret = TRUE;
 	gchar *basename;
 	gchar *cache_filename;
@@ -362,8 +369,11 @@ cra_screenshot_load_url (CraScreenshot *screenshot, const gchar *url, GError **e
 
 	/* download to cache if not already added */
 	basename = g_path_get_basename (url);
-	cache_filename = g_strdup_printf ("./screenshot-cache/%s-%s",
-					  priv->app_id, basename);
+	cache_dir = cra_package_get_config (priv->pkg, "CacheDir");
+	cache_filename = g_strdup_printf ("%s/%s-%s",
+					  cache_dir,
+					  priv->app_id,
+					  basename);
 	if (!g_file_test (cache_filename, G_FILE_TEST_EXISTS)) {
 		uri = soup_uri_new (url);
 		if (uri == NULL) {

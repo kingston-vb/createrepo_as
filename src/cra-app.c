@@ -177,6 +177,7 @@ cra_app_save_resources (CraApp *app, GError **error)
 {
 	CraAppPrivate *priv = GET_PRIVATE (app);
 	CraScreenshot *ss;
+	const gchar *tmpdir;
 	gboolean ret = TRUE;
 	guint i;
 	gchar *filename = NULL;
@@ -184,7 +185,9 @@ cra_app_save_resources (CraApp *app, GError **error)
 
 	/* any non-stock icon set */
 	if (priv->pixbuf != NULL) {
-		filename = g_build_filename ("./icons",
+		tmpdir = cra_package_get_config (priv->pkg, "TempDir");
+		filename = g_build_filename (tmpdir,
+					     "icons",
 					     as_app_get_icon (AS_APP (app)),
 					     NULL);
 		ret = gdk_pixbuf_save (priv->pixbuf,

@@ -373,17 +373,21 @@ out:
  */
 static gboolean
 cra_context_write_icons (CraContext *ctx,
+			 const gchar *temp_dir,
 			 const gchar *output_dir,
 			 const gchar *basename,
 			 GError **error)
 {
 	gboolean ret;
 	gchar *filename;
+	gchar *icons_dir;
 
+	icons_dir = g_build_filename (temp_dir, "icons", NULL);
 	filename = g_strdup_printf ("%s/%s-icons.tar.gz", output_dir, basename);
 	g_debug ("Writing %s", filename);
-	ret = cra_utils_write_archive_dir (filename, "icons", error);
+	ret = cra_utils_write_archive_dir (filename, icons_dir, error);
 	g_free (filename);
+	g_free (icons_dir);
 	return ret;
 }
 
@@ -486,6 +490,7 @@ main (int argc, char **argv)
 	gchar *extra_screenshots = NULL;
 	gchar *log_dir = NULL;
 	gchar *output_dir = NULL;
+	gchar *cache_dir = NULL;
 	gchar *packages_dir = NULL;
 	gchar *screenshot_uri = NULL;
 	gchar *temp_dir = NULL;
@@ -517,6 +522,8 @@ main (int argc, char **argv)
 			"Use extra screenshots data      [default: ./screenshots-extra]", NULL },
 		{ "output-dir", '\0', 0, G_OPTION_ARG_STRING, &output_dir,
 			"Set the output directory        [default: .]", NULL },
+		{ "cache-dir", '\0', 0, G_OPTION_ARG_STRING, &output_dir,
+			"Set the cache directory         [default: ./cache]", NULL },
 		{ "basename", '\0', 0, G_OPTION_ARG_STRING, &basename,
 			"Set the origin name             [default: fedora-21]", NULL },
 		{ "max-threads", '\0', 0, G_OPTION_ARG_INT, &max_threads,
@@ -557,6 +564,8 @@ main (int argc, char **argv)
 		log_dir = g_strdup ("./logs");
 	if (output_dir == NULL)
 		output_dir = g_strdup (".");
+	if (cache_dir == NULL)
+		cache_dir = g_strdup ("./cache");
 	if (basename == NULL)
 		basename = g_strdup ("fedora-21");
 	if (screenshot_uri == NULL)
@@ -576,7 +585,9 @@ main (int argc, char **argv)
 		g_error_free (error);
 		goto out;
 	}
-	ret = cra_utils_ensure_exists_and_empty ("./icons", &error);
+	tmp = g_build_filename (temp_dir, "icons", NULL);
+	ret = cra_utils_ensure_exists_and_empty (tmp, &error);
+	g_free (tmp);
 	if (!ret) {
 		g_warning ("failed to create icons dir: %s", error->message);
 		g_error_free (error);
@@ -592,29 +603,37 @@ main (int argc, char **argv)
 		g_warning ("failed to create log dir");
 		goto out;
 	}
-	rc = g_mkdir_with_parents ("./screenshots/112x63", 0700);
+	tmp = g_build_filename (output_dir, "screenshots", "112x63", NULL);
+	rc = g_mkdir_with_parents (tmp, 0700);
+	g_free (tmp);
 	if (rc != 0) {
 		g_warning ("failed to create screenshot cache dir");
 		goto out;
 	}
-	rc = g_mkdir_with_parents ("./screenshots/624x351", 0700);
+	tmp = g_build_filename (output_dir, "screenshots", "624x351", NULL);
+	rc = g_mkdir_with_parents (tmp, 0700);
+	g_free (tmp);
 	if (rc != 0) {
 		g_warning ("failed to create screenshot cache dir");
 		goto out;
 	}
-	rc = g_mkdir_with_parents ("./screenshots/752x423", 0700);
+	tmp = g_build_filename (output_dir, "screenshots", "752x423", NULL);
+	rc = g_mkdir_with_parents (tmp, 0700);
+	g_free (tmp);
 	if (rc != 0) {
 		g_warning ("failed to create screenshot cache dir");
 		goto out;
 	}
-	rc = g_mkdir_with_parents ("./screenshots/source", 0700);
+	tmp = g_build_filename (output_dir, "screenshots", "source", NULL);
+	rc = g_mkdir_with_parents (tmp, 0700);
+	g_free (tmp);
 	if (rc != 0) {
 		g_warning ("failed to create screenshot cache dir");
 		goto out;
 	}
-	rc = g_mkdir_with_parents ("./screenshot-cache", 0700);
+	rc = g_mkdir_with_parents (cache_dir, 0700);
 	if (rc != 0) {
-		g_warning ("failed to create screenshot cache dir");
+		g_warning ("failed to create cache dir");
 		goto out;
 	}
 
@@ -709,6 +728,9 @@ main (int argc, char **argv)
 		cra_package_set_config (pkg, "ScreenshotsExtra", extra_screenshots);
 		cra_package_set_config (pkg, "MirrorURI", screenshot_uri);
 		cra_package_set_config (pkg, "LogDir", log_dir);
+		cra_package_set_config (pkg, "CacheDir", cache_dir);
+		cra_package_set_config (pkg, "TempDir", temp_dir);
+		cra_package_set_config (pkg, "OutputDir", output_dir);
 
 		/* create task */
 		task = g_new0 (CraTask, 1);
@@ -746,7 +768,11 @@ main (int argc, char **argv)
 	}
 
 	/* write icons archive */
-	ret = cra_context_write_icons (ctx, output_dir, basename, &error);
+	ret = cra_context_write_icons (ctx,
+				       temp_dir,
+				       output_dir,
+				       basename,
+				       &error);
 	if (!ret) {
 		g_warning ("Failed to write icons archive: %s", error->message);
 		g_error_free (error);
@@ -761,6 +787,7 @@ out:
 	g_free (extra_appdata);
 	g_free (extra_screenshots);
 	g_free (packages_dir);
+	g_free (cache_dir);
 	g_free (temp_dir);
 	g_free (output_dir);
 	g_free (basename);

@@ -268,6 +268,7 @@ cra_font_add_screenshot (CraApp *app, FT_Face ft_face, GError **error)
 {
 	CraScreenshot *ss = NULL;
 	GdkPixbuf *pixbuf = NULL;
+	const gchar *cache_dir;
 	const gchar *tmp;
 	gboolean ret = TRUE;
 	gchar *cache_fn = NULL;
@@ -280,7 +281,9 @@ cra_font_add_screenshot (CraApp *app, FT_Face ft_face, GError **error)
 	/* is in the cache */
 	ss = cra_screenshot_new (cra_app_get_package (app),
 				 as_app_get_id (AS_APP (app)));
-	cache_fn = g_strdup_printf ("./screenshot-cache/%s.png",
+	cache_dir = cra_package_get_config (cra_app_get_package (app), "CacheDir");
+	cache_fn = g_strdup_printf ("%s/%s.png",
+				    cache_dir,
 				    as_app_get_id (AS_APP (app)));
 	if (g_file_test (cache_fn, G_FILE_TEST_EXISTS)) {
 		pixbuf = gdk_pixbuf_new_from_file (cache_fn, error);
