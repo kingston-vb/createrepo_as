@@ -384,7 +384,7 @@ cra_context_write_icons (CraContext *ctx,
 
 	icons_dir = g_build_filename (temp_dir, "icons", NULL);
 	filename = g_strdup_printf ("%s/%s-icons.tar.gz", output_dir, basename);
-	g_debug ("Writing %s", filename);
+	g_print ("Writing %s...\n", filename);
 	ret = cra_utils_write_archive_dir (filename, icons_dir, error);
 	g_free (filename);
 	g_free (icons_dir);
@@ -419,7 +419,7 @@ cra_context_write_xml (CraContext *ctx,
 	filename = g_strdup_printf ("%s/%s.xml.gz", output_dir, basename);
 	file = g_file_new_for_path (filename);
 
-	g_debug ("Writing %s", filename);
+	g_print ("Writing %s...\n", filename);
 	as_store_set_origin (store, basename);
 	as_store_set_api_version (store, ctx->api_version);
 	ret = as_store_to_file (store,
@@ -672,12 +672,12 @@ main (int argc, char **argv)
 			g_error_free (error);
 			goto out;
 		}
-		g_debug ("Added extra %i apps", g_list_length (ctx->apps));
+		g_print ("Added extra %i apps\n", g_list_length (ctx->apps));
 	}
 
 	/* scan each package */
 	if (argc == 1) {
-		g_debug ("Scanning packages");
+		g_print ("Scanning packages...\n");
 		dir = g_dir_open (packages_dir, 0, &error);
 		if (dir == NULL) {
 			g_warning ("failed to open packages: %s", error->message);
@@ -710,7 +710,7 @@ main (int argc, char **argv)
 	cra_context_disable_older_packages (ctx);
 
 	/* add each package */
-	g_debug ("Processing packages");
+	g_print ("Processing packages...\n");
 	tasks = g_ptr_array_new_with_free_func ((GDestroyNotify) cra_task_free);
 	for (i = 0; i < ctx->packages->len; i++) {
 		pkg = g_ptr_array_index (ctx->packages, i);
@@ -756,7 +756,7 @@ main (int argc, char **argv)
 	g_thread_pool_free (pool, FALSE, TRUE);
 
 	/* merge */
-	g_debug ("Merging applications...");
+	g_print ("Merging applications...\n");
 	cra_plugin_loader_merge (ctx->plugins, &ctx->apps);
 
 	/* write XML file */
@@ -780,7 +780,7 @@ main (int argc, char **argv)
 	}
 
 	/* success */
-	g_debug ("Done!");
+	g_print ("Done!\n");
 out:
 	g_free (screenshot_uri);
 	g_free (extra_appstream);
