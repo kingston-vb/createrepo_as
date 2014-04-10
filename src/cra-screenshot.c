@@ -31,6 +31,7 @@ typedef struct _CraScreenshotPrivate	CraScreenshotPrivate;
 struct _CraScreenshotPrivate
 {
 	gchar			*app_id;
+	gchar			*md5;
 	gchar			*basename;
 	SoupSession		*session;
 	gboolean		 only_source;
@@ -53,6 +54,7 @@ cra_screenshot_finalize (GObject *object)
 
 	g_free (priv->app_id);
 	g_free (priv->basename);
+	g_free (priv->md5);
 	g_object_unref (priv->session);
 	if (priv->pkg != NULL)
 		g_object_unref (priv->pkg);
@@ -85,7 +87,6 @@ cra_screenshot_set_pixbuf (CraScreenshot *screenshot, GdkPixbuf *pixbuf)
 	AsImage *im;
 	CraScreenshotPrivate *priv = GET_PRIVATE (screenshot);
 	const gchar *mirror_uri;
-	gchar *md5 = NULL;
 	gchar *size_str;
 	gchar *url_tmp;
 	guchar *data;
@@ -94,10 +95,16 @@ cra_screenshot_set_pixbuf (CraScreenshot *screenshot, GdkPixbuf *pixbuf)
 	guint sizes[] = { 624, 351, 112, 63, 752, 423, 0 };
 
 	priv->pixbuf = g_object_ref (pixbuf);
-	data = gdk_pixbuf_get_pixels_with_length (pixbuf, &len);
-	md5 = g_compute_checksum_for_data (G_CHECKSUM_MD5, data, len);
-	priv->basename = g_strdup_printf ("%s-%s.png", priv->app_id, md5);
-	g_free (md5);
+
+	/* use the pixel data if there was no file to load */
+	if (priv->md5 == NULL) {
+		data = gdk_pixbuf_get_pixels_with_length (pixbuf, &len);
+		priv->md5 = g_compute_checksum_for_data (G_CHECKSUM_MD5,
+							 data, len);
+	}
+	priv->basename = g_strdup_printf ("%s-%s.png",
+					  priv->app_id,
+					  priv->md5);
 
 	/* create the source */
 	mirror_uri = cra_package_get_config (priv->pkg, "MirrorURI");
@@ -149,10 +156,13 @@ cra_screenshot_load_filename (CraScreenshot *screenshot,
 	gchar *data = NULL;
 	gsize len;
 
-	/* get the contents so we can hash */
+	/* get the contents so we can hash the predictable file data,
+	 * rather than the unpredicatable (for JPEG) pixel data */
 	ret = g_file_get_contents (filename, &data, &len, error);
 	if (!ret)
 		goto out;
+	priv->md5 = g_compute_checksum_for_data (G_CHECKSUM_MD5,
+						 (guchar * )data, len);
 
 	/* load the image */
 	pixbuf = gdk_pixbuf_new_from_file (filename, error);
