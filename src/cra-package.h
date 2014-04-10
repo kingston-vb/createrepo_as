@@ -78,6 +78,7 @@ gboolean	 cra_package_explode		(CraPackage	*pkg,
 						 GPtrArray	*glob,
 						 GError		**error);
 const gchar	*cra_package_get_filename	(CraPackage	*pkg);
+const gchar	*cra_package_get_basename	(CraPackage	*pkg);
 const gchar	*cra_package_get_name		(CraPackage	*pkg);
 const gchar	*cra_package_get_nevr		(CraPackage	*pkg);
 const gchar	*cra_package_get_evr		(CraPackage	*pkg);

@@ -39,6 +39,7 @@ struct _CraPackagePrivate
 	gchar		**filelist;
 	gchar		**deps;
 	gchar		*filename;
+	gchar		*basename;
 	gchar		*name;
 	guint		 epoch;
 	gchar		*version;
@@ -74,6 +75,7 @@ cra_package_finalize (GObject *object)
 	g_strfreev (priv->filelist);
 	g_strfreev (priv->deps);
 	g_free (priv->filename);
+	g_free (priv->basename);
 	g_free (priv->name);
 	g_free (priv->version);
 	g_free (priv->release);
@@ -226,6 +228,16 @@ cra_package_get_filename (CraPackage *pkg)
 {
 	CraPackagePrivate *priv = GET_PRIVATE (pkg);
 	return priv->filename;
+}
+
+/**
+ * cra_package_get_basename:
+ **/
+const gchar *
+cra_package_get_basename (CraPackage *pkg)
+{
+	CraPackagePrivate *priv = GET_PRIVATE (pkg);
+	return priv->basename;
 }
 
 /**
@@ -465,6 +477,7 @@ cra_package_open (CraPackage *pkg, const gchar *filename, GError **error)
 
 	/* cache here */
 	priv->filename = g_strdup (filename);
+	priv->basename = g_path_get_basename (filename);
 
 	/* call distro-specific method */
 	if (klass->open != NULL) {

@@ -311,7 +311,7 @@ cra_plugin_process (CraPlugin *plugin,
 			     CRA_PLUGIN_ERROR,
 			     CRA_PLUGIN_ERROR_FAILED,
 			     "nothing interesting in %s",
-			     cra_package_get_filename (pkg));
+			     cra_package_get_basename (pkg));
 		goto out;
 	}
 out:
