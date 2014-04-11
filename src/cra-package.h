@@ -50,6 +50,8 @@ struct _CraPackageClass
 	gboolean		 (*open)	(CraPackage	*package,
 						 const gchar	*filename,
 						 GError		**error);
+	gint			 (*compare)	(CraPackage	*pkg1,
+						 CraPackage	*pkg2);
 };
 
 typedef enum {

@@ -25,9 +25,6 @@
 #include <archive.h>
 #include <archive_entry.h>
 
-#include <rpm/rpmlib.h>
-#include <rpm/rpmts.h>
-
 #include "cra-package.h"
 #include "cra-plugin.h"
 
@@ -35,7 +32,6 @@ typedef struct _CraPackagePrivate	CraPackagePrivate;
 struct _CraPackagePrivate
 {
 	gboolean	 enabled;
-	Header		 h;
 	gchar		**filelist;
 	gchar		**deps;
 	gchar		*filename;
@@ -71,7 +67,6 @@ cra_package_finalize (GObject *object)
 	CraPackage *pkg = CRA_PACKAGE (object);
 	CraPackagePrivate *priv = GET_PRIVATE (pkg);
 
-	headerFree (priv->h);
 	g_strfreev (priv->filelist);
 	g_strfreev (priv->deps);
 	g_free (priv->filename);
@@ -623,13 +618,15 @@ cra_package_get_releases (CraPackage *pkg)
 }
 
 /**
- * cra_package_get_releases:
+ * cra_package_compare:
  **/
 gint
 cra_package_compare (CraPackage *pkg1, CraPackage *pkg2)
 {
-	return rpmvercmp (cra_package_get_evr (pkg1),
-			  cra_package_get_evr (pkg2));
+	CraPackageClass *klass = CRA_PACKAGE_GET_CLASS (pkg1);
+	if (klass->compare != NULL)
+		return klass->compare (pkg1, pkg2);
+	return 0;
 }
 
 /**

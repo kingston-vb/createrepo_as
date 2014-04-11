@@ -362,6 +362,16 @@ out:
 }
 
 /**
+ * cra_package_rpm_compare:
+ **/
+static gint
+cra_package_rpm_compare (CraPackage *pkg1, CraPackage *pkg2)
+{
+	return rpmvercmp (cra_package_get_evr (pkg1),
+			  cra_package_get_evr (pkg2));
+}
+
+/**
  * cra_package_rpm_class_init:
  **/
 static void
@@ -372,6 +382,7 @@ cra_package_rpm_class_init (CraPackageRpmClass *klass)
 
 	object_class->finalize = cra_package_rpm_finalize;
 	package_class->open = cra_package_rpm_open;
+	package_class->compare = cra_package_rpm_compare;
 }
 
 /**
