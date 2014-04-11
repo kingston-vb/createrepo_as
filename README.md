@@ -90,8 +90,8 @@ First, some key words:
 
 The current rules of inclusion are thus:
 
- * Icons **MUST** be installed in `/usr/share/pixmaps/*`, `/usr/share/icons/*`
-   or `/usr/share/icons/hicolor/*/apps/*`
+ * Icons **MUST** be installed in `/usr/share/pixmaps/*`, `/usr/share/icons/*`,
+   `/usr/share/icons/hicolor/*/apps/*`, or `/usr/share/${app_name}/icons/*`
  * Desktop files **MUST** be installed in `/usr/share/applications/`
    or `/usr/share/applications/kde4/`
  * Desktop files **MUST** have `Name`, `Comment` and `Icon` entries
