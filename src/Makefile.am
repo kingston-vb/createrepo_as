@@ -11,7 +11,7 @@ AM_CPPFLAGS =						\
 	-DCRA_PLUGIN_DIR=\"$(libdir)/cra-plugins\"	\
 	-DG_LOG_DOMAIN=\"Cra\"
 
-noinst_PROGRAMS =					\
+bin_PROGRAMS =						\
 	createrepo_as
 createrepo_as_SOURCES =					\
 	cra-app.c					\

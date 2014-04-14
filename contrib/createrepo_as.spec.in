@@ -1,0 +1,45 @@
+%define alphatag                        #ALPHATAG#
+
+Summary:   A tool to create AppStream metadata
+Name:      createrepo_as
+Version:   #VERSION#
+Release:   0.#BUILD#%{?alphatag}%{?dist}
+License:   GPLv2+
+Group:     Applications/System
+URL:       https://github.com/hughsie/createrepo_as
+Source0:   http://download.gnome.org/sources/createrepo_as/3.13/%{name}-%{version}.tar.xz
+
+BuildRequires: fontconfig-devel
+BuildRequires: freetype-devel
+BuildRequires: glib2-devel >= 2.36.0
+BuildRequires: gtk3-devel
+BuildRequires: libappstream-glib-devel >= 0.1.3
+BuildRequires: libarchive-devel
+BuildRequires: libsoup-devel
+BuildRequires: pango-devel
+BuildRequires: sqlite-devel
+
+%description
+createrepo_as is a tool to create AppStream metadata from a collection of
+packages. From a directory of packages two compressed files are created.
+
+%prep
+%setup -q
+
+%build
+%configure --disable-static
+make %{?_smp_mflags}
+
+%install
+%make_install
+
+%__rm %{buildroot}%{_libdir}/cra-plugins/*.la
+
+%files
+%doc AUTHORS COPYING NEWS README.md
+%{_libdir}/cra-plugins/*.so
+%{_bindir}/createrepo_as
+
+%changelog
+* #LONGDATE# Richard Hughes <richard@hughsie.com> #VERSION#-0.#BUILD##ALPHATAG#
+- Update from GIT
