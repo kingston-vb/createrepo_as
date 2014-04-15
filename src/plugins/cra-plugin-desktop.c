@@ -100,8 +100,10 @@ cra_app_load_icon (const gchar *filename, GError **error)
 	/* re-open file at correct size */
 	pixbuf = gdk_pixbuf_new_from_file_at_scale (filename, 64, 64,
 						    FALSE, error);
-	if (pixbuf == NULL)
+	if (pixbuf == NULL) {
+		g_prefix_error (error, "Failed to open icon %s: ", filename);
 		goto out;
+	}
 out:
 	if (pixbuf_tmp != NULL)
 		g_object_unref (pixbuf_tmp);
@@ -217,8 +219,10 @@ cra_plugin_process_filename (CraPlugin *plugin,
 				 full_filename,
 				 AS_APP_PARSE_FLAG_USE_HEURISTICS,
 				 error);
-	if (!ret)
+	if (!ret) {
+		g_prefix_error (error, "Failed to open %s: ", full_filename);
 		goto out;
+	}
 
 	/* NoDisplay requires AppData */
 	if (as_app_get_metadata_item (AS_APP (app), "NoDisplay") != NULL)
