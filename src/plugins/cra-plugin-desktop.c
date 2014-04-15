@@ -219,10 +219,8 @@ cra_plugin_process_filename (CraPlugin *plugin,
 				 full_filename,
 				 AS_APP_PARSE_FLAG_USE_HEURISTICS,
 				 error);
-	if (!ret) {
-		g_prefix_error (error, "Failed to open %s: ", full_filename);
+	if (!ret)
 		goto out;
-	}
 
 	/* NoDisplay requires AppData */
 	if (as_app_get_metadata_item (AS_APP (app), "NoDisplay") != NULL)
