@@ -41,6 +41,7 @@ typedef struct {
 	gchar		*tmpdir;
 	CraPackage	*pkg;
 	guint		 id;
+	GPtrArray	*plugins_to_run;
 } CraTask;
 
 /**
@@ -50,9 +51,43 @@ static void
 cra_task_free (CraTask *task)
 {
 	g_object_unref (task->pkg);
+	g_ptr_array_unref (task->plugins_to_run);
 	g_free (task->filename);
 	g_free (task->tmpdir);
 	g_free (task);
+}
+
+/**
+ * cra_task_add_suitable_plugins:
+ */
+static void
+cra_task_add_suitable_plugins (CraTask *task, GPtrArray *plugins)
+{
+	CraPlugin *plugin;
+	gchar **filelist;
+	guint i;
+	guint j;
+
+	filelist = cra_package_get_filelist (task->pkg);
+	if (filelist == NULL)
+		goto out;
+	for (i = 0; filelist[i] != NULL; i++) {
+		plugin = cra_plugin_loader_match_fn (plugins, filelist[i]);
+		if (plugin == NULL)
+			continue;
+
+		/* check not already added */
+		for (j = 0; j < task->plugins_to_run->len; j++) {
+			if (g_ptr_array_index (task->plugins_to_run, j) == plugin)
+				break;
+		}
+
+		/* add */
+		if (j == task->plugins_to_run->len)
+			g_ptr_array_add (task->plugins_to_run, plugin);
+	}
+out:
+	return;
 }
 
 /**
@@ -69,7 +104,6 @@ cra_task_process_func (gpointer data, gpointer user_data)
 	AsRelease *release;
 	CraTask *task = (CraTask *) data;
 	gboolean ret;
-	gchar **filelist;
 	gchar *basename = NULL;
 	gchar *tmp;
 	GError *error = NULL;
@@ -97,15 +131,8 @@ cra_task_process_func (gpointer data, gpointer user_data)
 			 CRA_PACKAGE_LOG_LEVEL_DEBUG,
 			 "Getting filename match for %s",
 			 basename);
-	filelist = cra_package_get_filelist (task->pkg);
-	if (filelist == NULL)
-		goto out;
-	for (i = 0; filelist[i] != NULL; i++) {
-		plugin = cra_plugin_loader_match_fn (ctx->plugins, filelist[i]);
-		if (plugin != NULL)
-			break;
-	}
-	if (plugin == NULL)
+	cra_task_add_suitable_plugins (task, ctx->plugins);
+	if (task->plugins_to_run->len == 0)
 		goto out;
 
 	/* delete old tree if it exists */
@@ -160,21 +187,25 @@ cra_task_process_func (gpointer data, gpointer user_data)
 		}
 	}
 
-	/* run plugin */
-	cra_package_log (task->pkg,
-			 CRA_PACKAGE_LOG_LEVEL_DEBUG,
-			 "Processing %s with %s",
-			 basename,
-			 plugin->name);
-	apps = cra_plugin_process (plugin, task->pkg, task->tmpdir, &error);
-	if (apps == NULL) {
+	/* run plugins */
+	for (i = 0; i < task->plugins_to_run->len; i++) {
+		plugin = g_ptr_array_index (task->plugins_to_run, i);
 		cra_package_log (task->pkg,
-				 CRA_PACKAGE_LOG_LEVEL_WARNING,
-				 "Failed to run process: %s",
-				 error->message);
-		g_clear_error (&error);
-		goto skip;
+				 CRA_PACKAGE_LOG_LEVEL_DEBUG,
+				 "Processing %s with %s",
+				 basename,
+				 plugin->name);
+		apps = cra_plugin_process (plugin, task->pkg, task->tmpdir, &error);
+		if (apps == NULL) {
+			cra_package_log (task->pkg,
+					 CRA_PACKAGE_LOG_LEVEL_WARNING,
+					 "Failed to run process: %s",
+					 error->message);
+			g_clear_error (&error);
+		}
 	}
+	if (apps == NULL)
+		goto skip;
 
 	/* print */
 	for (l = apps; l != NULL; l = l->next) {
@@ -734,6 +765,7 @@ main (int argc, char **argv)
 
 		/* create task */
 		task = g_new0 (CraTask, 1);
+		task->plugins_to_run = g_ptr_array_new ();
 		task->id = i;
 		task->filename = g_strdup (cra_package_get_filename (pkg));
 		task->tmpdir = g_build_filename (temp_dir, cra_package_get_name (pkg), NULL);
