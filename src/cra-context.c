@@ -95,6 +95,7 @@ cra_context_new (void)
 	ctx->packages = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
 	ctx->extra_pkgs = cra_glob_value_array_new ();
 	g_mutex_init (&ctx->apps_mutex);
+	ctx->old_md_cache = as_store_new ();
 
 	/* add extra data */
 	cra_context_add_extra_pkg (ctx, "alliance-libs", "alliance");
@@ -168,6 +169,7 @@ cra_context_new (void)
 void
 cra_context_free (CraContext *ctx)
 {
+	g_object_unref (ctx->old_md_cache);
 	cra_plugin_loader_free (ctx->plugins);
 	g_ptr_array_unref (ctx->packages);
 	g_ptr_array_unref (ctx->extra_pkgs);

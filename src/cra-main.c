@@ -105,12 +105,14 @@ cra_task_process_func (gpointer data, gpointer user_data)
 	CraTask *task = (CraTask *) data;
 	gboolean ret;
 	gchar *basename = NULL;
+	gchar *cache_id;
 	gchar *tmp;
 	GError *error = NULL;
 	GList *apps = NULL;
 	GList *l;
 	GPtrArray *array;
 	guint i;
+	guint nr_added = 0;
 	const gchar *kudos[] = {
 		"X-Kudo-GTK3",
 		"X-Kudo-QT5",
@@ -318,8 +320,18 @@ cra_task_process_func (gpointer data, gpointer user_data)
 					 kudos[i]);
 		}
 
+		/* set cache-id in case we want to use the metadata directly */
+		if (ctx->add_cache_id) {
+			cache_id = cra_utils_get_cache_id_for_filename (task->filename);
+			as_app_add_metadata (AS_APP (app),
+					     "X-CreaterepoAsCacheID",
+					     cache_id, -1);
+			g_free (cache_id);
+		}
+
 		/* all okay */
 		cra_context_add_app (ctx, app);
+		nr_added++;
 
 		/* log the XML in the log file */
 		tmp = cra_app_to_xml (app);
@@ -327,6 +339,21 @@ cra_task_process_func (gpointer data, gpointer user_data)
 		g_free (tmp);
 	}
 skip:
+	/* add a dummy element to the AppStream metadata so that we don't keep
+	 * parsing this every time */
+	if (ctx->add_cache_id && nr_added == 0) {
+		AsApp *dummy;
+		dummy = as_app_new ();
+		as_app_set_id_full (dummy, cra_package_get_name (task->pkg), -1);
+		cache_id = cra_utils_get_cache_id_for_filename (task->filename);
+		as_app_add_metadata (dummy,
+				     "X-CreaterepoAsCacheID",
+				     cache_id, -1);
+		cra_context_add_app (ctx, (CraApp *) dummy);
+		g_free (cache_id);
+		g_object_unref (dummy);
+	}
+
 	/* delete tree */
 	ret = cra_utils_rmtree (task->tmpdir, &error);
 	if (!ret) {
@@ -502,6 +529,36 @@ cra_context_disable_older_packages (CraContext *ctx)
 }
 
 /**
+ * cra_main_find_in_cache:
+ */
+static gboolean
+cra_main_find_in_cache (CraContext *ctx, const gchar *filename)
+{
+	AsApp *app;
+	GPtrArray *apps;
+	gboolean ret = TRUE;
+	gchar *cache_id;
+	guint i;
+
+	cache_id = cra_utils_get_cache_id_for_filename (filename);
+	apps = as_store_get_apps_by_metadata (ctx->old_md_cache,
+					      "X-CreaterepoAsCacheID",
+					      cache_id);
+	if (apps->len == 0) {
+		ret = FALSE;
+		goto out;
+	}
+	for (i = 0; i < apps->len; i++) {
+		app = g_ptr_array_index (apps, i);
+		cra_context_add_app (ctx, (CraApp *) app);
+	}
+out:
+	g_ptr_array_unref (apps);
+	g_free (cache_id);
+	return ret;
+}
+
+/**
  * main:
  */
 int
@@ -512,6 +569,7 @@ main (int argc, char **argv)
 	CraPackage *pkg;
 	CraTask *task;
 	gboolean ret;
+	gboolean add_cache_id = FALSE;
 	gboolean verbose = FALSE;
 	gboolean no_net = FALSE;
 	gdouble api_version = 0.0f;
@@ -520,6 +578,7 @@ main (int argc, char **argv)
 	gchar *extra_appstream = NULL;
 	gchar *extra_screenshots = NULL;
 	gchar *log_dir = NULL;
+	gchar *old_metadata = NULL;
 	gchar *output_dir = NULL;
 	gchar *cache_dir = NULL;
 	gchar *packages_dir = NULL;
@@ -530,6 +589,7 @@ main (int argc, char **argv)
 	GError *error = NULL;
 	gint max_threads = 4;
 	gint rc;
+	GFile *old_metadata_file = NULL;
 	GOptionContext *option_context;
 	GPtrArray *tasks = NULL;
 	GThreadPool *pool;
@@ -539,6 +599,8 @@ main (int argc, char **argv)
 			"Show extra debugging information", NULL },
 		{ "no-net", '\0', 0, G_OPTION_ARG_NONE, &no_net,
 			"Do not use the network to download screenshots", NULL },
+		{ "add-cache-id", '\0', 0, G_OPTION_ARG_NONE, &add_cache_id,
+			"Add a cache ID to each component", NULL },
 		{ "log-dir", '\0', 0, G_OPTION_ARG_STRING, &log_dir,
 			"Set the logging directory       [default: ./logs]", NULL },
 		{ "packages-dir", '\0', 0, G_OPTION_ARG_STRING, &packages_dir,
@@ -563,6 +625,8 @@ main (int argc, char **argv)
 			"Set the AppStream version       [default: 0.4]", NULL },
 		{ "screenshot-uri", '\0', 0, G_OPTION_ARG_STRING, &screenshot_uri,
 			"Set the screenshot base URL     [default: none]", NULL },
+		{ "old-metadata", '\0', 0, G_OPTION_ARG_STRING, &old_metadata,
+			"Set the old metadata location   [default: none]", NULL },
 		{ NULL}
 	};
 
@@ -610,20 +674,29 @@ main (int argc, char **argv)
 	setlocale (LC_ALL, "");
 
 	/* set up state */
-	ret = cra_utils_ensure_exists_and_empty (temp_dir, &error);
-	if (!ret) {
-		g_warning ("failed to create temp dir: %s", error->message);
-		g_error_free (error);
-		goto out;
-	}
 	tmp = g_build_filename (temp_dir, "icons", NULL);
-	ret = cra_utils_ensure_exists_and_empty (tmp, &error);
-	g_free (tmp);
-	if (!ret) {
-		g_warning ("failed to create icons dir: %s", error->message);
-		g_error_free (error);
-		goto out;
+	if (old_metadata != NULL) {
+		add_cache_id = TRUE;
+		ret = g_file_test (tmp, G_FILE_TEST_EXISTS);
+		if (!ret) {
+			g_warning ("%s has to exist to use old metadata", tmp);
+			goto out;
+		}
+	} else {
+		ret = cra_utils_ensure_exists_and_empty (temp_dir, &error);
+		if (!ret) {
+			g_warning ("failed to create temp dir: %s", error->message);
+			g_error_free (error);
+			goto out;
+		}
+		ret = cra_utils_ensure_exists_and_empty (tmp, &error);
+		if (!ret) {
+			g_warning ("failed to create icons dir: %s", error->message);
+			g_error_free (error);
+			goto out;
+		}
 	}
+	g_free (tmp);
 	rc = g_mkdir_with_parents (log_dir, 0700);
 	if (rc != 0) {
 		g_warning ("failed to create log dir");
@@ -677,7 +750,22 @@ main (int argc, char **argv)
 	}
 	ctx->no_net = no_net;
 	ctx->api_version = api_version;
+	ctx->add_cache_id = add_cache_id;
 	ctx->file_globs = cra_plugin_loader_get_globs (ctx->plugins);
+
+	/* add old metadata */
+	if (old_metadata != NULL) {
+		old_metadata_file = g_file_new_for_path (old_metadata);
+		ret = as_store_from_file (ctx->old_md_cache,
+					  old_metadata_file,
+					  NULL, NULL, &error);
+		if (!ret) {
+			g_warning ("failed to load old metadata: %s",
+				   error->message);
+			g_error_free (error);
+			goto out;
+		}
+	}
 
 	/* create thread pool */
 	pool = g_thread_pool_new (cra_task_process_func,
@@ -715,7 +803,17 @@ main (int argc, char **argv)
 			g_error_free (error);
 			goto out;
 		}
+
 		while ((filename = g_dir_read_name (dir)) != NULL) {
+
+			/* anything in the cache */
+			if (cra_main_find_in_cache (ctx, filename)) {
+				g_debug ("Skipping %s as found in old md cache",
+					 filename);
+				continue;
+			}
+
+			/* add to list to be processed */
 			tmp = g_build_filename (packages_dir, filename, NULL);
 			ret = cra_context_add_filename (ctx, tmp, &error);
 			if (!ret) {
@@ -822,9 +920,12 @@ out:
 	g_free (cache_dir);
 	g_free (temp_dir);
 	g_free (output_dir);
+	g_free (old_metadata);
 	g_free (basename);
 	g_free (log_dir);
 	g_option_context_free (option_context);
+	if (old_metadata_file != NULL)
+		g_object_unref (old_metadata_file);
 	if (tasks != NULL)
 		g_ptr_array_unref (tasks);
 	if (ctx != NULL)

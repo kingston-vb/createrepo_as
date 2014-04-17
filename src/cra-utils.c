@@ -30,6 +30,27 @@
 #include "cra-utils.h"
 #include "cra-plugin.h"
 
+#define CRA_METADATA_CACHE_VERSION	1
+
+/**
+ * cra_utils_get_cache_id_for_filename:
+ */
+gchar *
+cra_utils_get_cache_id_for_filename (const gchar *filename)
+{
+	gchar *basename;
+	gchar *cache_id;
+
+	/* only use the basename and the cache version */
+	basename = g_path_get_basename (filename);
+	cache_id = g_strdup_printf ("%s:%i",
+				    basename,
+				    CRA_METADATA_CACHE_VERSION);
+
+	g_free (basename);
+	return cache_id;
+}
+
 /**
  * cra_utils_rmtree:
  **/

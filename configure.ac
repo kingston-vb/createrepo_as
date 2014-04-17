@@ -55,7 +55,7 @@ PKG_CHECK_MODULES(LIBARCHIVE, libarchive)
 PKG_CHECK_MODULES(GDKPIXBUF, gtk+-3.0 gdk-pixbuf-2.0)
 PKG_CHECK_MODULES(SQLITE, sqlite3)
 PKG_CHECK_MODULES(LIBSOUP, libsoup-2.4)
-PKG_CHECK_MODULES(APPSTREAM, appstream-glib >= 0.1.3)
+PKG_CHECK_MODULES(APPSTREAM, appstream-glib >= 0.1.4)
 PKG_CHECK_MODULES(FREETYPE, pango fontconfig freetype2 >= 9.10.0)
 
 # rpm (default enabled)

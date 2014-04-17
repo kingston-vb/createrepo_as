@@ -23,6 +23,7 @@
 #define __CRA_CONTEXT_H
 
 #include <glib.h>
+#include <appstream-glib.h>
 
 #include "cra-app.h"
 #include "cra-package.h"
@@ -40,6 +41,8 @@ typedef struct {
 	GMutex		 apps_mutex;		/* for ->apps */
 	gboolean	 no_net;
 	gdouble		 api_version;
+	gboolean	 add_cache_id;
+	AsStore		*old_md_cache;
 } CraContext;
 
 CraContext	*cra_context_new		(void);
