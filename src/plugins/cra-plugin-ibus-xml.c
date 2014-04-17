@@ -81,6 +81,7 @@ cra_plugin_process_filename (CraPlugin *plugin,
 	gchar *basename = NULL;
 	gchar *filename_tmp;
 	gchar *data = NULL;
+	gchar **languages = NULL;
 	gchar **lines = NULL;
 	guint i;
 	gboolean found_header = FALSE;
@@ -147,10 +148,21 @@ cra_plugin_process_filename (CraPlugin *plugin,
 		as_app_add_metadata (AS_APP (app), "X-IBus-Symbol",
 				     as_node_get_data (n), -1);
 	}
+	n = as_node_find (root, "component/engines/engine/language");
+	if (n != NULL) {
+		languages = g_strsplit (as_node_get_data (n), ",", -1);
+		for (i = 0; languages[i] != NULL; i++) {
+			if (g_strcmp0 (languages[i], "other") == 0)
+				continue;
+			as_app_add_language (AS_APP (app),
+					     100, languages[i], -1);
+		}
+	}
 
 	/* add */
 	cra_plugin_add_app (apps, app);
 out:
+	g_strfreev (languages);
 	g_strfreev (lines);
 	g_free (data);
 	g_free (basename);

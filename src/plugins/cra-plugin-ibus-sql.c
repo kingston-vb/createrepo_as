@@ -93,7 +93,10 @@ cra_plugin_process_filename (CraPlugin *plugin,
 	gchar *filename_tmp;
 	gchar *name = NULL;
 	gchar *symbol = NULL;
+	gchar *language_string = NULL;
+	gchar **languages = NULL;
 	gint rc;
+	guint i;
 	sqlite3 *db = NULL;
 
 	/* open IME database */
@@ -139,6 +142,21 @@ cra_plugin_process_filename (CraPlugin *plugin,
 		goto out;
 	}
 
+	/* get languages */
+	rc = sqlite3_exec(db, "SELECT * FROM ime WHERE attr = 'languages' LIMIT 1;",
+			  cra_plugin_sqlite_callback_cb,
+			  &language_string, &error_msg);
+	if (rc != SQLITE_OK) {
+		ret = FALSE;
+		g_set_error (error,
+			     CRA_PLUGIN_ERROR,
+			     CRA_PLUGIN_ERROR_FAILED,
+			     "Can't get IME languages from %s: %s",
+			     filename, error_msg);
+		sqlite3_free(error_msg);
+		goto out;
+	}
+
 	/* get description */
 	rc = sqlite3_exec(db, "SELECT * FROM ime WHERE attr = 'description' LIMIT 1;",
 			  cra_plugin_sqlite_callback_cb,
@@ -177,11 +195,20 @@ cra_plugin_process_filename (CraPlugin *plugin,
 	as_app_set_comment (AS_APP (app), "C", description, -1);
 	if (symbol != NULL)
 		as_app_add_metadata (AS_APP (app), "X-IBus-Symbol", symbol, -1);
+	if (language_string != NULL) {
+		languages = g_strsplit (language_string, ",", -1);
+		for (i = 0; languages[i] != NULL; i++) {
+			as_app_add_language (AS_APP (app),
+					     100, languages[i], -1);
+		}
+	}
 	cra_app_set_requires_appdata (app, TRUE);
 	cra_plugin_add_app (apps, app);
 out:
 	g_free (name);
 	g_free (symbol);
+	g_free (language_string);
+	g_strfreev (languages);
 	g_free (basename);
 	g_free (filename_tmp);
 	g_free (description);
