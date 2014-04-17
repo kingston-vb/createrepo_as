@@ -87,6 +87,7 @@ cra_plugin_process_filename (CraPlugin *plugin,
 	gboolean found_header = FALSE;
 	GString *valid_xml;
 	const GNode *n;
+	const gchar *tmp;
 
 	/* open file */
 	filename_tmp = g_build_filename (tmpdir, filename, NULL);
@@ -145,8 +146,12 @@ cra_plugin_process_filename (CraPlugin *plugin,
 		as_app_set_comment (AS_APP (app), "C", as_node_get_data (n), -1);
 	n = as_node_find (root, "component/engines/engine/symbol");
 	if (n != NULL) {
-		as_app_add_metadata (AS_APP (app), "X-IBus-Symbol",
-				     as_node_get_data (n), -1);
+		tmp = as_node_get_data (n);
+		if (tmp != NULL && tmp[0] != '\0') {
+			as_app_add_metadata (AS_APP (app),
+					     "X-IBus-Symbol",
+					     tmp, -1);
+		}
 	}
 	n = as_node_find (root, "component/engines/engine/language");
 	if (n != NULL) {

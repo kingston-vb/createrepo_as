@@ -193,7 +193,7 @@ cra_plugin_process_filename (CraPlugin *plugin,
 	as_app_set_icon_kind (AS_APP (app), AS_ICON_KIND_STOCK);
 	as_app_set_name (AS_APP (app), "C", name, -1);
 	as_app_set_comment (AS_APP (app), "C", description, -1);
-	if (symbol != NULL)
+	if (symbol != NULL && symbol[0] != '\0')
 		as_app_add_metadata (AS_APP (app), "X-IBus-Symbol", symbol, -1);
 	if (language_string != NULL) {
 		languages = g_strsplit (language_string, ",", -1);
