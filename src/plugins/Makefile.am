@@ -14,6 +14,7 @@ plugindir = $(libdir)/cra-plugins
 plugin_LTLIBRARIES =					\
 	libcra_plugin_appdata.la			\
 	libcra_plugin_desktop.la			\
+	libcra_plugin_gir.la				\
 	libcra_plugin_font.la				\
 	libcra_plugin_gettext.la			\
 	libcra_plugin_gstreamer.la			\
@@ -41,6 +42,11 @@ libcra_plugin_desktop_la_SOURCES = cra-plugin-desktop.c
 libcra_plugin_desktop_la_LIBADD = $(GLIB_LIBS) $(GDKPIXBUF_LIBS)
 libcra_plugin_desktop_la_LDFLAGS = -module -avoid-version
 libcra_plugin_desktop_la_CFLAGS = $(GLIB_CFLAGS) $(WARNINGFLAGS_C)
+
+libcra_plugin_gir_la_SOURCES = cra-plugin-gir.c
+libcra_plugin_gir_la_LIBADD = $(GLIB_LIBS) $(GDKPIXBUF_LIBS)
+libcra_plugin_gir_la_LDFLAGS = -module -avoid-version
+libcra_plugin_gir_la_CFLAGS = $(GLIB_CFLAGS) $(WARNINGFLAGS_C)
 
 libcra_plugin_appdata_la_SOURCES = cra-plugin-appdata.c
 libcra_plugin_appdata_la_LIBADD = $(GLIB_LIBS) $(GDKPIXBUF_LIBS)

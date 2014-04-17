@@ -66,6 +66,8 @@ cra_plugin_nm_app (CraApp *app, const gchar *filename, GError **error)
 			    NULL, error);
 	if (!ret)
 		goto out;
+	if (g_strstr_len (data_out, -1, "gtk_application_new") != NULL)
+		as_app_add_metadata (AS_APP (app), "X-Kudo-GTK3", "", -1);
 	if (g_strstr_len (data_out, -1, "gtk_application_set_app_menu") != NULL)
 		as_app_add_metadata (AS_APP (app), "X-Kudo-UsesAppMenu", "", -1);
 out:
