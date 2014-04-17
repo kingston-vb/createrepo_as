@@ -544,6 +544,8 @@ cra_package_explode (CraPackage *pkg,
 		/* do we have to decompress this file */
 		if (glob != NULL) {
 			tmp = archive_entry_pathname (entry);
+			if (tmp[0] == '.')
+				tmp++;
 			if (cra_glob_value_search (glob, tmp) == NULL)
 				continue;
 		}
