@@ -92,6 +92,7 @@ cra_plugin_process_filename (CraPlugin *plugin,
 	gchar *error_msg = 0;
 	gchar *filename_tmp;
 	gchar *name = NULL;
+	gchar *symbol = NULL;
 	gint rc;
 	sqlite3 *db = NULL;
 
@@ -118,6 +119,21 @@ cra_plugin_process_filename (CraPlugin *plugin,
 			     CRA_PLUGIN_ERROR,
 			     CRA_PLUGIN_ERROR_FAILED,
 			     "Can't get IME name from %s: %s",
+			     filename, error_msg);
+		sqlite3_free(error_msg);
+		goto out;
+	}
+
+	/* get symbol */
+	rc = sqlite3_exec(db, "SELECT * FROM ime WHERE attr = 'symbol' LIMIT 1;",
+			  cra_plugin_sqlite_callback_cb,
+			  &symbol, &error_msg);
+	if (rc != SQLITE_OK) {
+		ret = FALSE;
+		g_set_error (error,
+			     CRA_PLUGIN_ERROR,
+			     CRA_PLUGIN_ERROR_FAILED,
+			     "Can't get IME symbol from %s: %s",
 			     filename, error_msg);
 		sqlite3_free(error_msg);
 		goto out;
@@ -159,10 +175,13 @@ cra_plugin_process_filename (CraPlugin *plugin,
 	as_app_set_icon_kind (AS_APP (app), AS_ICON_KIND_STOCK);
 	as_app_set_name (AS_APP (app), "C", name, -1);
 	as_app_set_comment (AS_APP (app), "C", description, -1);
+	if (symbol != NULL)
+		as_app_add_metadata (AS_APP (app), "X-IBus-Symbol", symbol, -1);
 	cra_app_set_requires_appdata (app, TRUE);
 	cra_plugin_add_app (apps, app);
 out:
 	g_free (name);
+	g_free (symbol);
 	g_free (basename);
 	g_free (filename_tmp);
 	g_free (description);

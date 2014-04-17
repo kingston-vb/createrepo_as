@@ -136,12 +136,17 @@ cra_plugin_process_filename (CraPlugin *plugin,
 	}
 
 	/* do we have a engine section we can use? */
-	n = as_node_find (root, "engines/engine/longname");
+	n = as_node_find (root, "component/engines/engine/longname");
 	if (n != NULL)
 		as_app_set_name (AS_APP (app), "C", as_node_get_data (n), -1);
-	n = as_node_find (root, "engines/engine/description");
+	n = as_node_find (root, "component/engines/engine/description");
 	if (n != NULL)
 		as_app_set_comment (AS_APP (app), "C", as_node_get_data (n), -1);
+	n = as_node_find (root, "component/engines/engine/symbol");
+	if (n != NULL) {
+		as_app_add_metadata (AS_APP (app), "X-IBus-Symbol",
+				     as_node_get_data (n), -1);
+	}
 
 	/* add */
 	cra_plugin_add_app (apps, app);
