@@ -125,6 +125,7 @@ cra_context_new (void)
 	cra_context_add_blacklist_pkg (ctx, "anaconda");
 	cra_context_add_blacklist_pkg (ctx, "mate-control-center");
 	cra_context_add_blacklist_pkg (ctx, "lxde-common");
+	cra_context_add_blacklist_pkg (ctx, "xscreensaver-*");
 
 	/* add blacklisted applications */
 	cra_context_add_blacklist_app_id (ctx, "display-properties");
