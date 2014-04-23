@@ -107,6 +107,7 @@ cra_context_new (void)
 	cra_context_add_extra_pkg (ctx, "flight-of-the-amazon-queen", "scummvm");
 	cra_context_add_extra_pkg (ctx, "gcin", "gcin-data");
 	cra_context_add_extra_pkg (ctx, "hotot-gtk", "hotot-common");
+	cra_context_add_extra_pkg (ctx, "hotot-qt", "hotot-common");
 	cra_context_add_extra_pkg (ctx, "java-1.7.0-openjdk-devel", "java-1.7.0-openjdk");
 	cra_context_add_extra_pkg (ctx, "kchmviewer-qt", "kchmviewer");
 	cra_context_add_extra_pkg (ctx, "libreoffice-*", "libreoffice-core");
