@@ -642,7 +642,7 @@ main (int argc, char **argv)
 #endif
 	/* set defaults */
 	if (api_version < 0.01)
-		api_version = 0.4;
+		api_version = 0.41;
 	if (packages_dir == NULL)
 		packages_dir = g_strdup ("./packages");
 	if (temp_dir == NULL)
