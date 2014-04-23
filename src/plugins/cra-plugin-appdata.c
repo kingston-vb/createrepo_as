@@ -226,7 +226,9 @@ cra_plugin_process_filename (CraApp *app,
 	}
 
 	/* check license */
-	n = as_node_find (root, "application/licence");
+	n = as_node_find (root, "application/metadata_license");
+	if (n == NULL)
+		n = as_node_find (root, "application/licence");
 	if (n == NULL) {
 		ret = FALSE;
 		g_set_error (error,
