@@ -178,6 +178,7 @@ cra_plugin_process_filename (CraApp *app,
 			     GError **error)
 {
 	const gchar *tmp;
+	const gchar *old;
 	const GNode *c;
 	const GNode *n;
 	gboolean ret;
@@ -386,10 +387,31 @@ cra_plugin_process_filename (CraApp *app,
 							    split[i], -1);
 				}
 				g_strfreev (split);
-			} else {
-				as_app_add_metadata (AS_APP (app), tmp,
-						     as_node_get_data (c), -1);
+				continue;
 			}
+
+			/* does the metadata already exist with this value */
+			if (g_strcmp0 (as_app_get_metadata_item (AS_APP (app), tmp),
+				       as_node_get_data (c)) == 0) {
+				cra_package_log (cra_app_get_package (app),
+						 CRA_PACKAGE_LOG_LEVEL_WARNING,
+						 "AppData metadata %s=%s already set",
+						 tmp,
+						 as_node_get_data (c));
+				continue;
+			}
+
+			/* does the metadata exist with any value */
+			old = as_app_get_metadata_item (AS_APP (app), tmp);
+			if (old != NULL) {
+				cra_package_log (cra_app_get_package (app),
+						 CRA_PACKAGE_LOG_LEVEL_INFO,
+						 "AppData metadata %s=%s->%s",
+						 tmp, old,
+						 as_node_get_data (c));
+			}
+			as_app_add_metadata (AS_APP (app), tmp,
+					     as_node_get_data (c), -1);
 		}
 	}
 
