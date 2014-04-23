@@ -26,6 +26,11 @@
 #include <cra-plugin.h>
 #include <cra-screenshot.h>
 
+struct CraPluginPrivate {
+	GPtrArray	*filenames;
+	GMutex		 filenames_mutex;
+};
+
 /**
  * cra_plugin_get_name:
  */
@@ -36,12 +41,115 @@ cra_plugin_get_name (void)
 }
 
 /**
+ * cra_plugin_initialize:
+ */
+void
+cra_plugin_initialize (CraPlugin *plugin)
+{
+	plugin->priv = CRA_PLUGIN_GET_PRIVATE (CraPluginPrivate);
+	plugin->priv->filenames = g_ptr_array_new_with_free_func (g_free);
+	g_mutex_init (&plugin->priv->filenames_mutex);
+}
+
+/**
+ * cra_plugin_destroy:
+ */
+void
+cra_plugin_destroy (CraPlugin *plugin)
+{
+	const gchar *tmp;
+	guint i;
+
+	/* print out AppData files not used */
+	for (i = 0; i < plugin->priv->filenames->len; i++) {
+		tmp = g_ptr_array_index (plugin->priv->filenames, i);
+		g_debug ("%s was not used", tmp);
+	}
+	g_ptr_array_unref (plugin->priv->filenames);
+	g_mutex_clear (&plugin->priv->filenames_mutex);
+}
+
+/**
  * cra_plugin_add_globs:
  */
 void
 cra_plugin_add_globs (CraPlugin *plugin, GPtrArray *globs)
 {
 	cra_plugin_add_glob (globs, "/usr/share/appdata/*.appdata.xml");
+}
+
+/**
+ * cra_plugin_appdata_add_path:
+ */
+static gboolean
+cra_plugin_appdata_add_path (CraPlugin *plugin, const gchar *path, GError **error)
+{
+	GDir *dir = NULL;
+	const gchar *tmp;
+	gboolean ret = TRUE;
+	gchar *filename;
+
+	/* scan all the files */
+	dir = g_dir_open (path, 0, error);
+	if (dir == NULL) {
+		ret = FALSE;
+		goto out;
+	}
+	while ((tmp = g_dir_read_name (dir)) != NULL) {
+		filename = g_build_filename (path, tmp, NULL);
+		if (g_file_test (filename, G_FILE_TEST_IS_DIR)) {
+			ret = cra_plugin_appdata_add_path (plugin, filename, error);
+			g_free (filename);
+			if (!ret)
+				goto out;
+		} else {
+			g_ptr_array_add (plugin->priv->filenames, filename);
+		}
+	}
+out:
+	if (dir != NULL)
+		g_dir_close (dir);
+	return ret;
+}
+
+/**
+ * cra_plugin_appdata_add_files:
+ */
+static gboolean
+cra_plugin_appdata_add_files (CraPlugin *plugin, const gchar *path, GError **error)
+{
+	gboolean ret = TRUE;
+
+	/* already done */
+	if (plugin->priv->filenames->len > 0)
+		goto out;
+
+	g_mutex_lock (&plugin->priv->filenames_mutex);
+	ret = cra_plugin_appdata_add_path (plugin, path, error);
+	g_mutex_unlock  (&plugin->priv->filenames_mutex);
+out:
+	return ret;
+}
+
+/**
+ * cra_plugin_appdata_remove_file:
+ */
+static void
+cra_plugin_appdata_remove_file (CraPlugin *plugin, const gchar *filename)
+{
+	const gchar *tmp;
+	guint i;
+
+	g_mutex_lock (&plugin->priv->filenames_mutex);
+	for (i = 0; i < plugin->priv->filenames->len; i++) {
+		tmp = g_ptr_array_index (plugin->priv->filenames, i);
+		if (g_strcmp0 (tmp, filename) == 0) {
+			g_ptr_array_remove_fast (plugin->priv->filenames,
+						 (gpointer) tmp);
+			break;
+		}
+	}
+	g_mutex_unlock  (&plugin->priv->filenames_mutex);
 }
 
 /**
@@ -319,7 +427,10 @@ cra_plugin_process_app (CraPlugin *plugin,
 	appdata_filename = g_strdup_printf ("%s/usr/share/appdata/%s.appdata.xml",
 					    tmpdir, as_app_get_id (AS_APP (app)));
 	tmp = cra_package_get_config (pkg, "AppDataExtra");
-	if (tmp != NULL) {
+	if (tmp != NULL && g_file_test (tmp, G_FILE_TEST_EXISTS)) {
+		ret = cra_plugin_appdata_add_files (plugin, tmp, error);
+		if (!ret)
+			goto out;
 		kind_str = as_id_kind_to_string (as_app_get_id_kind (AS_APP (app)));
 		appdata_filename_extra = g_strdup_printf ("%s/%s/%s.appdata.xml",
 							  tmp,
@@ -332,6 +443,9 @@ cra_plugin_process_app (CraPlugin *plugin,
 					 "extra AppData file %s exists for no reason",
 					 appdata_filename_extra);
 		}
+
+		/* we used this */
+		cra_plugin_appdata_remove_file (plugin, appdata_filename_extra);
 	}
 
 	/* any installed appdata file */
