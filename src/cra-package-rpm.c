@@ -107,6 +107,23 @@ cra_package_rpm_ensure_simple (CraPackage *pkg, GError **error)
 }
 
 /**
+ * cra_package_rpm_check_release_text:
+ **/
+static gboolean
+cra_package_rpm_check_release_text (const gchar *text)
+{
+	if (g_strstr_len (text, -1, "Rebuilt") != NULL)
+		return FALSE;
+	if (g_strstr_len (text, -1, "Rebuild") != NULL)
+		return FALSE;
+	if (g_strstr_len (text, -1, "rebuilt") != NULL)
+		return FALSE;
+	if (g_strstr_len (text, -1, "rebuild") != NULL)
+		return FALSE;
+	return TRUE;
+}
+
+/**
  * cra_package_rpm_add_release:
  **/
 static void
@@ -149,11 +166,21 @@ cra_package_rpm_add_release (CraPackage *pkg,
 		 * a bumped release */
 		if (timestamp < as_release_get_timestamp (release))
 			as_release_set_timestamp (release, timestamp);
+
+		/* we didn't have anything interesting before; try now */
+		if (as_release_get_description (release, NULL) == NULL &&
+		    cra_package_rpm_check_release_text (text)) {
+			as_release_set_description (release, NULL,
+						    text, -1);
+		}
 	} else {
 		release = as_release_new ();
 		as_release_set_version (release, version, -1);
 		as_release_set_timestamp (release, timestamp);
-		as_release_set_description (release, NULL, text, -1);
+		if (cra_package_rpm_check_release_text (text)) {
+			as_release_set_description (release, NULL,
+						    text, -1);
+		}
 		cra_package_add_release (pkg, version, release);
 		g_object_unref (release);
 	}
