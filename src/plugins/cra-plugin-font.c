@@ -170,6 +170,21 @@ cra_font_fix_metadata (CraApp *app)
 }
 
 /**
+ * cra_font_string_is_valid:
+ */
+static gboolean
+cra_font_string_is_valid (const gchar *text)
+{
+	guint i;
+
+	for (i = 0; text[i] != '\0'; i++) {
+		if (g_ascii_iscntrl (text[i]))
+			return FALSE;
+	}
+	return TRUE;
+}
+
+/**
  * cra_font_add_metadata:
  */
 static void
@@ -205,9 +220,16 @@ cra_font_add_metadata (CraApp *app, FT_Face ft_face)
 						NULL, NULL, NULL);
 			if (val == NULL)
 				continue;
-			as_app_add_metadata (AS_APP (app),
-					     tt_idx_to_md_name[j].key,
-					     val, -1);
+			if (cra_font_string_is_valid (val)) {
+				as_app_add_metadata (AS_APP (app),
+						     tt_idx_to_md_name[j].key,
+						     val, -1);
+			} else {
+				cra_package_log (cra_app_get_package (app),
+						 CRA_PACKAGE_LOG_LEVEL_WARNING,
+						 "Ignoring %s value: '%s'",
+						 tt_idx_to_md_name[j].key, val);
+			}
 			g_free (val);
 		}
 	}
