@@ -147,7 +147,7 @@ cra_font_fix_metadata (CraApp *app)
 	if (as_app_get_metadata_item (AS_APP (app), "FontSampleText") == NULL) {
 		for (j = 0; text_sample[j].lang != NULL; j++) {
 			percentage = as_app_get_language (AS_APP (app), text_sample[j].lang);
-			if (percentage > 0) {
+			if (percentage >= 0) {
 				as_app_add_metadata (AS_APP (app),
 						      "FontSampleText",
 						      text_sample[j].value, -1);
@@ -160,7 +160,7 @@ cra_font_fix_metadata (CraApp *app)
 	if (as_app_get_metadata_item (AS_APP (app), "FontIconText") == NULL) {
 		for (j = 0; text_icon[j].lang != NULL; j++) {
 			percentage = as_app_get_language (AS_APP (app), text_icon[j].lang);
-			if (percentage > 0) {
+			if (percentage >= 0) {
 				as_app_add_metadata (AS_APP (app),
 						      "FontIconText",
 						      text_icon[j].value, -1);
@@ -400,7 +400,7 @@ cra_font_add_languages (CraApp *app, const FcPattern *pattern)
 			list = FcStrListCreate (langs);
 			FcStrListFirst (list);
 			while ((tmp = (const gchar*) FcStrListNext (list)) != NULL)
-				as_app_add_language (AS_APP (app), -1, tmp, -1);
+				as_app_add_language (AS_APP (app), 0, tmp, -1);
 			FcStrListDone (list);
 			FcStrSetDestroy (langs);
 		}
