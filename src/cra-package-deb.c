@@ -177,6 +177,11 @@ cra_package_deb_explode (CraPackage *pkg,
 {
 	gboolean ret;
 	gchar *data_fn = NULL;
+	guint i;
+	const gchar *data_names[] = { "data.tar.xz",
+				      "data.tar.bz2",
+				      "data.tar.gz",
+				      NULL };
 
 	/* first decompress the main deb */
 	ret = cra_utils_explode (cra_package_get_filename (pkg),
@@ -185,12 +190,16 @@ cra_package_deb_explode (CraPackage *pkg,
 		goto out;
 
 	/* then decompress the data file */
-	data_fn = g_build_filename (dir, "data.tar.xz", NULL);
-	ret = cra_utils_explode (data_fn, dir, glob, error);
-	if (!ret)
-		goto out;
+	for (i = 0; data_names[i] != NULL; i++) {
+		data_fn = g_build_filename (dir, data_names[i], NULL);
+		if (g_file_test (data_fn, G_FILE_TEST_EXISTS)) {
+			ret = cra_utils_explode (data_fn, dir, glob, error);
+			if (!ret)
+				goto out;
+		}
+		g_free (data_fn);
+	}
 out:
-	g_free (data_fn);
 	return ret;
 }
 
