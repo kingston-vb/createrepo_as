@@ -171,6 +171,12 @@ cra_font_fix_metadata (CraApp *app)
 
 	/* can we use a pango version */
 	langs = as_app_get_languages (AS_APP (app));
+	if (langs == NULL) {
+		cra_package_log (cra_app_get_package (app),
+				 CRA_PACKAGE_LOG_LEVEL_WARNING,
+				 "No langs detected");
+		goto out;
+	}
 	if (as_app_get_metadata_item (AS_APP (app), "FontIconText") == NULL) {
 		for (l = langs; l != NULL; l = l->next) {
 			tmp = l->data;
@@ -209,6 +215,7 @@ cra_font_fix_metadata (CraApp *app)
 				 "No FontSampleText for langs: %s",
 				 str->str);
 	}
+out:
 	g_list_free (langs);
 	if (str != NULL)
 		g_string_free (str, TRUE);
@@ -398,6 +405,7 @@ cra_font_add_languages (CraApp *app, const FcPattern *pattern)
 	FcStrSet *langs;
 	FcValue fc_value;
 	guint i;
+	gboolean any_added = FALSE;
 
 	for (i = 0; fc_rc == FcResultMatch; i++) {
 		fc_rc = FcPatternGet (pattern, FC_LANG, i, &fc_value);
@@ -405,12 +413,18 @@ cra_font_add_languages (CraApp *app, const FcPattern *pattern)
 			langs = FcLangSetGetLangs (fc_value.u.l);
 			list = FcStrListCreate (langs);
 			FcStrListFirst (list);
-			while ((tmp = (const gchar*) FcStrListNext (list)) != NULL)
+			while ((tmp = (const gchar*) FcStrListNext (list)) != NULL) {
 				as_app_add_language (AS_APP (app), 0, tmp, -1);
+				any_added = TRUE;
+			}
 			FcStrListDone (list);
 			FcStrSetDestroy (langs);
 		}
 	}
+
+	/* assume 'en' is available */
+	if (!any_added)
+		as_app_add_language (AS_APP (app), 0, "en", -1);
 }
 
 /**
