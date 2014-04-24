@@ -31,6 +31,8 @@
 #include "cra-package-rpm.h"
 #endif
 
+#include "cra-package-deb.h"
+
 #include <appstream-glib.h>
 #include <gio/gio.h>
 #include <glib.h>
@@ -384,19 +386,25 @@ out:
 static gboolean
 cra_context_add_filename (CraContext *ctx, const gchar *filename, GError **error)
 {
-	CraPackage *pkg;
+	CraPackage *pkg = NULL;
 	gboolean ret;
 
 	/* open */
 #if HAVE_RPM
-	pkg = cra_package_rpm_new ();
-#else
-	g_set_error_literal (error,
+	if (g_str_has_suffix (filename, ".rpm"))
+		pkg = cra_package_rpm_new ();
+#endif
+	if (g_str_has_suffix (filename, ".deb"))
+		pkg = cra_package_deb_new ();
+	if (pkg == NULL) {
+		ret = FALSE;
+		g_set_error (error,
 			     CRA_PLUGIN_ERROR,
 			     CRA_PLUGIN_ERROR_FAILED,
-			     "no package manager support");
-	return FALSE;
-#endif
+			     "No idea how to handle %s",
+			     filename);
+		goto out;
+	}
 	ret = cra_package_open (pkg, filename, error);
 	if (!ret)
 		goto out;
@@ -414,7 +422,8 @@ cra_context_add_filename (CraContext *ctx, const gchar *filename, GError **error
 	/* add to array */
 	g_ptr_array_add (ctx->packages, g_object_ref (pkg));
 out:
-	g_object_unref (pkg);
+	if (pkg != NULL)
+		g_object_unref (pkg);
 	return ret;
 }
 

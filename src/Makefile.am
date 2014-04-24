@@ -21,6 +21,8 @@ createrepo_as_SOURCES =					\
 	cra-context.c					\
 	cra-context.h					\
 	cra-package.c					\
+	cra-package-deb.c				\
+	cra-package-deb.h				\
 	cra-package.h					\
 	cra-utils.c					\
 	cra-utils.h					\
