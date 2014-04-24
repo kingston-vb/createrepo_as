@@ -93,15 +93,80 @@ out:
 }
 
 /**
+ * cra_context_explode_extra_package:
+ */
+static gboolean
+cra_context_explode_extra_package (CraContext *ctx,
+				   CraTask *task,
+				   const gchar *pkg_name)
+{
+	CraPackage *pkg_extra;
+	GError *error = NULL;
+	gboolean ret = TRUE;
+
+	/* if not found, that's fine */
+	pkg_extra = cra_context_find_by_pkgname (ctx, pkg_name);
+	if (pkg_extra == NULL)
+		goto out;
+	cra_package_log (task->pkg,
+			 CRA_PACKAGE_LOG_LEVEL_DEBUG,
+			 "Adding extra package %s for %s",
+			 cra_package_get_name (pkg_extra),
+			 cra_package_get_name (task->pkg));
+	ret = cra_package_explode (pkg_extra, task->tmpdir,
+				   ctx->file_globs, &error);
+	if (!ret) {
+		cra_package_log (task->pkg,
+				 CRA_PACKAGE_LOG_LEVEL_WARNING,
+				 "Failed to explode extra file: %s",
+				 error->message);
+		g_error_free (error);
+	}
+out:
+	return ret;
+}
+
+/**
+ * cra_context_explode_extra_packages:
+ */
+static gboolean
+cra_context_explode_extra_packages (CraContext *ctx, CraTask *task)
+{
+	GPtrArray *array;
+	const gchar *tmp;
+	gboolean ret = TRUE;
+	guint i;
+
+	/* anything hardcoded */
+	array = g_ptr_array_new_with_free_func (g_free);
+	tmp = cra_glob_value_search (ctx->extra_pkgs,
+				     cra_package_get_name (task->pkg));
+	if (tmp != NULL)
+		g_ptr_array_add (array, g_strdup (tmp));
+
+	/* add all variants of %NAME-common, %NAME-data etc */
+	tmp = cra_package_get_name (task->pkg);
+	g_ptr_array_add (array, g_strdup_printf ("%s-data", tmp));
+	g_ptr_array_add (array, g_strdup_printf ("%s-common", tmp));
+	for (i = 0; i < array->len; i++) {
+		tmp = g_ptr_array_index (array, i);
+		ret = cra_context_explode_extra_package (ctx, task, tmp);
+		if (!ret)
+			goto out;
+	}
+out:
+	g_ptr_array_unref (array);
+	return ret;
+}
+
+/**
  * cra_task_process_func:
  */
 static void
 cra_task_process_func (gpointer data, gpointer user_data)
 {
-	const gchar *pkg_name;
 	CraApp *app;
 	CraContext *ctx = (CraContext *) user_data;
-	CraPackage *pkg_extra;
 	CraPlugin *plugin = NULL;
 	AsRelease *release;
 	CraTask *task = (CraTask *) data;
@@ -155,32 +220,9 @@ cra_task_process_func (gpointer data, gpointer user_data)
 	}
 
 	/* add extra packages */
-	pkg_name = cra_glob_value_search (ctx->extra_pkgs, cra_package_get_name (task->pkg));
-	if (pkg_name != NULL) {
-		pkg_extra = cra_context_find_by_pkgname (ctx, pkg_name);
-		if (pkg_extra == NULL) {
-			cra_package_log (task->pkg,
-					 CRA_PACKAGE_LOG_LEVEL_WARNING,
-					 "%s requires %s but is not available",
-					 cra_package_get_name (task->pkg),
-					 pkg_name);
-			goto skip;
-		}
-		cra_package_log (task->pkg,
-				 CRA_PACKAGE_LOG_LEVEL_DEBUG,
-				 "Adding extra package %s for %s",
-				 cra_package_get_name (pkg_extra),
-				 cra_package_get_name (task->pkg));
-		ret = cra_package_explode (pkg_extra, task->tmpdir, ctx->file_globs, &error);
-		if (!ret) {
-			cra_package_log (task->pkg,
-					 CRA_PACKAGE_LOG_LEVEL_WARNING,
-					 "Failed to explode extra file: %s",
-					 error->message);
-			g_clear_error (&error);
-			goto skip;
-		}
-	}
+	ret = cra_context_explode_extra_packages (ctx, task);
+	if (!ret)
+		goto skip;
 
 	/* run plugins */
 	for (i = 0; i < task->plugins_to_run->len; i++) {

@@ -102,7 +102,7 @@ cra_context_new (void)
 	cra_context_add_extra_pkg (ctx, "beneath-a-steel-sky*", "scummvm");
 	cra_context_add_extra_pkg (ctx, "coq-coqide", "coq");
 	cra_context_add_extra_pkg (ctx, "drascula*", "scummvm");
-	cra_context_add_extra_pkg (ctx, "efte-", "efte-common");
+	cra_context_add_extra_pkg (ctx, "efte-*", "efte-common");
 	cra_context_add_extra_pkg (ctx, "fcitx-*", "fcitx-data");
 	cra_context_add_extra_pkg (ctx, "flight-of-the-amazon-queen", "scummvm");
 	cra_context_add_extra_pkg (ctx, "gcin", "gcin-data");
@@ -118,7 +118,6 @@ cra_context_new (void)
 	cra_context_add_extra_pkg (ctx, "speed-dreams", "speed-dreams-robots-base");
 	cra_context_add_extra_pkg (ctx, "switchdesk-gui", "switchdesk");
 	cra_context_add_extra_pkg (ctx, "transmission-*", "transmission-common");
-	cra_context_add_extra_pkg (ctx, "vegastrike", "vegastrike-data");
 	cra_context_add_extra_pkg (ctx, "calligra-krita", "calligra-core");
 
 	/* add blacklisted packages */
