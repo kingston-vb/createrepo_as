@@ -347,6 +347,43 @@ cra_font_add_languages (CraApp *app, const FcPattern *pattern)
 }
 
 /**
+ * cra_plugin_font_set_name:
+ */
+static void
+cra_plugin_font_set_name (CraApp *app, const gchar *name)
+{
+	const gchar *ptr;
+	gchar *tmp;
+	guint i;
+	guint len;
+	const gchar *prefixes[] = { "GFS ", NULL };
+	const gchar *suffixes[] = { " SIL",
+				    " ADF",
+				    " CLM",
+				    " GPL&GNU",
+				    " SC",
+				    NULL };
+
+	/* remove font foundary suffix */
+	tmp = g_strdup (name);
+	for (i = 0; suffixes[i] != NULL; i++) {
+		if (g_str_has_suffix (tmp, suffixes[i])) {
+			len = strlen (tmp);
+			tmp[len - strlen (suffixes[i])] = '\0';
+		}
+	}
+
+	/* remove font foundary prefix */
+	ptr = tmp;
+	for (i = 0; prefixes[i] != NULL; i++) {
+		if (g_str_has_prefix (tmp, prefixes[i]))
+			ptr += strlen (prefixes[i]);
+	}
+	as_app_set_name (AS_APP (app), "C", ptr, -1);
+	g_free (tmp);
+}
+
+/**
  * cra_plugin_process_filename:
  */
 static gboolean
@@ -412,7 +449,7 @@ cra_plugin_process_filename (CraPlugin *plugin,
 	as_app_add_category (AS_APP (app), "Addons", -1);
 	as_app_add_category (AS_APP (app), "Fonts", -1);
 	cra_app_set_requires_appdata (app, TRUE);
-	as_app_set_name (AS_APP (app), "C", ft_face->family_name, -1);
+	cra_plugin_font_set_name (app, ft_face->family_name);
 	comment = g_strdup_printf ("A %s font from %s",
 				   ft_face->style_name,
 				   ft_face->family_name);
