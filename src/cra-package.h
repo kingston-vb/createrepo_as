@@ -50,6 +50,10 @@ struct _CraPackageClass
 	gboolean		 (*open)	(CraPackage	*package,
 						 const gchar	*filename,
 						 GError		**error);
+	gboolean		 (*explode)	(CraPackage	*package,
+						 const gchar	*dir,
+						 GPtrArray	*glob,
+						 GError		**error);
 	gint			 (*compare)	(CraPackage	*pkg1,
 						 CraPackage	*pkg2);
 };

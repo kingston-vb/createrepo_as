@@ -36,6 +36,10 @@ gboolean	 cra_utils_ensure_exists_and_empty	(const gchar	*directory,
 gboolean	 cra_utils_write_archive_dir		(const gchar	*filename,
 							 const gchar	*directory,
 							 GError		**error);
+gboolean	 cra_utils_explode			(const gchar	*filename,
+							 const gchar	*dir,
+							 GPtrArray	*glob,
+							 GError		**error);
 gchar		*cra_utils_get_cache_id_for_filename	(const gchar	*filename);
 
 CraGlobValue	*cra_glob_value_new			(const gchar	*glob,

@@ -167,6 +167,34 @@ out:
 }
 
 /**
+ * cra_package_deb_explode:
+ **/
+static gboolean
+cra_package_deb_explode (CraPackage *pkg,
+			 const gchar *dir,
+			 GPtrArray *glob,
+			 GError **error)
+{
+	gboolean ret;
+	gchar *data_fn = NULL;
+
+	/* first decompress the main deb */
+	ret = cra_utils_explode (cra_package_get_filename (pkg),
+				 dir, NULL, error);
+	if (!ret)
+		goto out;
+
+	/* then decompress the data file */
+	data_fn = g_build_filename (dir, "data.tar.xz", NULL);
+	ret = cra_utils_explode (data_fn, dir, glob, error);
+	if (!ret)
+		goto out;
+out:
+	g_free (data_fn);
+	return ret;
+}
+
+/**
  * cra_package_deb_class_init:
  **/
 static void
@@ -174,6 +202,7 @@ cra_package_deb_class_init (CraPackageDebClass *klass)
 {
 	CraPackageClass *package_class = CRA_PACKAGE_CLASS (klass);
 	package_class->open = cra_package_deb_open;
+	package_class->explode = cra_package_deb_explode;
 }
 
 /**

@@ -138,6 +138,136 @@ out:
 }
 
 /**
+ * cra_utils_explode_file:
+ **/
+static gboolean
+cra_utils_explode_file (struct archive_entry *entry,
+			const gchar *dir,
+			GPtrArray *glob)
+{
+	const gchar *tmp;
+	gboolean ret = TRUE;
+	gchar buf[PATH_MAX];
+	gchar *path = NULL;
+
+	/* no output file */
+	if (archive_entry_pathname (entry) == NULL)
+		goto out;
+
+	/* do we have to decompress this file */
+	tmp = archive_entry_pathname (entry);
+	if (glob != NULL) {
+		if (tmp[0] == '/') {
+			path = g_strdup (tmp);
+		} else if (tmp[0] == '.') {
+			path = g_strdup (tmp + 1);
+		} else {
+			path = g_strconcat ("/", tmp, NULL);
+		}
+		ret = cra_glob_value_search (glob, path) != NULL;
+		if (!ret)
+			goto out;
+	}
+
+	/* update output path */
+	g_snprintf (buf, PATH_MAX, "%s/%s", dir, tmp);
+	archive_entry_update_pathname_utf8 (entry, buf);
+
+	/* update hardlinks */
+	tmp = archive_entry_hardlink (entry);
+	if (tmp != NULL) {
+		g_snprintf (buf, PATH_MAX, "%s/%s", dir, tmp);
+		archive_entry_update_hardlink_utf8 (entry, buf);
+	}
+
+	/* update symlinks */
+	tmp = archive_entry_symlink (entry);
+	if (tmp != NULL) {
+		g_snprintf (buf, PATH_MAX, "%s/%s", dir, tmp);
+		archive_entry_update_symlink_utf8 (entry, buf);
+	}
+out:
+	g_free (path);
+	return ret;
+}
+
+/**
+ * cra_utils_explode:
+ */
+gboolean
+cra_utils_explode (const gchar *filename,
+		   const gchar *dir,
+		   GPtrArray *glob,
+		   GError **error)
+{
+	gboolean ret = TRUE;
+	gboolean valid;
+	gchar *data = NULL;
+	gsize len;
+	int r;
+	struct archive *arch = NULL;
+	struct archive_entry *entry;
+
+	/* load file at once to avoid seeking */
+	ret = g_file_get_contents (filename, &data, &len, error);
+	if (!ret)
+		goto out;
+
+	/* read anything */
+	arch = archive_read_new ();
+	archive_read_support_format_all (arch);
+	archive_read_support_filter_all (arch);
+	r = archive_read_open_memory (arch, data, len);
+	if (r) {
+		ret = FALSE;
+		g_set_error (error,
+			     CRA_PLUGIN_ERROR,
+			     CRA_PLUGIN_ERROR_FAILED,
+			     "Cannot open: %s",
+			     archive_error_string (arch));
+		goto out;
+	}
+
+	/* decompress each file */
+	for (;;) {
+		r = archive_read_next_header (arch, &entry);
+		if (r == ARCHIVE_EOF)
+			break;
+		if (r != ARCHIVE_OK) {
+			ret = FALSE;
+			g_set_error (error,
+				     CRA_PLUGIN_ERROR,
+				     CRA_PLUGIN_ERROR_FAILED,
+				     "Cannot read header: %s",
+				     archive_error_string (arch));
+			goto out;
+		}
+
+		/* only extract if valid */
+		valid = cra_utils_explode_file (entry, dir, glob);
+		if (!valid)
+			continue;
+		r = archive_read_extract (arch, entry, 0);
+		if (r != ARCHIVE_OK) {
+			ret = FALSE;
+			g_set_error (error,
+				     CRA_PLUGIN_ERROR,
+				     CRA_PLUGIN_ERROR_FAILED,
+				     "Cannot extract: %s",
+				     archive_error_string (arch));
+			goto out;
+		}
+	}
+out:
+	g_free (data);
+	if (arch != NULL) {
+		archive_read_close (arch);
+		archive_read_free (arch);
+	}
+	return ret;
+}
+
+/**
  * cra_utils_write_archive:
  */
 static gboolean
