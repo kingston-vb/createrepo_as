@@ -96,12 +96,51 @@ cra_font_fix_metadata (CraApp *app)
 		const gchar	*value;
 	} text_icon[] =  {
 		{ "en",		"Aa" },
+		{ "ar",		"أب" },
+		{ "be",		"Аа" },
+		{ "bg",		"Аа" },
+		{ "cs",		"Aa" },
+		{ "da",		"Aa" },
+		{ "de",		"Aa" },
+		{ "es",		"Aa" },
+		{ "fr",		"Aa" },
+		{ "gu",		"અબક" },
+		{ "he",		"אב" },
+		{ "it",		"Aa" },
+		{ "ml",		"ആഇ" },
+		{ "nl",		"Aa" },
+		{ "pl",		"ĄĘ" },
+		{ "pt",		"Aa" },
+		{ "ru",		"Аа" },
+		{ "sv",		"Åäö" },
+		{ "ua",		"Аа" },
+		{ "zh-tw",	"漢" },
 		{ NULL, NULL } };
 	struct {
 		const gchar	*lang;
 		const gchar	*value;
 	} text_sample[] =  {
 		{ "en",		"How quickly daft jumping zebras vex." },
+		{ "ar",		"نصٌّ حكيمٌ لهُ سِرٌّ قاطِعٌ وَذُو شَأنٍ عَظيمٍ مكتوبٌ على ثوبٍ أخضرَ ومُغلفٌ بجلدٍ أزرق" },
+		{ "be",		"У Іўі худы жвавы чорт у зялёнай камізэльцы пабег пад’есці фаршу з юшкай." },
+		{ "bg",		"Под южно дърво, цъфтящо в синьо, бягаше малко, пухкаво зайче." },
+		{ "cs",		"Příliš žluťoučký kůň úpěl ďábelské ódy" },
+		{ "da",		"Quizdeltagerne spiste jordbær med fløde, mens cirkusklovnen Walther spillede på xylofon." },
+		{ "de",		"Falsches Üben von Xylophonmusik quält jeden größeren Zwerg." },
+		{ "es",		"Aquel biógrafo se zampó un extraño sándwich de vodka y ajo" },
+		{ "fr",		"Voix ambiguë d'un cœur qui, au zéphyr, préfère les jattes de kiwis." },
+		{ "gu",		"ઇ.સ. ૧૯૭૮ ની ૨૫ તારીખે, ૦૬-૩૪ વાગે, ઐશ્વર્યવાન, વફાદાર, અંગ્રેજ ઘરધણીના આ ઝાડ પાસે ઊભેલા બાદશાહ; અને ઓસરીમાંના ઠળીયા તથા છાણાના ઢગલા દુર કરીને, ઔપચારીકતાથી ઉભેલા ઋષી સમાન પ્રજ્ઞાચક્ષુ ખાલસાજી ભટ મળ્યા હતા." },
+		{ "he",		"יַעֲקֹב בֶּן־דָּגָן הַשָּׂמֵחַ טִפֵּס בֶּעֱזוּז לְרֹאשׁ סֻלָּם מָאֳרָךְ לִצְפּוֹת בִּמְעוֹף דּוּכִיפַת וְנֵץ" },
+		{ "it",		"Senza qualche prova ho il dubbio che si finga morto." },
+		{ "ja",		"いろはにほへと ちりぬるを わかよたれそ つねならむ うゐのおくやま けふこえて あさきゆめみし ゑひもせす" },
+		{ "ml",		"അജവും ആനയും ഐരാവതവും ഗരുഡനും കഠോര സ്വരം പൊഴിക്കെ ഹാരവും ഒഢ്യാണവും ഫാലത്തില്‍ മഞ്ഞളും ഈറന്‍ കേശത്തില്‍ ഔഷധ എണ്ണയുമായി ഋതുമതിയും അനഘയും ഭൂനാഥയുമായ ഉമ ദുഃഖഛവിയോടെ ഇടതു പാദം ഏന്തി ങ്യേയാദൃശം നിര്‍ഝരിയിലെ ചിറ്റലകളെ ഓമനിക്കുമ്പോള്‍ ബാ‍ലയുടെ കണ്‍കളില്‍ നീര്‍ ഊര്‍ന്നു വിങ്ങി" },
+		{ "nl",		"Pa's wijze lynx bezag vroom het fikse aquaduct." },
+		{ "pl",		"Pójdźże, kiń tę chmurność w głąb flaszy!" },
+		{ "pt",		"À noite, vovô Kowalsky vê o ímã cair no pé do pingüim queixoso e vovó põe açúcar no chá de tâmaras do jabuti feliz." },
+		{ "ru",		"В чащах юга жил бы цитрус? Да, но фальшивый экземпляр!" },
+		{ "sv",		"Gud hjälpe qvickt Zorns mö få aw byxor" },
+		{ "ua",		"Чуєш їх, доцю, га? Кумедна ж ти, прощайся без ґольфів!" },
+		{ "zh-tw",	"秋風滑過拔地紅樓角落，誤見釣人低聲吟詠離騷。" },
 		{ NULL, NULL } };
 
 	/* ensure FontSampleText is defined */
