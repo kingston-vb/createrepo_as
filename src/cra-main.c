@@ -826,12 +826,17 @@ main (int argc, char **argv)
 			g_free (tmp);
 		}
 	} else {
+		g_print ("Scanning packages...\n");
 		for (i = 1; i < (guint) argc; i++) {
 			ret = cra_context_add_filename (ctx, argv[i], &error);
 			if (!ret) {
 				g_warning ("%s", error->message);
 				g_error_free (error);
 				goto out;
+			}
+			if (i % 10 == 0) {
+				g_print ("Parsed %i of %i files...\n",
+				i, argc);
 			}
 		}
 	}
