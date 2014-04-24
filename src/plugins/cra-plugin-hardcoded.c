@@ -231,7 +231,7 @@ cra_plugin_process_app (CraPlugin *plugin,
 
 	/* look for a modern toolkit */
 	deps = cra_package_get_deps (pkg);
-	for (i = 0; deps[i] != NULL; i++) {
+	for (i = 0; deps != NULL && deps[i] != NULL; i++) {
 		if (g_strcmp0 (deps[i], "libgtk-3.so.0") == 0) {
 			as_app_add_metadata (AS_APP (app),
 					     "X-Kudo-GTK3", "", -1);
@@ -245,7 +245,7 @@ cra_plugin_process_app (CraPlugin *plugin,
 	}
 
 	/* look for ancient toolkits */
-	for (i = 0; deps[i] != NULL; i++) {
+	for (i = 0; deps != NULL && deps[i] != NULL; i++) {
 		if (g_strcmp0 (deps[i], "libgtk-1.2.so.0") == 0) {
 			cra_app_add_veto (app, "Uses obsolete GTK1 toolkit");
 			break;

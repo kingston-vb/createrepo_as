@@ -98,7 +98,7 @@ cra_package_deb_ensure_simple (CraPackage *pkg, GError **error)
 		}
 	}
 	g_ptr_array_add (deps, NULL);
-	cra_package_set_filelist (pkg, (gchar **) deps->pdata);
+	cra_package_set_deps (pkg, (gchar **) deps->pdata);
 out:
 	if (deps != NULL)
 		g_ptr_array_unref (deps);
