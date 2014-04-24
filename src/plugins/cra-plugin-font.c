@@ -181,11 +181,17 @@ cra_font_fix_metadata (CraApp *app)
 			as_app_add_metadata (AS_APP (app),
 					      "FontSampleText",
 					      value, -1);
-			icon_tmp = g_utf8_substring (value, 0, 2);
-			as_app_add_metadata (AS_APP (app),
-					      "FontIconText",
-					      icon_tmp, -1);
-			g_free (icon_tmp);
+			if (g_strcmp0 (value, "The quick brown fox jumps over the lazy dog.") == 0) {
+				as_app_add_metadata (AS_APP (app),
+						      "FontIconText",
+						      "Aa", -1);
+			} else {
+				icon_tmp = g_utf8_substring (value, 0, 2);
+				as_app_add_metadata (AS_APP (app),
+						      "FontIconText",
+						      icon_tmp, -1);
+				g_free (icon_tmp);
+			}
 		}
 	}
 
