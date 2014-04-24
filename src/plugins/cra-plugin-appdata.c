@@ -172,13 +172,41 @@ cra_plugin_appdata_license_valid (const gchar *license)
 /**
  * cra_plugin_process_filename:
  */
+static void
+cra_plugin_appdata_log_overwrite (CraApp *app,
+				  const gchar *property_name,
+				  const gchar *old,
+				  const gchar *new)
+{
+	/* does the value already exist with this value */
+	if (g_strcmp0 (old, new) == 0) {
+		cra_package_log (cra_app_get_package (app),
+				 CRA_PACKAGE_LOG_LEVEL_WARNING,
+				 "AppData %s=%s already set",
+				 property_name, old);
+		return;
+	}
+
+	/* does the metadata exist with any value */
+	if (old != NULL) {
+		cra_package_log (cra_app_get_package (app),
+				 CRA_PACKAGE_LOG_LEVEL_INFO,
+				 "AppData %s=%s->%s",
+				 property_name, old, new);
+	}
+}
+
+/**
+ * cra_plugin_process_filename:
+ */
 static gboolean
 cra_plugin_process_filename (CraApp *app,
 			     const gchar *filename,
 			     GError **error)
 {
-	const gchar *tmp;
+	const gchar *key;
 	const gchar *old;
+	const gchar *tmp;
 	const GNode *c;
 	const GNode *n;
 	gboolean ret;
@@ -279,10 +307,14 @@ cra_plugin_process_filename (CraApp *app,
 	if (names != NULL) {
 		list = g_hash_table_get_keys (names);
 		for (l = list; l != NULL; l = l->next) {
-			tmp = g_hash_table_lookup (names, l->data);
-			as_app_set_name (AS_APP (app),
-					 (const gchar *) l->data,
-					 tmp, -1);
+			key = l->data;
+			tmp = g_hash_table_lookup (names, key);
+			if (g_strcmp0 (key, "C") == 0) {
+				old = as_app_get_name (AS_APP (app), key);
+				cra_plugin_appdata_log_overwrite (app, "name",
+								  old, tmp);
+			}
+			as_app_set_name (AS_APP (app), key, tmp, -1);
 		}
 		if (g_list_length (list) == 1) {
 			cra_package_log (cra_app_get_package (app),
@@ -296,10 +328,14 @@ cra_plugin_process_filename (CraApp *app,
 	if (comments != NULL) {
 		list = g_hash_table_get_keys (comments);
 		for (l = list; l != NULL; l = l->next) {
-			tmp = g_hash_table_lookup (comments, l->data);
-			as_app_set_comment (AS_APP (app),
-					    (const gchar *) l->data,
-					    tmp, -1);
+			key = l->data;
+			tmp = g_hash_table_lookup (comments, key);
+			if (g_strcmp0 (key, "C") == 0) {
+				old = as_app_get_comment (AS_APP (app), key);
+				cra_plugin_appdata_log_overwrite (app, "summary",
+								  old, tmp);
+			}
+			as_app_set_comment (AS_APP (app), key, tmp, -1);
 		}
 		if (g_list_length (list) == 1) {
 			cra_package_log (cra_app_get_package (app),
@@ -389,27 +425,10 @@ cra_plugin_process_filename (CraApp *app,
 				g_strfreev (split);
 				continue;
 			}
-
-			/* does the metadata already exist with this value */
-			if (g_strcmp0 (as_app_get_metadata_item (AS_APP (app), tmp),
-				       as_node_get_data (c)) == 0) {
-				cra_package_log (cra_app_get_package (app),
-						 CRA_PACKAGE_LOG_LEVEL_WARNING,
-						 "AppData metadata %s=%s already set",
-						 tmp,
-						 as_node_get_data (c));
-				continue;
-			}
-
-			/* does the metadata exist with any value */
 			old = as_app_get_metadata_item (AS_APP (app), tmp);
-			if (old != NULL) {
-				cra_package_log (cra_app_get_package (app),
-						 CRA_PACKAGE_LOG_LEVEL_INFO,
-						 "AppData metadata %s=%s->%s",
-						 tmp, old,
-						 as_node_get_data (c));
-			}
+			cra_plugin_appdata_log_overwrite (app, "metadata",
+							  old,
+							  as_node_get_data (c));
 			as_app_add_metadata (AS_APP (app), tmp,
 					     as_node_get_data (c), -1);
 		}
