@@ -342,7 +342,7 @@ out:
 }
 
 /**
- * cra_plugin_process_filename:
+ * cra_font_add_languages:
  */
 static void
 cra_font_add_languages (CraApp *app, const FcPattern *pattern)
