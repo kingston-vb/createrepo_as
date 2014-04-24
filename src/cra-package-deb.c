@@ -24,15 +24,8 @@
 #include "cra-package-deb.h"
 #include "cra-plugin.h"
 
-typedef struct _CraPackageDebPrivate	CraPackageDebPrivate;
-struct _CraPackageDebPrivate
-{
-	gpointer		 dummy;
-};
 
-G_DEFINE_TYPE_WITH_PRIVATE (CraPackageDeb, cra_package_deb, CRA_TYPE_PACKAGE)
-
-#define GET_PRIVATE(o) (cra_package_deb_get_instance_private (o))
+G_DEFINE_TYPE (CraPackageDeb, cra_package_deb, CRA_TYPE_PACKAGE)
 
 /**
  * cra_package_deb_init:
