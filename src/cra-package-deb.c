@@ -74,7 +74,15 @@ cra_package_deb_ensure_simple (CraPackage *pkg, GError **error)
 		}
 		if (g_str_has_prefix (lines[i], "Version: ")) {
 			vr = g_strsplit (lines[i] + 9, "-", 2);
-			cra_package_set_version (pkg, vr[0]);
+			tmp = g_strstr_len (vr[0], -1, ":");
+			if (tmp == NULL) {
+				cra_package_set_version (pkg, vr[0]);
+			} else {
+				*tmp = '\0';
+				j = g_ascii_strtoll (vr[0], NULL, 10);
+				cra_package_set_epoch (pkg, j);
+				cra_package_set_version (pkg, tmp + 1);
+			}
 			cra_package_set_release (pkg, vr[1]);
 			g_strfreev (vr);
 			continue;
