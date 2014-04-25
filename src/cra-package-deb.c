@@ -189,6 +189,8 @@ cra_package_deb_explode (CraPackage *pkg,
 	const gchar *data_names[] = { "data.tar.xz",
 				      "data.tar.bz2",
 				      "data.tar.gz",
+				      "data.tar.lzma",
+				      "data.tar",
 				      NULL };
 
 	/* first decompress the main deb */
