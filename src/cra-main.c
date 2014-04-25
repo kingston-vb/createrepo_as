@@ -635,7 +635,9 @@ main (int argc, char **argv)
 	GFile *old_metadata_file = NULL;
 	GOptionContext *option_context;
 	GPtrArray *tasks = NULL;
+	GPtrArray *packages = NULL;
 	GThreadPool *pool;
+	GTimer *timer = NULL;
 	guint i;
 	const GOptionEntry options[] = {
 		{ "verbose", 'v', 0, G_OPTION_ARG_NONE, &verbose,
@@ -838,48 +840,46 @@ main (int argc, char **argv)
 	}
 
 	/* scan each package */
+	packages = g_ptr_array_new_with_free_func (g_free);
 	if (argc == 1) {
-		g_print ("Scanning packages...\n");
 		dir = g_dir_open (packages_dir, 0, &error);
 		if (dir == NULL) {
 			g_warning ("failed to open packages: %s", error->message);
 			g_error_free (error);
 			goto out;
 		}
-
 		while ((filename = g_dir_read_name (dir)) != NULL) {
-
-			/* anything in the cache */
-			if (cra_main_find_in_cache (ctx, filename)) {
-				g_debug ("Skipping %s as found in old md cache",
-					 filename);
-				continue;
-			}
-
-			/* add to list to be processed */
-			tmp = g_build_filename (packages_dir, filename, NULL);
-			ret = cra_context_add_filename (ctx, tmp, &error);
-			if (!ret) {
-				g_warning ("Failed to open package %s: %s",
-					   tmp, error->message);
-				g_error_free (error);
-				goto out;
-			}
-			g_free (tmp);
+			tmp = g_build_filename (packages_dir,
+						filename, NULL);
+			g_ptr_array_add (packages, tmp);
 		}
 	} else {
-		g_print ("Scanning packages...\n");
-		for (i = 1; i < (guint) argc; i++) {
-			ret = cra_context_add_filename (ctx, argv[i], &error);
-			if (!ret) {
-				g_warning ("%s", error->message);
-				g_error_free (error);
-				goto out;
-			}
-			if (i % 10 == 0) {
-				g_print ("Parsed %i of %i files...\n",
-				i, argc);
-			}
+		for (i = 1; i < (guint) argc; i++)
+			g_ptr_array_add (packages, g_strdup (argv[i]));
+	}
+	g_print ("Scanning packages...\n");
+	timer = g_timer_new ();
+	for (i = 0; i < packages->len; i++) {
+		filename = g_ptr_array_index (packages, i);
+
+		/* anything in the cache */
+		if (cra_main_find_in_cache (ctx, filename)) {
+			g_debug ("Skipping %s as found in old md cache",
+				 filename);
+			continue;
+		}
+
+		/* add to list */
+		ret = cra_context_add_filename (ctx, filename, &error);
+		if (!ret) {
+			g_warning ("%s", error->message);
+			g_error_free (error);
+			goto out;
+		}
+		if (g_timer_elapsed (timer, NULL) > 3.f) {
+			g_print ("Parsed %i/%i files...\n",
+				 i, packages->len);
+			g_timer_reset (timer);
 		}
 	}
 
@@ -972,6 +972,10 @@ out:
 	g_free (basename);
 	g_free (log_dir);
 	g_option_context_free (option_context);
+	if (packages != NULL)
+		g_ptr_array_unref (packages);
+	if (timer != NULL)
+		g_timer_destroy (timer);
 	if (old_metadata_file != NULL)
 		g_object_unref (old_metadata_file);
 	if (tasks != NULL)
