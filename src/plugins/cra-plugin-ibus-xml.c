@@ -155,12 +155,15 @@ cra_plugin_process_filename (CraPlugin *plugin,
 	}
 	n = as_node_find (root, "component/engines/engine/language");
 	if (n != NULL) {
-		languages = g_strsplit (as_node_get_data (n), ",", -1);
-		for (i = 0; languages[i] != NULL; i++) {
-			if (g_strcmp0 (languages[i], "other") == 0)
-				continue;
-			as_app_add_language (AS_APP (app),
-					     100, languages[i], -1);
+		tmp = as_node_get_data (n);
+		if (tmp != NULL) {
+			languages = g_strsplit (tmp, ",", -1);
+			for (i = 0; languages[i] != NULL; i++) {
+				if (g_strcmp0 (languages[i], "other") == 0)
+					continue;
+				as_app_add_language (AS_APP (app),
+						     100, languages[i], -1);
+			}
 		}
 	}
 
