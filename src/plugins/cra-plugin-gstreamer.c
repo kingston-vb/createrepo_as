@@ -189,7 +189,7 @@ cra_plugin_process (CraPlugin *plugin,
 
 	/* create a description */
 	str = g_string_new ("Multimedia playback for ");
-	if (keywords->len > 0) {
+	if (keywords->len > 1) {
 		for (i = 0; i < keywords->len - 1; i++) {
 			tmp = g_ptr_array_index (keywords, i);
 			g_string_append_printf (str, "%s, ", tmp);
