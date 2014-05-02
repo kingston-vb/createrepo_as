@@ -171,7 +171,7 @@ cra_package_rpm_set_license (CraPackage *pkg, const gchar *license)
 		g_string_append (new, tmp);
 	}
 
-	cra_package_set_license (pkg, new->new);
+	cra_package_set_license (pkg, new->str);
 	g_string_free (new, TRUE);
 	g_strfreev (split);
 }
