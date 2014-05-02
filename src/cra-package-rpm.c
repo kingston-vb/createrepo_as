@@ -64,6 +64,119 @@ cra_package_rpm_init (CraPackageRpm *pkg)
 }
 
 /**
+ * cra_package_rpm_set_license:
+ **/
+static void
+cra_package_rpm_set_license (CraPackage *pkg, const gchar *license)
+{
+	GString *new;
+	const gchar *tmp;
+	gchar **split;
+	guint i;
+	guint j;
+	struct {
+		const gchar	*fedora;
+		const gchar	*spdx;
+	} convert[] =  {
+		{ "AGPLv3",			"AGPL-3.0" },
+		{ "Array",			NULL },
+		{ "Artistic",			"Artistic-2.0" },
+		{ "ASL 1.1",			"Apache-1.1" },
+		{ "ASL 2.0",			"Apache-2.0" },
+		{ "Baekmuk",			NULL },
+		{ "Bitstream Vera",		NULL },
+		{ "BSD",			"BSD-3-Clause" },
+		{ "CC0",			"CC0-1.0" },
+		{ "CC-BY",			"CC-BY-3.0" },
+		{ "CC-BY-SA",			"CC-BY-SA-3.0" },
+		{ "CeCILL-C",			"CECILL-C" },
+		{ "CeCILL",			"CECILL-2.0" },
+		{ "Copyright only",		NULL },
+		{ "Crystal Stacker",		NULL },
+		{ "EPL",			"EPL-1.0" },
+		{ "Free Art",			"ClArtistic" },
+		{ "Freely redistributable without restriction",	NULL },
+		{ "GFDL",			"GFDL-1.3" },
+		{ "GPL+",			"GPL-1.0+" },
+		{ "GPLv2",			"GPL-2.0" },
+		{ "GPLv2+",			"GPL-2.0+" },
+		{ "GPLV2",			"GPL-2.0" },
+		{ "GPLv2 with exceptions",	"GPL-2.0-with-font-exception" },
+		{ "GPLv2+ with exceptions",	"GPL-2.0-with-font-exception" },
+		{ "GPLv3",			"GPL-3.0" },
+		{ "GPLv3+",			"GPL-3.0+" },
+		{ "GPLV3+",			"GPL-3.0+" },
+		{ "GPLv3+ with exceptions",	"GPL-3.0+" },
+		{ "GPLv3 with exceptions",	"GPL-3.0-with-GCC-exception" },
+		{ "GPL+ with exceptions",	"GPL-2.0-with-font-exception" },
+		{ "IBM",			"IPL-1.0" },
+		{ "LGPL+",			"LGPL-2.1+" },
+		{ "LGPLv2",			"LGPL-2.1" },
+		{ "LGPLv2+",			"LGPL-2.1+" },
+		{ "LGPLv3",			"LGPL-3.0" },
+		{ "LGPLv3+",			"LGPL-3.0+" },
+		{ "Liberation",			NULL },
+		{ "LPPL",			"LPPL-1.3c" },
+		{ "MgOpen",			NULL },
+		{ "mplus",			NULL },
+		{ "MPLv1.0",			"MPL-1.0" },
+		{ "MPLv1.1",			"MPL-1.1" },
+		{ "MPLv2.0",			"MPL-2.0" },
+		{ "Netscape",			"NPL-1.1" },
+		{ "OFL",			"OFL-1.1" },
+		{ "Public domain",		NULL },
+		{ "Public Domain",		NULL },
+		{ "QPL",			"QPL-1.0" },
+		{ NULL, NULL } };
+
+	/* tokenize the license string and try to convert the Fedora license
+	 * string to a SPDX license the best we can */
+	new = g_string_sized_new (strlen (license) * 2);
+	split = as_utils_spdx_license_tokenize (license);
+	for (i = 0; split[i] != NULL; i++) {
+
+		/* convert */
+		tmp = split[i];
+		for (j = 0; convert[j].fedora != NULL; j++) {
+			if (g_strcmp0 (split[i], convert[j].fedora) == 0) {
+				tmp = convert[j].spdx;
+				cra_package_log (pkg,
+						 CRA_PACKAGE_LOG_LEVEL_DEBUG,
+						 "Converting Fedora license "
+						 "'%s' to SPDX '%s'",
+						 convert[j].fedora,
+						 convert[j].spdx);
+				break;
+			}
+		}
+
+		/* any operation */
+		if (g_str_has_prefix (split[i], "#")) {
+			g_string_append (new, split[i] + 1);
+			continue;
+		}
+
+		/* no matching SPDX entry */
+		if (tmp == NULL) {
+			cra_package_log (pkg,
+					 CRA_PACKAGE_LOG_LEVEL_WARNING,
+					 "Unable to currently map Fedora "
+					 "license '%s' to SPDX", split[i]);
+			tmp = split[i];
+		} else if (!as_utils_is_spdx_license_id (tmp)) {
+			cra_package_log (pkg,
+					 CRA_PACKAGE_LOG_LEVEL_WARNING,
+					 "License '%s' is not an SPDX ID", tmp);
+		}
+		g_string_append (new, tmp);
+	}
+
+	cra_package_set_license (pkg, new->new);
+	g_string_free (new, TRUE);
+	g_strfreev (split);
+}
+
+/**
  * cra_package_rpm_ensure_simple:
  **/
 static gboolean
@@ -91,7 +204,7 @@ cra_package_rpm_ensure_simple (CraPackage *pkg, GError **error)
 	headerGet (priv->h, RPMTAG_URL, td, HEADERGET_MINMEM);
 	cra_package_set_url (pkg, rpmtdGetString (td));
 	headerGet (priv->h, RPMTAG_LICENSE, td, HEADERGET_MINMEM);
-	cra_package_set_license (pkg, rpmtdGetString (td));
+	cra_package_rpm_set_license (pkg, rpmtdGetString (td));
 
 	/* source */
 	headerGet (priv->h, RPMTAG_SOURCERPM, td, HEADERGET_MINMEM);
