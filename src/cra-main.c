@@ -339,7 +339,7 @@ cra_task_process_func (gpointer data, gpointer user_data)
 		for (i = 0; i < AS_URL_KIND_LAST; i++) {
 			url = as_app_get_url_item (AS_APP (app), i);
 			if (url != NULL) {
-				ret = as_utils_check_url_exists (url, &error);
+				ret = as_utils_check_url_exists (url, 5, &error);
 				if (!ret) {
 					cra_package_log (task->pkg,
 							 CRA_PACKAGE_LOG_LEVEL_WARNING,
