@@ -160,6 +160,34 @@ out:
 }
 
 /**
+ * cra_context_check_urls:
+ */
+static void
+cra_context_check_urls (AsApp *app, CraPackage *pkg)
+{
+	GError *error = NULL;
+	const gchar *url;
+	gboolean ret;
+	guint i;
+
+	for (i = 0; i < AS_URL_KIND_LAST; i++) {
+		url = as_app_get_url_item (app, i);
+		if (url == NULL)
+			continue;
+		ret = as_utils_check_url_exists (url, 5, &error);
+		if (!ret) {
+			cra_package_log (pkg,
+					 CRA_PACKAGE_LOG_LEVEL_WARNING,
+					 "%s URL %s invalid: %s",
+					 as_url_kind_to_string (i),
+					 url,
+					 error->message);
+			g_clear_error (&error);
+		}
+	}
+}
+
+/**
  * cra_task_process_func:
  */
 static void
@@ -170,7 +198,6 @@ cra_task_process_func (gpointer data, gpointer user_data)
 	CraPlugin *plugin = NULL;
 	AsRelease *release;
 	CraTask *task = (CraTask *) data;
-	const gchar *url;
 	gboolean ret;
 	gchar *basename = NULL;
 	gchar *cache_id;
@@ -336,21 +363,8 @@ cra_task_process_func (gpointer data, gpointer user_data)
 		}
 
 		/* verify URLs still exist */
-		for (i = 0; i < AS_URL_KIND_LAST; i++) {
-			url = as_app_get_url_item (AS_APP (app), i);
-			if (url != NULL) {
-				ret = as_utils_check_url_exists (url, 5, &error);
-				if (!ret) {
-					cra_package_log (task->pkg,
-							 CRA_PACKAGE_LOG_LEVEL_WARNING,
-							 "%s URL %s invalid: %s",
-							 as_url_kind_to_string (i),
-							 url,
-							 error->message);
-					g_clear_error (&error);
-				}
-			}
-		}
+		if (ctx->check_urls)
+			cra_context_check_urls (AS_APP (app), task->pkg);
 
 		/* save icon and screenshots */
 		ret = cra_app_save_resources (app, &error);
