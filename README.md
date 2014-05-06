@@ -106,7 +106,7 @@ The current rules of inclusion are thus:
  * If included, AppData files **MUST** be valid XML
  * AppData files **MUST** be installed into `/usr/share/appdata`
  * Application icons **CANNOT** use XPM or ICO format
- * Applications **CANNOT** use obsolete toolkits such as GTK+-1.2
+ * Applications **CANNOT** use obsolete toolkits such as GTK+-1.2 or QT3
  * Applications that ship a desktop file **SHOULD** include an AppData file.
  * Screenshots **SHOULD** be in 16:9 aspect ratio
  * Application icons **SHOULD** have an alpha channel

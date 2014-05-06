@@ -252,6 +252,10 @@ cra_plugin_process_app (CraPlugin *plugin,
 			cra_app_add_veto (app, "Uses obsolete GTK1 toolkit");
 			break;
 		}
+		if (g_strcmp0 (deps[i], "libqt-mt.so.3") == 0) {
+			cra_app_add_veto (app, "Uses obsolete QT3 toolkit");
+			break;
+		}
 	}
 
 	/* has the application been updated in the last year */
