@@ -226,8 +226,9 @@ cra_plugin_process_filename (CraPlugin *plugin,
 	if (as_app_get_metadata_item (AS_APP (app), "NoDisplay") != NULL)
 		cra_app_set_requires_appdata (app, TRUE);
 
-	/* DesktopSettings requires AppData */
-	if (as_app_has_category (AS_APP (app), "DesktopSettings"))
+	/* Settings or DesktopSettings requires AppData */
+	if (as_app_has_category (AS_APP (app), "DesktopSettings") ||
+	    as_app_has_category (AS_APP (app), "Settings"))
 		cra_app_set_requires_appdata (app, TRUE);
 
 	/* is the icon a stock-icon-name? */
