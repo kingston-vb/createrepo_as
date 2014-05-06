@@ -170,6 +170,7 @@ cra_task_process_func (gpointer data, gpointer user_data)
 	CraPlugin *plugin = NULL;
 	AsRelease *release;
 	CraTask *task = (CraTask *) data;
+	const gchar *url;
 	gboolean ret;
 	gchar *basename = NULL;
 	gchar *cache_id;
@@ -332,6 +333,23 @@ cra_task_process_func (gpointer data, gpointer user_data)
 						 " - %s", tmp);
 			}
 			continue;
+		}
+
+		/* verify URLs still exist */
+		for (i = 0; i < AS_URL_KIND_LAST; i++) {
+			url = as_app_get_url_item (AS_APP (app), i);
+			if (url != NULL) {
+				ret = as_utils_check_url_exists (url, &error);
+				if (!ret) {
+					cra_package_log (task->pkg,
+							 CRA_PACKAGE_LOG_LEVEL_WARNING,
+							 "%s URL %s invalid: %s",
+							 as_url_kind_to_string (i),
+							 url,
+							 error->message);
+					g_clear_error (&error);
+				}
+			}
 		}
 
 		/* save icon and screenshots */
