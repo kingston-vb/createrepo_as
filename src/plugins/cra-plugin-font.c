@@ -288,13 +288,44 @@ cra_font_add_metadata (CraApp *app, FT_Face ft_face)
 }
 
 /**
+ * cra_font_is_pixbuf_empty:
+ */
+static gboolean
+cra_font_is_pixbuf_empty (const GdkPixbuf *pixbuf)
+{
+	gint i, j;
+	gint rowstride;
+	gint width;
+	guchar *pixels;
+	guchar *tmp;
+	guint length;
+	guint cnt = 0;
+
+	pixels = gdk_pixbuf_get_pixels_with_length (pixbuf, &length);
+	width = gdk_pixbuf_get_width (pixbuf);
+	rowstride = gdk_pixbuf_get_rowstride (pixbuf);
+	for (j = 0; j < gdk_pixbuf_get_height (pixbuf); j++) {
+		for (i = 0; i < width; i++) {
+			/* any opacity */
+			tmp = pixels + j * rowstride + i * 4;
+			if (tmp[3] > 0)
+				cnt++;
+		}
+	}
+	if (cnt > 5)
+		return FALSE;
+	return TRUE;
+}
+
+/**
  * cra_font_get_pixbuf:
  */
 static GdkPixbuf *
 cra_font_get_pixbuf (FT_Face ft_face,
 		     guint width,
 		     guint height,
-		     const gchar *text)
+		     const gchar *text,
+		     GError **error)
 {
 	cairo_font_face_t *font_face;
 	cairo_surface_t *surface;
@@ -326,7 +357,16 @@ cra_font_get_pixbuf (FT_Face ft_face,
 		       (height / 2) - te.height / 2 - te.y_bearing);
 	cairo_set_source_rgb (cr, 0.0, 0.0, 0.0);
 	cairo_show_text (cr, text);
+
+	/* check pixbuf is not just blank */
 	pixbuf = gdk_pixbuf_get_from_surface (surface, 0, 0, width, height);
+	if (cra_font_is_pixbuf_empty (pixbuf)) {
+		g_clear_object (&pixbuf);
+		g_set_error_literal (error,
+				     CRA_PLUGIN_ERROR,
+				     CRA_PLUGIN_ERROR_FAILED,
+				     "Could not render pixbuf");
+	}
 
 	cairo_destroy (cr);
 	cairo_font_face_destroy (font_face);
@@ -366,7 +406,11 @@ cra_font_add_screenshot (CraApp *app, FT_Face ft_face, GError **error)
 			goto out;
 		}
 	} else {
-		pixbuf = cra_font_get_pixbuf (ft_face, 640, 48, tmp);
+		pixbuf = cra_font_get_pixbuf (ft_face, 640, 48, tmp, error);
+		if (pixbuf == NULL) {
+			ret = FALSE;
+			goto out;
+		}
 	}
 	cra_screenshot_set_pixbuf (ss, pixbuf);
 	caption = g_strdup_printf ("%s – %s",
@@ -547,7 +591,11 @@ cra_plugin_process_filename (CraPlugin *plugin,
 	if (tmp != NULL) {
 		icon_filename = g_strdup_printf ("%s.png", as_app_get_id (AS_APP (app)));
 		as_app_set_icon (AS_APP (app), icon_filename, -1);
-		pixbuf = cra_font_get_pixbuf (ft_face, 64, 64, tmp);
+		pixbuf = cra_font_get_pixbuf (ft_face, 64, 64, tmp, error);
+		if (pixbuf == NULL) {
+			ret = FALSE;
+			goto out;
+		}
 		as_app_set_icon_kind (AS_APP (app), AS_ICON_KIND_CACHED);
 		cra_app_set_pixbuf (app, pixbuf);
 	}
