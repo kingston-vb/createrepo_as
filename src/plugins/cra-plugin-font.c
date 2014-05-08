@@ -346,6 +346,8 @@ cra_font_get_pixbuf (FT_Face ft_face,
 	while (text_size-- > 0) {
 		cairo_set_font_size (cr, text_size);
 		cairo_text_extents (cr, text, &te);
+		if (te.width <= 0.01f || te.height <= 0.01f)
+			continue;
 		if (te.width < width - (border_width * 2) &&
 		    te.height < height - (border_width * 2))
 			break;
