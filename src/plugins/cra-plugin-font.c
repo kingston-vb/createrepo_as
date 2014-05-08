@@ -357,16 +357,7 @@ cra_font_get_pixbuf (FT_Face ft_face,
 		       (height / 2) - te.height / 2 - te.y_bearing);
 	cairo_set_source_rgb (cr, 0.0, 0.0, 0.0);
 	cairo_show_text (cr, text);
-
-	/* check pixbuf is not just blank */
 	pixbuf = gdk_pixbuf_get_from_surface (surface, 0, 0, width, height);
-	if (cra_font_is_pixbuf_empty (pixbuf)) {
-		g_clear_object (&pixbuf);
-		g_set_error_literal (error,
-				     CRA_PLUGIN_ERROR,
-				     CRA_PLUGIN_ERROR_FAILED,
-				     "Could not render pixbuf");
-	}
 
 	cairo_destroy (cr);
 	cairo_font_face_destroy (font_face);
@@ -412,6 +403,17 @@ cra_font_add_screenshot (CraApp *app, FT_Face ft_face, GError **error)
 			goto out;
 		}
 	}
+
+	/* check pixbuf is not just blank */
+	if (cra_font_is_pixbuf_empty (pixbuf)) {
+		ret = FALSE;
+		g_set_error_literal (error,
+				     CRA_PLUGIN_ERROR,
+				     CRA_PLUGIN_ERROR_FAILED,
+				     "Could not generate font preview");
+		goto out;
+	}
+
 	cra_screenshot_set_pixbuf (ss, pixbuf);
 	caption = g_strdup_printf ("%s – %s",
 				   as_app_get_metadata_item (AS_APP (app), "FontFamily"),
@@ -594,6 +596,17 @@ cra_plugin_process_filename (CraPlugin *plugin,
 		pixbuf = cra_font_get_pixbuf (ft_face, 64, 64, tmp, error);
 		if (pixbuf == NULL) {
 			ret = FALSE;
+			goto out;
+		}
+
+		/* check pixbuf is not just blank */
+		if (cra_font_is_pixbuf_empty (pixbuf)) {
+			ret = FALSE;
+			g_set_error (error,
+				     CRA_PLUGIN_ERROR,
+				     CRA_PLUGIN_ERROR_FAILED,
+				     "Could not generate 64x64 font icon "
+				     "with '%s'", tmp);
 			goto out;
 		}
 		as_app_set_icon_kind (AS_APP (app), AS_ICON_KIND_CACHED);
