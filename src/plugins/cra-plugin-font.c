@@ -339,7 +339,7 @@ cra_font_get_pixbuf (FT_Face ft_face,
 	surface = cairo_image_surface_create (CAIRO_FORMAT_ARGB32,
 					      width, height);
 	cr = cairo_create (surface);
-	font_face = cairo_ft_font_face_create_for_ft_face (ft_face, FT_LOAD_NO_AUTOHINT);
+	font_face = cairo_ft_font_face_create_for_ft_face (ft_face, FT_LOAD_DEFAULT);
 	cairo_set_font_face (cr, font_face);
 
 	/* calculate best font size */
