@@ -61,9 +61,11 @@ cra_plugin_destroy (CraPlugin *plugin)
 	guint i;
 
 	/* print out AppData files not used */
-	for (i = 0; i < plugin->priv->filenames->len; i++) {
-		tmp = g_ptr_array_index (plugin->priv->filenames, i);
-		g_debug ("%s was not used", tmp);
+	if (g_getenv ("CRA_PERFORM_EXTRA_CHECKS") != NULL) {
+		for (i = 0; i < plugin->priv->filenames->len; i++) {
+			tmp = g_ptr_array_index (plugin->priv->filenames, i);
+			g_debug ("%s was not used", tmp);
+		}
 	}
 	g_ptr_array_unref (plugin->priv->filenames);
 	g_mutex_clear (&plugin->priv->filenames_mutex);

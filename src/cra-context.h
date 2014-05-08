@@ -42,7 +42,7 @@ typedef struct {
 	gboolean	 no_net;
 	gdouble		 api_version;
 	gboolean	 add_cache_id;
-	gboolean	 check_urls;
+	gboolean	 extra_checks;
 	AsStore		*old_md_cache;
 } CraContext;
 

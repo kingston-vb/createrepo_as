@@ -363,7 +363,7 @@ cra_task_process_func (gpointer data, gpointer user_data)
 		}
 
 		/* verify URLs still exist */
-		if (ctx->check_urls)
+		if (ctx->extra_checks)
 			cra_context_check_urls (AS_APP (app), task->pkg);
 
 		/* save icon and screenshots */
@@ -645,6 +645,7 @@ main (int argc, char **argv)
 	CraTask *task;
 	gboolean ret;
 	gboolean add_cache_id = FALSE;
+	gboolean extra_checks = FALSE;
 	gboolean verbose = FALSE;
 	gboolean no_net = FALSE;
 	gdouble api_version = 0.0f;
@@ -676,6 +677,8 @@ main (int argc, char **argv)
 			"Show extra debugging information", NULL },
 		{ "no-net", '\0', 0, G_OPTION_ARG_NONE, &no_net,
 			"Do not use the network to download screenshots", NULL },
+		{ "extra-checks", '\0', 0, G_OPTION_ARG_NONE, &extra_checks,
+			"Perform extra checks on the source metadata", NULL },
 		{ "add-cache-id", '\0', 0, G_OPTION_ARG_NONE, &add_cache_id,
 			"Add a cache ID to each component", NULL },
 		{ "log-dir", '\0', 0, G_OPTION_ARG_STRING, &log_dir,
@@ -718,6 +721,8 @@ main (int argc, char **argv)
 
 	if (verbose)
 		g_setenv ("G_MESSAGES_DEBUG", "all", TRUE);
+	if (extra_checks)
+		g_setenv ("CRA_PERFORM_EXTRA_CHECKS", "1", TRUE);
 
 #if !GLIB_CHECK_VERSION(2,40,0)
 	if (max_threads > 1) {
