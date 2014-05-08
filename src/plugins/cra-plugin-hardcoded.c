@@ -74,6 +74,8 @@ cra_plugin_initialize (CraPlugin *plugin)
 			 cra_glob_value_new ("http://lxde.sourceforge.net/*", "LXDE"));
 	g_ptr_array_add (plugin->priv->project_groups,
 			 cra_glob_value_new ("http://*mate-desktop.org*", "MATE"));
+	g_ptr_array_add (plugin->priv->project_groups,
+			 cra_glob_value_new ("http://*enlightenment.org*", "Enlightenment"));
 }
 
 /**
