@@ -329,15 +329,6 @@ cra_task_process_func (gpointer data, gpointer user_data)
 			goto skip;
 		}
 
-		/* don't include apps that *still* require appdata */
-		if (cra_app_get_requires_appdata (app)) {
-			cra_package_log (task->pkg,
-					 CRA_PACKAGE_LOG_LEVEL_INFO,
-					 "%s required appdata but none provided",
-					 as_app_get_id_full (AS_APP (app)));
-			continue;
-		}
-
 		/* don't include apps that have no icon, name or comment */
 		if (as_app_get_icon (AS_APP (app)) == NULL)
 			cra_app_add_veto (app, "Has no Icon");
@@ -359,6 +350,15 @@ cra_task_process_func (gpointer data, gpointer user_data)
 						 CRA_PACKAGE_LOG_LEVEL_WARNING,
 						 " - %s", tmp);
 			}
+			continue;
+		}
+
+		/* don't include apps that *still* require appdata */
+		if (cra_app_get_requires_appdata (app)) {
+			cra_package_log (task->pkg,
+					 CRA_PACKAGE_LOG_LEVEL_INFO,
+					 "%s required appdata but none provided",
+					 as_app_get_id_full (AS_APP (app)));
 			continue;
 		}
 

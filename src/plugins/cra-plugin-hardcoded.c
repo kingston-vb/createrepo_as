@@ -184,6 +184,7 @@ cra_plugin_process_app (CraPlugin *plugin,
 	GPtrArray *releases;
 	guint i;
 	guint secs;
+	guint days;
 
 	/* add extra categories */
 	tmp = as_app_get_id (AS_APP (app));
@@ -266,22 +267,35 @@ cra_plugin_process_app (CraPlugin *plugin,
 		release = g_ptr_array_index (releases, i);
 		secs = (g_get_real_time () / G_USEC_PER_SEC) -
 			as_release_get_timestamp (release);
-		if (secs / (60 * 60 * 24) < 365) {
+		days = secs / (60 * 60 * 24);
+		if (days < 365) {
 			as_app_add_metadata (AS_APP (app),
 					     "X-Kudo-RecentRelease", "", -1);
 			break;
 		}
 	}
 
-	/* has there been no upstream version in the last 5 years? */
+	/* has there been no upstream version recently */
 	if (releases->len > 0 &&
 	    as_app_get_id_kind (AS_APP (app)) == AS_ID_KIND_DESKTOP) {
 		release = g_ptr_array_index (releases, 0);
 		secs = (g_get_real_time () / G_USEC_PER_SEC) -
 			as_release_get_timestamp (release);
-		if (secs / (60 * 60 * 24) > 365 * 5) {
+		days = secs / (60 * 60 * 24);
+
+		/* this is just too old for us to care about */
+		if (days > 365 * 10) {
 			cra_app_add_veto (app, "Dead upstream for %i years",
 					  secs / (60 * 60 * 24 * 365));
+		}
+
+		/* we need AppData if the app needs saving */
+		else if (days > 365 * 5) {
+			cra_package_log (cra_app_get_package (app),
+					 CRA_PACKAGE_LOG_LEVEL_INFO,
+					 "Dead upstream for > %i years, "
+					 "and so requries AppData", 5);
+			cra_app_set_requires_appdata (app, TRUE);
 		}
 	}
 
