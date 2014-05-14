@@ -31,7 +31,6 @@ typedef struct _CraScreenshotPrivate	CraScreenshotPrivate;
 struct _CraScreenshotPrivate
 {
 	gchar			*app_id;
-	gchar			*md5;
 	gchar			*basename;
 	SoupSession		*session;
 	gboolean		 only_source;
@@ -54,7 +53,6 @@ cra_screenshot_finalize (GObject *object)
 
 	g_free (priv->app_id);
 	g_free (priv->basename);
-	g_free (priv->md5);
 	g_object_unref (priv->session);
 	g_object_unref (priv->source);
 	if (priv->pkg != NULL)
@@ -90,22 +88,13 @@ cra_screenshot_set_pixbuf (CraScreenshot *screenshot, GdkPixbuf *pixbuf)
 	const gchar *mirror_uri;
 	gchar *size_str;
 	gchar *url_tmp;
-	guchar *data;
 	guint i;
-	guint len;
 	guint sizes[] = { 624, 351, 112, 63, 752, 423, 0 };
 
 	as_image_set_pixbuf (priv->source, pixbuf);
-
-	/* use the pixel data if there was no file to load */
-	if (priv->md5 == NULL) {
-		data = gdk_pixbuf_get_pixels_with_length (pixbuf, &len);
-		priv->md5 = g_compute_checksum_for_data (G_CHECKSUM_MD5,
-							 data, len);
-	}
 	priv->basename = g_strdup_printf ("%s-%s.png",
 					  priv->app_id,
-					  priv->md5);
+					  as_image_get_md5 (priv->source));
 
 	/* create the source */
 	mirror_uri = cra_package_get_config (priv->pkg, "MirrorURI");
@@ -152,41 +141,22 @@ cra_screenshot_load_filename (CraScreenshot *screenshot,
 			      GError **error)
 {
 	CraScreenshotPrivate *priv = GET_PRIVATE (screenshot);
-	GdkPixbuf *pixbuf = NULL;
 	gboolean ret = TRUE;
-	gchar *data = NULL;
-	gsize len;
 
-	/* get the contents so we can hash the predictable file data,
-	 * rather than the unpredicatable (for JPEG) pixel data */
-	ret = g_file_get_contents (filename, &data, &len, error);
+	/* load source */
+	ret = as_image_load_filename (priv->source, filename, error);
 	if (!ret)
 		goto out;
-	priv->md5 = g_compute_checksum_for_data (G_CHECKSUM_MD5,
-						 (guchar * )data, len);
-
-	/* load the image */
-	pixbuf = gdk_pixbuf_new_from_file (filename, error);
-	if (pixbuf == NULL) {
-		ret = FALSE;
-		goto out;
-	}
-
-	/* set */
-	cra_screenshot_set_pixbuf (screenshot, pixbuf);
 
 	/* is the aspect ratio of the source perfectly 16:9 */
-	if ((gdk_pixbuf_get_width (pixbuf) / 16) * 9 !=
-	    gdk_pixbuf_get_height (pixbuf)) {
+	if ((as_image_get_width (priv->source) / 16) * 9 !=
+	     as_image_get_height (priv->source)) {
 		cra_package_log (priv->pkg,
 				 CRA_PACKAGE_LOG_LEVEL_WARNING,
 				 "%s is not in 16:9 aspect ratio",
 				 filename);
 	}
 out:
-	if (pixbuf != NULL)
-		g_object_unref (pixbuf);
-	g_free (data);
 	return ret;
 }
 
