@@ -35,7 +35,7 @@ struct _CraScreenshotPrivate
 	gchar			*basename;
 	SoupSession		*session;
 	gboolean		 only_source;
-	GdkPixbuf		*pixbuf;
+	AsImage			*source;
 	CraPackage		*pkg;
 };
 
@@ -56,10 +56,9 @@ cra_screenshot_finalize (GObject *object)
 	g_free (priv->basename);
 	g_free (priv->md5);
 	g_object_unref (priv->session);
+	g_object_unref (priv->source);
 	if (priv->pkg != NULL)
 		g_object_unref (priv->pkg);
-	if (priv->pixbuf != NULL)
-		g_object_unref (priv->pixbuf);
 
 	G_OBJECT_CLASS (cra_screenshot_parent_class)->finalize (object);
 }
@@ -71,6 +70,8 @@ static void
 cra_screenshot_init (CraScreenshot *screenshot)
 {
 	CraScreenshotPrivate *priv = GET_PRIVATE (screenshot);
+	priv->source = as_image_new ();
+	as_image_set_kind (priv->source, AS_IMAGE_KIND_SOURCE);
 	priv->session = soup_session_new_with_options (SOUP_SESSION_USER_AGENT, "createrepo_as",
 						       SOUP_SESSION_TIMEOUT, 5000,
 						       NULL);
@@ -94,7 +95,7 @@ cra_screenshot_set_pixbuf (CraScreenshot *screenshot, GdkPixbuf *pixbuf)
 	guint len;
 	guint sizes[] = { 624, 351, 112, 63, 752, 423, 0 };
 
-	priv->pixbuf = g_object_ref (pixbuf);
+	as_image_set_pixbuf (priv->source, pixbuf);
 
 	/* use the pixel data if there was no file to load */
 	if (priv->md5 == NULL) {
@@ -111,8 +112,8 @@ cra_screenshot_set_pixbuf (CraScreenshot *screenshot, GdkPixbuf *pixbuf)
 	if (priv->only_source) {
 		im = as_image_new ();
 		as_image_set_kind (im, AS_IMAGE_KIND_SOURCE);
-		as_image_set_width (im, gdk_pixbuf_get_width (priv->pixbuf));
-		as_image_set_height (im, gdk_pixbuf_get_height (priv->pixbuf));
+		as_image_set_width (im, gdk_pixbuf_get_width (pixbuf));
+		as_image_set_height (im, gdk_pixbuf_get_height (pixbuf));
 		url_tmp = g_build_filename (mirror_uri,
 					    "source",
 					    priv->basename,
@@ -202,12 +203,6 @@ cra_screenshot_save_pixbuf (CraScreenshot *screenshot,
 	gboolean ret = TRUE;
 	gchar *filename = NULL;
 	gchar *size_str;
-	GdkPixbuf *pixbuf = NULL;
-	GdkPixbuf *pixbuf_tmp = NULL;
-	guint tmp_height;
-	guint tmp_width;
-	guint pixbuf_height;
-	guint pixbuf_width;
 
 	/* does screenshot already exist */
 	size_str = g_strdup_printf ("%ix%i", width, height);
@@ -225,44 +220,12 @@ cra_screenshot_save_pixbuf (CraScreenshot *screenshot,
 	}
 
 	/* is the aspect ratio of the source perfectly 16:9 */
-	pixbuf_width = gdk_pixbuf_get_width (priv->pixbuf);
-	pixbuf_height = gdk_pixbuf_get_height (priv->pixbuf);
-	if ((pixbuf_width / 16) * 9 == pixbuf_height) {
-		pixbuf = gdk_pixbuf_scale_simple (priv->pixbuf,
-						  width, height,
-						  GDK_INTERP_BILINEAR);
-	} else {
-
-		/* create new 16:9 pixbuf with alpha padding */
-		pixbuf = gdk_pixbuf_new (GDK_COLORSPACE_RGB,
-					 TRUE, 8,
-					 width,
-					 height);
-		gdk_pixbuf_fill (pixbuf, 0x00000000);
-		if ((pixbuf_width / 16) * 9 > pixbuf_height) {
-			tmp_width = width;
-			tmp_height = width * pixbuf_height / pixbuf_width;
-		} else {
-			tmp_width = height * pixbuf_width / pixbuf_height;
-			tmp_height = height;
-		}
-		pixbuf_tmp = gdk_pixbuf_scale_simple (priv->pixbuf,
-						      tmp_width, tmp_height,
-						      GDK_INTERP_BILINEAR);
-		gdk_pixbuf_copy_area (pixbuf_tmp,
-				      0, 0, /* of src */
-				      tmp_width, tmp_height,
-				      pixbuf,
-				      (width - tmp_width) / 2,
-				      (height - tmp_height) / 2);
-	}
-
-	/* save source file */
-	ret = gdk_pixbuf_save (pixbuf,
-			       filename,
-			       "png",
-			       error,
-			       NULL);
+	ret = as_image_save_filename (priv->source,
+				      filename,
+				      width,
+				      height,
+				      AS_IMAGE_SAVE_FLAG_PAD_16_9,
+				      error);
 	if (!ret)
 		goto out;
 
@@ -271,10 +234,6 @@ cra_screenshot_save_pixbuf (CraScreenshot *screenshot,
 			 CRA_PACKAGE_LOG_LEVEL_DEBUG,
 			 "saved %s screenshot", size_str);
 out:
-	if (pixbuf != NULL)
-		g_object_unref (pixbuf);
-	if (pixbuf_tmp != NULL)
-		g_object_unref (pixbuf_tmp);
 	g_free (filename);
 	g_free (size_str);
 	return ret;
@@ -305,12 +264,12 @@ cra_screenshot_save_source (CraScreenshot *screenshot, GError **error)
 		goto out;
 	}
 
-	/* save source file */
-	ret = gdk_pixbuf_save (priv->pixbuf,
-			       filename,
-			       "png",
-			       error,
-			       NULL);
+	/* is the aspect ratio of the source perfectly 16:9 */
+	ret = as_image_save_filename (priv->source,
+				      filename,
+				      0, 0,
+				      AS_IMAGE_SAVE_FLAG_NONE,
+				      error);
 	if (!ret)
 		goto out;
 
@@ -336,7 +295,7 @@ cra_screenshot_save_resources (CraScreenshot *screenshot, GError **error)
 	guint i;
 
 	/* any non-stock icon set */
-	if (priv->pixbuf == NULL)
+	if (as_image_get_pixbuf (priv->source) == NULL)
 		goto out;
 
 	/* most of the time, don't save a source image */
