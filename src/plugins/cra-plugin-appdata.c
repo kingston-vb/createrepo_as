@@ -160,13 +160,13 @@ cra_plugin_appdata_remove_file (CraPlugin *plugin, const gchar *filename)
 static gboolean
 cra_plugin_appdata_license_valid (const gchar *license)
 {
-	if (g_strcmp0 (license, "CC0") == 0)
+	if (g_strcmp0 (license, "CC0-1.0") == 0)
 		return TRUE;
-	if (g_strcmp0 (license, "CC-BY") == 0)
+	if (g_strcmp0 (license, "CC-BY-3.0") == 0)
 		return TRUE;
-	if (g_strcmp0 (license, "CC-BY-SA") == 0)
+	if (g_strcmp0 (license, "CC-BY-SA-3.0") == 0)
 		return TRUE;
-	if (g_strcmp0 (license, "GFDL") == 0)
+	if (g_strcmp0 (license, "GFDL-1.3") == 0)
 		return TRUE;
 	return FALSE;
 }
@@ -263,8 +263,8 @@ cra_plugin_process_filename (CraApp *app,
 	}
 
 	/* check app id */
-	n = as_node_find (root, "application/id");
-	if (n == NULL) {
+	tmp = as_app_get_id_full (appdata);
+	if (tmp == NULL) {
 		ret = FALSE;
 		g_set_error (error,
 			     CRA_PLUGIN_ERROR,
@@ -273,24 +273,21 @@ cra_plugin_process_filename (CraApp *app,
 			     filename);
 		goto out;
 	}
-	if (g_strcmp0 (as_node_get_data (n),
-		       as_app_get_id_full (AS_APP (app))) != 0) {
+	if (g_strcmp0 (tmp, as_app_get_id_full (AS_APP (app))) != 0) {
 		ret = FALSE;
 		g_set_error (error,
 			     CRA_PLUGIN_ERROR,
 			     CRA_PLUGIN_ERROR_FAILED,
 			     "AppData %s does not match '%s':'%s'",
 			     filename,
-			     as_node_get_data (n),
+			     tmp,
 			     as_app_get_id_full (AS_APP (app)));
 		goto out;
 	}
 
 	/* check license */
-	n = as_node_find (root, "application/metadata_license");
-	if (n == NULL)
-		n = as_node_find (root, "application/licence");
-	if (n == NULL) {
+	tmp = as_app_get_metadata_license (appdata);
+	if (tmp == NULL) {
 		ret = FALSE;
 		g_set_error (error,
 			     CRA_PLUGIN_ERROR,
@@ -299,11 +296,6 @@ cra_plugin_process_filename (CraApp *app,
 			     filename);
 		goto out;
 	}
-	tmp = as_node_get_data (n);
-	if (g_strcmp0 (tmp, "CC BY") == 0)
-		tmp = "CC-BY";
-	if (g_strcmp0 (tmp, "CC BY-SA") == 0)
-		tmp = "CC-BY-SA";
 	if (!cra_plugin_appdata_license_valid (tmp)) {
 		ret = FALSE;
 		g_set_error (error,
@@ -315,16 +307,12 @@ cra_plugin_process_filename (CraApp *app,
 	}
 
 	/* other optional data */
-	n = as_node_find (root, "application/url");
-	if (n != NULL) {
-		as_app_add_url (AS_APP (app), AS_URL_KIND_HOMEPAGE,
-				as_node_get_data (n), -1);
-	}
-	n = as_node_find (root, "application/project_group");
-	if (n != NULL) {
-		as_app_set_project_group (AS_APP (app),
-					  as_node_get_data (n), -1);
-	}
+	tmp = as_app_get_url_item (appdata, AS_URL_KIND_HOMEPAGE);
+	if (tmp != NULL)
+		as_app_add_url (AS_APP (app), AS_URL_KIND_HOMEPAGE, tmp, -1);
+	tmp = as_app_get_project_group (appdata);
+	if (tmp != NULL)
+		as_app_set_project_group (AS_APP (app), tmp, -1);
 	n = as_node_find (root, "application/compulsory_for_desktop");
 	if (n != NULL) {
 		as_app_add_compulsory_for_desktop (AS_APP (app),
@@ -332,75 +320,61 @@ cra_plugin_process_filename (CraApp *app,
 						   -1);
 	}
 
-	/* perhaps get name & summary */
-	n = as_node_find (root, "application");
-	if (n != NULL)
-		names = as_node_get_localized (n, "name");
-	if (names != NULL) {
-		list = g_hash_table_get_keys (names);
-		for (l = list; l != NULL; l = l->next) {
-			key = l->data;
-			tmp = g_hash_table_lookup (names, key);
-			if (g_strcmp0 (key, "C") == 0) {
-				old = as_app_get_name (AS_APP (app), key);
-				cra_plugin_appdata_log_overwrite (app, "name",
-								  old, tmp);
-			}
-			as_app_set_name (AS_APP (app), key, tmp, -1);
+	/* perhaps get name */
+	names = as_app_get_names (appdata);
+	list = g_hash_table_get_keys (names);
+	for (l = list; l != NULL; l = l->next) {
+		key = l->data;
+		tmp = g_hash_table_lookup (names, key);
+		if (g_strcmp0 (key, "C") == 0) {
+			old = as_app_get_name (AS_APP (app), key);
+			cra_plugin_appdata_log_overwrite (app, "name",
+							  old, tmp);
 		}
-		if (g_list_length (list) == 1) {
-			cra_package_log (cra_app_get_package (app),
-					 CRA_PACKAGE_LOG_LEVEL_WARNING,
-					 "AppData 'name' has no translations");
-		}
-		g_list_free (list);
+		as_app_set_name (AS_APP (app), key, tmp, -1);
 	}
-	if (n != NULL)
-		comments = as_node_get_localized (n, "summary");
-	if (comments != NULL) {
-		list = g_hash_table_get_keys (comments);
-		for (l = list; l != NULL; l = l->next) {
-			key = l->data;
-			tmp = g_hash_table_lookup (comments, key);
-			if (g_strcmp0 (key, "C") == 0) {
-				old = as_app_get_comment (AS_APP (app), key);
-				cra_plugin_appdata_log_overwrite (app, "summary",
-								  old, tmp);
-			}
-			as_app_set_comment (AS_APP (app), key, tmp, -1);
-		}
-		if (g_list_length (list) == 1) {
-			cra_package_log (cra_app_get_package (app),
-					 CRA_PACKAGE_LOG_LEVEL_WARNING,
-					 "AppData 'summary' has no translations");
-		}
-		g_list_free (list);
+	if (g_list_length (list) == 1) {
+		cra_package_log (cra_app_get_package (app),
+				 CRA_PACKAGE_LOG_LEVEL_WARNING,
+				 "AppData 'name' has no translations");
 	}
+	g_list_free (list);
 
-	/* get de-normalized description */
-	n = as_node_find (root, "application/description");
-	if (n != NULL) {
-		descriptions = as_node_get_localized_unwrap (n, error);
-		if (descriptions == NULL) {
-			ret = FALSE;
-			goto out;
+	/* perhaps get summary */
+	comments = as_app_get_comments (appdata);
+	list = g_hash_table_get_keys (comments);
+	for (l = list; l != NULL; l = l->next) {
+		key = l->data;
+		tmp = g_hash_table_lookup (comments, key);
+		if (g_strcmp0 (key, "C") == 0) {
+			old = as_app_get_comment (AS_APP (app), key);
+			cra_plugin_appdata_log_overwrite (app, "summary",
+							  old, tmp);
 		}
+		as_app_set_comment (AS_APP (app), key, tmp, -1);
 	}
-	if (descriptions != NULL) {
-		list = g_hash_table_get_keys (descriptions);
-		for (l = list; l != NULL; l = l->next) {
-			tmp = g_hash_table_lookup (descriptions, l->data);
-			as_app_set_description (AS_APP (app),
-						(const gchar *) l->data,
-						tmp, -1);
-		}
-		if (g_list_length (list) == 1) {
-			cra_package_log (cra_app_get_package (app),
-					 CRA_PACKAGE_LOG_LEVEL_WARNING,
-					 "AppData 'description' has no translations");
-		}
-		g_list_free (list);
+	if (g_list_length (list) == 1) {
+		cra_package_log (cra_app_get_package (app),
+				 CRA_PACKAGE_LOG_LEVEL_WARNING,
+				 "AppData 'summary' has no translations");
 	}
+	g_list_free (list);
+
+	/* get descriptions */
+	descriptions = as_app_get_descriptions (appdata);
+	list = g_hash_table_get_keys (descriptions);
+	for (l = list; l != NULL; l = l->next) {
+		tmp = g_hash_table_lookup (descriptions, l->data);
+		as_app_set_description (AS_APP (app),
+					(const gchar *) l->data,
+					tmp, -1);
+	}
+	if (g_list_length (list) == 1) {
+		cra_package_log (cra_app_get_package (app),
+				 CRA_PACKAGE_LOG_LEVEL_WARNING,
+				 "AppData 'description' has no translations");
+	}
+	g_list_free (list);
 
 	/* add screenshots */
 	n = as_node_find (root, "application/screenshots");
