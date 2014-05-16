@@ -217,7 +217,6 @@ cra_plugin_process_filename (CraApp *app,
 	const GNode *n;
 	gboolean ret;
 	gchar *data = NULL;
-	gchar **split;
 	GHashTable *comments = NULL;
 	GHashTable *descriptions = NULL;
 	GHashTable *names = NULL;
@@ -422,15 +421,6 @@ cra_plugin_process_filename (CraApp *app,
 			if (g_strcmp0 (as_node_get_name (c), "value") != 0)
 				continue;
 			tmp = as_node_get_attribute (c, "key");
-			if (g_strcmp0 (tmp, "ExtraPackages") == 0) {
-				split = g_strsplit (as_node_get_data (c), ",", -1);
-				for (i = 0; split[i] != NULL; i++) {
-					as_app_add_pkgname (AS_APP (app),
-							    split[i], -1);
-				}
-				g_strfreev (split);
-				continue;
-			}
 			old = as_app_get_metadata_item (AS_APP (app), tmp);
 			cra_plugin_appdata_log_overwrite (app, "metadata",
 							  old,
