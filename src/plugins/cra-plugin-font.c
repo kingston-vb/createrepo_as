@@ -368,6 +368,26 @@ cra_font_get_pixbuf (FT_Face ft_face,
 }
 
 /**
+ * cra_font_get_caption:
+ */
+static gchar *
+cra_font_get_caption (CraApp *app)
+{
+	const gchar *family;
+	const gchar *subfamily;
+
+	family = as_app_get_metadata_item (AS_APP (app), "FontFamily");
+	subfamily = as_app_get_metadata_item (AS_APP (app), "FontSubFamily");
+	if (family == NULL && subfamily == NULL)
+		return NULL;
+	if (family == NULL)
+		return g_strdup (subfamily);
+	if (subfamily == NULL)
+		return g_strdup (family);
+	return g_strdup_printf ("%s – %s", family, subfamily);
+}
+
+/**
  * cra_font_add_screenshot:
  */
 static gboolean
@@ -434,12 +454,11 @@ cra_font_add_screenshot (CraApp *app, FT_Face ft_face, GError **error)
 	as_image_set_url (im, url_tmp, -1);
 
 	ss = as_screenshot_new ();
+	as_screenshot_set_kind (ss, AS_SCREENSHOT_KIND_DEFAULT);
 	as_screenshot_add_image (ss, im);
-	caption = g_strdup_printf ("%s – %s",
-				   as_app_get_metadata_item (AS_APP (app), "FontFamily"),
-				   as_app_get_metadata_item (AS_APP (app), "FontSubFamily"));
-	as_screenshot_set_kind (ss, AS_SCREENSHOT_KIND_NORMAL);
-	as_screenshot_set_caption (ss, NULL, caption, -1);
+	caption = cra_font_get_caption (app);
+	if (caption != NULL)
+		as_screenshot_set_caption (ss, NULL, caption, -1);
 	as_app_add_screenshot (AS_APP (app), ss);
 
 	/* save to cache */
