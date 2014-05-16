@@ -206,6 +206,10 @@ cra_plugin_process_filename (CraApp *app,
 			     const gchar *filename,
 			     GError **error)
 {
+	AsApp *appdata;
+	AsProblemKind problem_kind;
+	AsProblem *problem;
+	GPtrArray *problems = NULL;
 	const gchar *key;
 	const gchar *old;
 	const gchar *tmp;
@@ -221,6 +225,32 @@ cra_plugin_process_filename (CraApp *app,
 	GList *list;
 	GNode *root = NULL;
 	guint i;
+
+	/* validate */
+	appdata = as_app_new ();
+	ret = as_app_parse_file (appdata,
+				 filename,
+				 AS_APP_PARSE_FLAG_NONE,
+				 error);
+	if (!ret)
+		goto out;
+	problems = as_app_validate (appdata,
+				    AS_APP_VALIDATE_FLAG_NO_NETWORK |
+				    AS_APP_VALIDATE_FLAG_RELAX,
+				    error);
+	if (problems == NULL) {
+		ret = FALSE;
+		goto out;
+	}
+	for (i = 0; i < problems->len; i++) {
+		problem = g_ptr_array_index (problems, i);
+		problem_kind = as_problem_get_kind (problem);
+		cra_package_log (cra_app_get_package (app),
+				 CRA_PACKAGE_LOG_LEVEL_WARNING,
+				 "AppData problem: %s : %s",
+				 as_problem_kind_to_string (problem_kind),
+				 as_problem_get_message (problem));
+	}
 
 	/* parse file */
 	ret = g_file_get_contents (filename, &data, NULL, error);
@@ -441,6 +471,9 @@ cra_plugin_process_filename (CraApp *app,
 	ret = TRUE;
 out:
 	g_free (data);
+	g_object_unref (appdata);
+	if (problems != NULL)
+		g_ptr_array_unref (problems);
 	if (names != NULL)
 		g_hash_table_unref (names);
 	if (comments != NULL)
