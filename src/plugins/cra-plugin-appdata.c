@@ -438,34 +438,44 @@ cra_plugin_process_filename (CraPlugin *plugin,
 	}
 	g_list_free (list);
 
-	/* add screenshots */
-	array = as_app_get_screenshots (appdata);
-	for (i = 0; i < array->len; i++) {
-		GError *error_local = NULL;
-		AsScreenshot *ass;
-		AsImage *image;
+	/* add screenshots if not already added */
+	array = as_app_get_screenshots (AS_APP (app));
+	if (array->len == 0) {
+		array = as_app_get_screenshots (appdata);
+		for (i = 0; i < array->len; i++) {
+			GError *error_local = NULL;
+			AsScreenshot *ass;
+			AsImage *image;
 
-		ass = g_ptr_array_index (array, i);
-		image = as_screenshot_get_source (ass);
-		if (image == NULL)
-			continue;
+			ass = g_ptr_array_index (array, i);
+			image = as_screenshot_get_source (ass);
+			if (image == NULL)
+				continue;
 
-		/* load the URI or get from a cache */
-		tmp = as_image_get_url (image);
-		ret = cra_plugin_appdata_load_url (plugin,
-						   app,
-						   as_image_get_url (image),
-						   &error_local);
-		if (ret) {
+			/* load the URI or get from a cache */
+			tmp = as_image_get_url (image);
+			ret = cra_plugin_appdata_load_url (plugin,
+							   app,
+							   as_image_get_url (image),
+							   &error_local);
+			if (ret) {
+				cra_package_log (cra_app_get_package (app),
+						 CRA_PACKAGE_LOG_LEVEL_DEBUG,
+						 "Added screenshot %s", tmp);
+			} else {
+				cra_package_log (cra_app_get_package (app),
+						 CRA_PACKAGE_LOG_LEVEL_WARNING,
+						 "Failed to load screenshot %s: %s",
+						 tmp, error_local->message);
+				g_clear_error (&error_local);
+			}
+		}
+	} else {
+		array = as_app_get_screenshots (appdata);
+		if (array->len > 0) {
 			cra_package_log (cra_app_get_package (app),
-					 CRA_PACKAGE_LOG_LEVEL_DEBUG,
-					 "Added screenshot %s", tmp);
-		} else {
-			cra_package_log (cra_app_get_package (app),
-					 CRA_PACKAGE_LOG_LEVEL_WARNING,
-					 "Failed to load screenshot %s: %s",
-					 tmp, error_local->message);
-			g_clear_error (&error_local);
+					 CRA_PACKAGE_LOG_LEVEL_INFO,
+					 "AppData screenshots ignored");
 		}
 	}
 
