@@ -87,33 +87,6 @@ cra_plugin_destroy (CraPlugin *plugin)
 	g_ptr_array_unref (plugin->priv->project_groups);
 }
 
-
-/**
- * cra_plugin_hardcoded_add_screenshot:
- */
-static gboolean
-cra_plugin_hardcoded_add_screenshot (CraApp *app,
-				     const gchar *filename,
-				     GError **error)
-{
-	CraScreenshot *screenshot;
-	gboolean ret;
-
-	screenshot = cra_screenshot_new (cra_app_get_package (app),
-					 as_app_get_id (AS_APP (app)));
-	as_screenshot_set_kind (AS_SCREENSHOT (screenshot),
-				AS_SCREENSHOT_KIND_NORMAL);
-	ret = cra_screenshot_load_filename (screenshot,
-					    filename,
-					    error);
-	if (!ret)
-		goto out;
-	as_app_add_screenshot (AS_APP (app), AS_SCREENSHOT (screenshot));
-out:
-	g_object_unref (screenshot);
-	return ret;
-}
-
 /**
  * cra_plugin_hardcoded_sort_screenshots_cb:
  */
@@ -154,7 +127,7 @@ cra_plugin_hardcoded_add_screenshots (CraApp *app,
 		cra_package_log (cra_app_get_package (app),
 				 CRA_PACKAGE_LOG_LEVEL_DEBUG,
 				 "Adding extra screenshot: %s", tmp);
-		ret = cra_plugin_hardcoded_add_screenshot (app, tmp, error);
+		ret = cra_app_add_screenshot_source (app, tmp, error);
 		if (!ret)
 			goto out;
 	}

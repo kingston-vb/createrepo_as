@@ -28,7 +28,6 @@
 #include <gdk-pixbuf/gdk-pixbuf.h>
 
 #include "cra-package.h"
-#include "cra-screenshot.h"
 
 #define CRA_TYPE_APP		(cra_app_get_type())
 #define CRA_APP(obj)		(G_TYPE_CHECK_INSTANCE_CAST((obj), CRA_TYPE_APP, CraApp))
@@ -66,6 +65,9 @@ void		 cra_app_set_requires_appdata	(CraApp		*app,
 						 gboolean	 requires_appdata);
 void		 cra_app_set_pixbuf		(CraApp		*app,
 						 GdkPixbuf	*pixbuf);
+gboolean	 cra_app_add_screenshot_source	(CraApp		*app,
+						 const gchar	*filename,
+						 GError		**error);
 
 gboolean	 cra_app_get_requires_appdata	(CraApp		*app);
 GPtrArray	*cra_app_get_vetos		(CraApp		*app);

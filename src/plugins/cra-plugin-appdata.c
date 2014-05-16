@@ -22,11 +22,12 @@
 #include <config.h>
 
 #include <appstream-glib.h>
+#include <libsoup/soup.h>
 
 #include <cra-plugin.h>
-#include <cra-screenshot.h>
 
 struct CraPluginPrivate {
+	SoupSession	*session;
 	GPtrArray	*filenames;
 	GMutex		 filenames_mutex;
 };
@@ -49,6 +50,11 @@ cra_plugin_initialize (CraPlugin *plugin)
 	plugin->priv = CRA_PLUGIN_GET_PRIVATE (CraPluginPrivate);
 	plugin->priv->filenames = g_ptr_array_new_with_free_func (g_free);
 	g_mutex_init (&plugin->priv->filenames_mutex);
+	plugin->priv->session = soup_session_new_with_options (SOUP_SESSION_USER_AGENT, "createrepo_as",
+							       SOUP_SESSION_TIMEOUT, 5000,
+							       NULL);
+	soup_session_add_feature_by_type (plugin->priv->session,
+					  SOUP_TYPE_PROXY_RESOLVER_DEFAULT);
 }
 
 /**
@@ -69,6 +75,7 @@ cra_plugin_destroy (CraPlugin *plugin)
 	}
 	g_ptr_array_unref (plugin->priv->filenames);
 	g_mutex_clear (&plugin->priv->filenames_mutex);
+	g_object_unref (plugin->priv->session);
 }
 
 /**
@@ -199,10 +206,83 @@ cra_plugin_appdata_log_overwrite (CraApp *app,
 }
 
 /**
+ * cra_plugin_appdata_load_url:
+ **/
+static gboolean
+cra_plugin_appdata_load_url (CraPlugin *plugin,
+			     CraApp *app,
+			     const gchar *url,
+			     GError **error)
+{
+	const gchar *cache_dir;
+	gboolean ret = TRUE;
+	gchar *basename;
+	gchar *cache_filename;
+	SoupMessage *msg = NULL;
+	SoupStatus status;
+	SoupURI *uri = NULL;
+
+	/* download to cache if not already added */
+	basename = g_path_get_basename (url);
+	cache_dir = cra_package_get_config (cra_app_get_package (app), "CacheDir");
+	cache_filename = g_strdup_printf ("%s/%s-%s",
+					  cache_dir,
+					  as_app_get_id (AS_APP (app)),
+					  basename);
+	if (!g_file_test (cache_filename, G_FILE_TEST_EXISTS)) {
+		uri = soup_uri_new (url);
+		if (uri == NULL) {
+			ret = FALSE;
+			g_set_error (error,
+				     CRA_PLUGIN_ERROR,
+				     CRA_PLUGIN_ERROR_FAILED,
+				     "Could not parse '%s' as a URL", url);
+			goto out;
+		}
+		cra_package_log (cra_app_get_package (app),
+				 CRA_PACKAGE_LOG_LEVEL_DEBUG,
+				 "Downloading %s", url);
+		msg = soup_message_new_from_uri (SOUP_METHOD_GET, uri);
+		status = soup_session_send_message (plugin->priv->session, msg);
+		if (status != SOUP_STATUS_OK) {
+			ret = FALSE;
+			g_set_error (error,
+				     CRA_PLUGIN_ERROR,
+				     CRA_PLUGIN_ERROR_FAILED,
+				     "Downloading failed: %s",
+				     soup_status_get_phrase (status));
+			goto out;
+		}
+
+		/* save new file */
+		ret = g_file_set_contents (cache_filename,
+					   msg->response_body->data,
+					   msg->response_body->length,
+					   error);
+		if (!ret)
+			goto out;
+	}
+
+	/* load the pixbuf */
+	ret = cra_app_add_screenshot_source (app, cache_filename, error);
+	if (!ret)
+		goto out;
+out:
+	if (uri != NULL)
+		soup_uri_free (uri);
+	if (msg != NULL)
+		g_object_unref (msg);
+	g_free (basename);
+	g_free (cache_filename);
+	return ret;
+}
+
+/**
  * cra_plugin_process_filename:
  */
 static gboolean
-cra_plugin_process_filename (CraApp *app,
+cra_plugin_process_filename (CraPlugin *plugin,
+			     CraApp *app,
 			     const gchar *filename,
 			     GError **error)
 {
@@ -213,16 +293,11 @@ cra_plugin_process_filename (CraApp *app,
 	const gchar *key;
 	const gchar *old;
 	const gchar *tmp;
-	const GNode *c;
-	const GNode *n;
 	gboolean ret;
-	gchar *data = NULL;
-	GHashTable *comments = NULL;
-	GHashTable *descriptions = NULL;
-	GHashTable *names = NULL;
+	GHashTable *hash;
+	GPtrArray *array;
 	GList *l;
 	GList *list;
-	GNode *root = NULL;
 	guint i;
 
 	/* validate */
@@ -249,16 +324,6 @@ cra_plugin_process_filename (CraApp *app,
 				 "AppData problem: %s : %s",
 				 as_problem_kind_to_string (problem_kind),
 				 as_problem_get_message (problem));
-	}
-
-	/* parse file */
-	ret = g_file_get_contents (filename, &data, NULL, error);
-	if (!ret)
-		goto out;
-	root = as_node_from_xml (data, -1, AS_NODE_FROM_XML_FLAG_NONE, error);
-	if (root == NULL) {
-		ret = FALSE;
-		goto out;
 	}
 
 	/* check app id */
@@ -312,19 +377,18 @@ cra_plugin_process_filename (CraApp *app,
 	tmp = as_app_get_project_group (appdata);
 	if (tmp != NULL)
 		as_app_set_project_group (AS_APP (app), tmp, -1);
-	n = as_node_find (root, "application/compulsory_for_desktop");
-	if (n != NULL) {
-		as_app_add_compulsory_for_desktop (AS_APP (app),
-						   as_node_get_data (n),
-						   -1);
+	array = as_app_get_compulsory_for_desktops (appdata);
+	if (array->len > 0) {
+		tmp = g_ptr_array_index (array, 0);
+		as_app_add_compulsory_for_desktop (AS_APP (app), tmp, -1);
 	}
 
 	/* perhaps get name */
-	names = as_app_get_names (appdata);
-	list = g_hash_table_get_keys (names);
+	hash = as_app_get_names (appdata);
+	list = g_hash_table_get_keys (hash);
 	for (l = list; l != NULL; l = l->next) {
 		key = l->data;
-		tmp = g_hash_table_lookup (names, key);
+		tmp = g_hash_table_lookup (hash, key);
 		if (g_strcmp0 (key, "C") == 0) {
 			old = as_app_get_name (AS_APP (app), key);
 			cra_plugin_appdata_log_overwrite (app, "name",
@@ -340,11 +404,11 @@ cra_plugin_process_filename (CraApp *app,
 	g_list_free (list);
 
 	/* perhaps get summary */
-	comments = as_app_get_comments (appdata);
-	list = g_hash_table_get_keys (comments);
+	hash = as_app_get_comments (appdata);
+	list = g_hash_table_get_keys (hash);
 	for (l = list; l != NULL; l = l->next) {
 		key = l->data;
-		tmp = g_hash_table_lookup (comments, key);
+		tmp = g_hash_table_lookup (hash, key);
 		if (g_strcmp0 (key, "C") == 0) {
 			old = as_app_get_comment (AS_APP (app), key);
 			cra_plugin_appdata_log_overwrite (app, "summary",
@@ -360,13 +424,12 @@ cra_plugin_process_filename (CraApp *app,
 	g_list_free (list);
 
 	/* get descriptions */
-	descriptions = as_app_get_descriptions (appdata);
-	list = g_hash_table_get_keys (descriptions);
+	hash = as_app_get_descriptions (appdata);
+	list = g_hash_table_get_keys (hash);
 	for (l = list; l != NULL; l = l->next) {
-		tmp = g_hash_table_lookup (descriptions, l->data);
-		as_app_set_description (AS_APP (app),
-					(const gchar *) l->data,
-					tmp, -1);
+		key = l->data;
+		tmp = g_hash_table_lookup (hash, key);
+		as_app_set_description (AS_APP (app), key, tmp, -1);
 	}
 	if (g_list_length (list) == 1) {
 		cra_package_log (cra_app_get_package (app),
@@ -376,76 +439,54 @@ cra_plugin_process_filename (CraApp *app,
 	g_list_free (list);
 
 	/* add screenshots */
-	n = as_node_find (root, "application/screenshots");
-	if (n != NULL && as_app_get_screenshots(AS_APP (app))->len == 0) {
-		for (c = n->children; c != NULL; c = c->next) {
-			CraScreenshot *ss;
-			GError *error_local = NULL;
+	array = as_app_get_screenshots (appdata);
+	for (i = 0; i < array->len; i++) {
+		GError *error_local = NULL;
+		AsScreenshot *ass;
+		AsImage *image;
 
-			if (g_strcmp0 (as_node_get_name (c), "screenshot") != 0)
-				continue;
-			if (as_node_get_data (c) == NULL)
-				continue;
-			ss = cra_screenshot_new (cra_app_get_package (app),
-						 as_app_get_id (AS_APP (app)));
-			tmp = as_node_get_attribute (c, "type");
-			as_screenshot_set_kind (AS_SCREENSHOT (ss),
-						as_screenshot_kind_from_string (tmp));
-			tmp = as_node_get_data (c);
-			ret = cra_screenshot_load_url (ss, tmp, &error_local);
-			if (ret) {
-				cra_package_log (cra_app_get_package (app),
-						 CRA_PACKAGE_LOG_LEVEL_DEBUG,
-						 "Added screenshot %s", tmp);
-				as_app_add_screenshot (AS_APP (app),
-						       AS_SCREENSHOT (ss));
-			} else {
-				cra_package_log (cra_app_get_package (app),
-						 CRA_PACKAGE_LOG_LEVEL_WARNING,
-						 "Failed to load screenshot %s: %s",
-						 tmp, error_local->message);
-				g_clear_error (&error_local);
-			}
-			g_object_unref (ss);
+		ass = g_ptr_array_index (array, i);
+		image = as_screenshot_get_source (ass);
+		if (image == NULL)
+			continue;
+
+		/* load the URI or get from a cache */
+		tmp = as_image_get_url (image);
+		ret = cra_plugin_appdata_load_url (plugin,
+						   app,
+						   as_image_get_url (image),
+						   &error_local);
+		if (ret) {
+			cra_package_log (cra_app_get_package (app),
+					 CRA_PACKAGE_LOG_LEVEL_DEBUG,
+					 "Added screenshot %s", tmp);
+		} else {
+			cra_package_log (cra_app_get_package (app),
+					 CRA_PACKAGE_LOG_LEVEL_WARNING,
+					 "Failed to load screenshot %s: %s",
+					 tmp, error_local->message);
+			g_clear_error (&error_local);
 		}
-	} else if (n != NULL) {
-		cra_package_log (cra_app_get_package (app),
-				 CRA_PACKAGE_LOG_LEVEL_INFO,
-				 "AppData screenshots ignored");
 	}
 
 	/* add metadata */
-	n = as_node_find (root, "application/metadata");
-	if (n != NULL) {
-		for (c = n->children; c != NULL; c = c->next) {
-			if (g_strcmp0 (as_node_get_name (c), "value") != 0)
-				continue;
-			tmp = as_node_get_attribute (c, "key");
-			old = as_app_get_metadata_item (AS_APP (app), tmp);
-			cra_plugin_appdata_log_overwrite (app, "metadata",
-							  old,
-							  as_node_get_data (c));
-			as_app_add_metadata (AS_APP (app), tmp,
-					     as_node_get_data (c), -1);
-		}
+	hash = as_app_get_metadata (appdata);
+	list = g_hash_table_get_keys (hash);
+	for (l = list; l != NULL; l = l->next) {
+		key = l->data;
+		tmp = g_hash_table_lookup (hash, key);
+		old = as_app_get_metadata_item (AS_APP (app), key);
+		cra_plugin_appdata_log_overwrite (app, "metadata", old, tmp);
+		as_app_add_metadata (AS_APP (app), key, tmp, -1);
 	}
 
 	/* success */
 	cra_app_set_requires_appdata (app, FALSE);
 	ret = TRUE;
 out:
-	g_free (data);
 	g_object_unref (appdata);
 	if (problems != NULL)
 		g_ptr_array_unref (problems);
-	if (names != NULL)
-		g_hash_table_unref (names);
-	if (comments != NULL)
-		g_hash_table_unref (comments);
-	if (descriptions != NULL)
-		g_hash_table_unref (descriptions);
-	if (root != NULL)
-		as_node_unref (root);
 	return ret;
 }
 
@@ -492,7 +533,8 @@ cra_plugin_process_app (CraPlugin *plugin,
 
 	/* any installed appdata file */
 	if (g_file_test (appdata_filename, G_FILE_TEST_EXISTS)) {
-		ret = cra_plugin_process_filename (app,
+		ret = cra_plugin_process_filename (plugin,
+						   app,
 						   appdata_filename,
 						   error);
 		goto out;
@@ -501,7 +543,8 @@ cra_plugin_process_app (CraPlugin *plugin,
 	/* any appdata-extra file */
 	if (appdata_filename_extra != NULL &&
 	    g_file_test (appdata_filename_extra, G_FILE_TEST_EXISTS)) {
-		ret = cra_plugin_process_filename (app,
+		ret = cra_plugin_process_filename (plugin,
+						   app,
 						   appdata_filename_extra,
 						   error);
 		goto out;

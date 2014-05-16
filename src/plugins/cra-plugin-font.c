@@ -373,7 +373,8 @@ cra_font_get_pixbuf (FT_Face ft_face,
 static gboolean
 cra_font_add_screenshot (CraApp *app, FT_Face ft_face, GError **error)
 {
-	CraScreenshot *ss = NULL;
+	AsScreenshot *ss = NULL;
+	AsImage *im = NULL;
 	GdkPixbuf *pixbuf = NULL;
 	const gchar *cache_dir;
 	const gchar *tmp;
@@ -386,8 +387,6 @@ cra_font_add_screenshot (CraApp *app, FT_Face ft_face, GError **error)
 		goto out;
 
 	/* is in the cache */
-	ss = cra_screenshot_new (cra_app_get_package (app),
-				 as_app_get_id (AS_APP (app)));
 	cache_dir = cra_package_get_config (cra_app_get_package (app), "CacheDir");
 	cache_fn = g_strdup_printf ("%s/%s.png",
 				    cache_dir,
@@ -416,14 +415,16 @@ cra_font_add_screenshot (CraApp *app, FT_Face ft_face, GError **error)
 		goto out;
 	}
 
-	cra_screenshot_set_pixbuf (ss, pixbuf);
+	im = as_image_new ();
+	as_image_set_pixbuf (im, pixbuf);
+	ss = as_screenshot_new ();
+	as_screenshot_add_image (ss, im);
 	caption = g_strdup_printf ("%s – %s",
 				   as_app_get_metadata_item (AS_APP (app), "FontFamily"),
 				   as_app_get_metadata_item (AS_APP (app), "FontSubFamily"));
-	as_screenshot_set_kind (AS_SCREENSHOT (ss), AS_SCREENSHOT_KIND_NORMAL);
-	as_screenshot_set_caption (AS_SCREENSHOT (ss), NULL, caption, -1);
-	cra_screenshot_set_only_source (ss, TRUE);
-	as_app_add_screenshot (AS_APP (app), AS_SCREENSHOT (ss));
+	as_screenshot_set_kind (ss, AS_SCREENSHOT_KIND_NORMAL);
+	as_screenshot_set_caption (ss, NULL, caption, -1);
+	as_app_add_screenshot (AS_APP (app), ss);
 
 	/* save to cache */
 	if (!g_file_test (cache_fn, G_FILE_TEST_EXISTS)) {
@@ -436,6 +437,8 @@ out:
 		g_object_unref (pixbuf);
 	if (ss != NULL)
 		g_object_unref (ss);
+	if (im != NULL)
+		g_object_unref (im);
 	g_free (cache_fn);
 	g_free (caption);
 	return ret;
