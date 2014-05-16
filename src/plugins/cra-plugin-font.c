@@ -377,10 +377,13 @@ cra_font_add_screenshot (CraApp *app, FT_Face ft_face, GError **error)
 	AsImage *im = NULL;
 	GdkPixbuf *pixbuf = NULL;
 	const gchar *cache_dir;
+	const gchar *mirror_uri;
 	const gchar *tmp;
 	gboolean ret = TRUE;
+	gchar *basename = NULL;
 	gchar *cache_fn = NULL;
 	gchar *caption = NULL;
+	gchar *url_tmp = NULL;
 
 	tmp = as_app_get_metadata_item (AS_APP (app), "FontSampleText");
 	if (tmp == NULL)
@@ -415,8 +418,21 @@ cra_font_add_screenshot (CraApp *app, FT_Face ft_face, GError **error)
 		goto out;
 	}
 
+	mirror_uri = cra_package_get_config (cra_app_get_package (app),
+					     "MirrorURI");
 	im = as_image_new ();
 	as_image_set_pixbuf (im, pixbuf);
+	as_image_set_kind (im, AS_IMAGE_KIND_SOURCE);
+	basename = g_strdup_printf ("%s-%s.png",
+				    as_app_get_id (AS_APP (app)),
+				    as_image_get_md5 (im));
+	as_image_set_basename (im, basename);
+	url_tmp = g_build_filename (mirror_uri,
+				    "source",
+				    basename,
+				    NULL);
+	as_image_set_url (im, url_tmp, -1);
+
 	ss = as_screenshot_new ();
 	as_screenshot_add_image (ss, im);
 	caption = g_strdup_printf ("%s – %s",
@@ -439,8 +455,10 @@ out:
 		g_object_unref (ss);
 	if (im != NULL)
 		g_object_unref (im);
+	g_free (basename);
 	g_free (cache_fn);
 	g_free (caption);
+	g_free (url_tmp);
 	return ret;
 }
 
