@@ -240,16 +240,36 @@ cra_package_rpm_ensure_simple (CraPackage *pkg, GError **error)
  * cra_package_rpm_check_release_text:
  **/
 static gboolean
-cra_package_rpm_check_release_text (const gchar *text)
+cra_package_rpm_check_release_text (AsRelease *release, const gchar *text)
 {
-	if (g_strstr_len (text, -1, "Rebuilt") != NULL)
-		return FALSE;
-	if (g_strstr_len (text, -1, "Rebuild") != NULL)
-		return FALSE;
-	if (g_strstr_len (text, -1, "rebuilt") != NULL)
-		return FALSE;
-	if (g_strstr_len (text, -1, "rebuild") != NULL)
-		return FALSE;
+	guint i;
+	const gchar *blacklisted[] = { " BR ",
+				       "BuildRequires",
+				       "Bump release",
+				       "%doc",
+				       "fix typo",
+				       "FTBFS",
+				       "initial version",
+				       "New release",
+				       "New version",
+				       "%post",
+				       "rebuild",
+				       "Rebuild",
+				       "rebuilt",
+				       "Rebuilt",
+				       "subpackage",
+				       "Updated to ",
+				       "Update to ",
+				       "Upgrade to ",
+				       "Upstream new release",
+				       "upstream release",
+				       "Upstream update",
+				       as_release_get_version (release),
+				       NULL };
+	for (i = 0; blacklisted[i] != NULL; i++) {
+		if (g_strstr_len (text, -1, blacklisted[i]) != NULL)
+			return FALSE;
+	}
 	return TRUE;
 }
 
@@ -299,7 +319,7 @@ cra_package_rpm_add_release (CraPackage *pkg,
 
 		/* we didn't have anything interesting before; try now */
 		if (as_release_get_description (release, NULL) == NULL &&
-		    cra_package_rpm_check_release_text (text)) {
+		    cra_package_rpm_check_release_text (release, text)) {
 			as_release_set_description (release, NULL,
 						    text, -1);
 		}
@@ -307,7 +327,7 @@ cra_package_rpm_add_release (CraPackage *pkg,
 		release = as_release_new ();
 		as_release_set_version (release, version, -1);
 		as_release_set_timestamp (release, timestamp);
-		if (cra_package_rpm_check_release_text (text)) {
+		if (cra_package_rpm_check_release_text (release, text)) {
 			as_release_set_description (release, NULL,
 						    text, -1);
 		}
