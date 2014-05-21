@@ -354,11 +354,20 @@ cra_task_process_func (gpointer data, gpointer user_data)
 		}
 
 		/* don't include apps that *still* require appdata */
-		if (cra_app_get_requires_appdata (app)) {
+		array = cra_app_get_requires_appdata (app);
+		if (array->len > 0) {
 			cra_package_log (task->pkg,
 					 CRA_PACKAGE_LOG_LEVEL_INFO,
 					 "%s required appdata but none provided",
 					 as_app_get_id_full (AS_APP (app)));
+			for (i = 0; i < array->len; i++) {
+				tmp = g_ptr_array_index (array, i);
+				if (tmp == NULL)
+					continue;
+				cra_package_log (task->pkg,
+						 CRA_PACKAGE_LOG_LEVEL_INFO,
+						 " - %s", tmp);
+			}
 			continue;
 		}
 

@@ -30,7 +30,7 @@ typedef struct _CraAppPrivate	CraAppPrivate;
 struct _CraAppPrivate
 {
 	GPtrArray	*vetos;
-	gboolean	 requires_appdata;
+	GPtrArray	*requires_appdata;
 	GdkPixbuf	*pixbuf;
 	CraPackage	*pkg;
 };
@@ -49,6 +49,7 @@ cra_app_finalize (GObject *object)
 	CraAppPrivate *priv = GET_PRIVATE (app);
 
 	g_ptr_array_unref (priv->vetos);
+	g_ptr_array_unref (priv->requires_appdata);
 	if (priv->pixbuf != NULL)
 		g_object_unref (priv->pixbuf);
 	if (priv->pkg != NULL)
@@ -65,6 +66,7 @@ cra_app_init (CraApp *app)
 {
 	CraAppPrivate *priv = GET_PRIVATE (app);
 	priv->vetos = g_ptr_array_new_with_free_func (g_free);
+	priv->requires_appdata = g_ptr_array_new_with_free_func (g_free);
 }
 
 /**
@@ -111,13 +113,32 @@ cra_app_add_veto (CraApp *app, const gchar *fmt, ...)
 }
 
 /**
+ * cra_app_add_requires_appdata:
+ **/
+void
+cra_app_add_requires_appdata (CraApp *app, const gchar *fmt, ...)
+{
+	CraAppPrivate *priv = GET_PRIVATE (app);
+	gchar *tmp;
+	va_list args;
+	va_start (args, fmt);
+	tmp = g_strdup_vprintf (fmt, args);
+	va_end (args);
+	g_ptr_array_add (priv->requires_appdata, tmp);
+}
+
+/**
  * cra_app_set_requires_appdata:
  **/
 void
 cra_app_set_requires_appdata (CraApp *app, gboolean requires_appdata)
 {
 	CraAppPrivate *priv = GET_PRIVATE (app);
-	priv->requires_appdata = requires_appdata;
+	if (requires_appdata) {
+		g_ptr_array_add (priv->requires_appdata, NULL);
+	} else {
+		g_ptr_array_set_size (priv->requires_appdata, 0);
+	}
 }
 
 /**
@@ -142,7 +163,7 @@ cra_app_set_pixbuf (CraApp *app, GdkPixbuf *pixbuf)
 /**
  * cra_app_get_requires_appdata:
  **/
-gboolean
+GPtrArray *
 cra_app_get_requires_appdata (CraApp *app)
 {
 	CraAppPrivate *priv = GET_PRIVATE (app);

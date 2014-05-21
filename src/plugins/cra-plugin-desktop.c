@@ -224,12 +224,13 @@ cra_plugin_process_filename (CraPlugin *plugin,
 
 	/* NoDisplay requires AppData */
 	if (as_app_get_metadata_item (AS_APP (app), "NoDisplay") != NULL)
-		cra_app_set_requires_appdata (app, TRUE);
+		cra_app_add_requires_appdata (app, "NoDisplay=true");
 
 	/* Settings or DesktopSettings requires AppData */
-	if (as_app_has_category (AS_APP (app), "DesktopSettings") ||
-	    as_app_has_category (AS_APP (app), "Settings"))
-		cra_app_set_requires_appdata (app, TRUE);
+	if (as_app_has_category (AS_APP (app), "Settings"))
+		cra_app_add_requires_appdata (app, "Category=Settings");
+	if (as_app_has_category (AS_APP (app), "DesktopSettings"))
+		cra_app_add_requires_appdata (app, "Category=DesktopSettings");
 
 	/* is the icon a stock-icon-name? */
 	key = as_app_get_icon (AS_APP (app));

@@ -61,6 +61,10 @@ void		 cra_app_add_veto		(CraApp		*app,
 						 const gchar	*fmt,
 						 ...)
 						 G_GNUC_PRINTF(2,3);
+void		 cra_app_add_requires_appdata	(CraApp		*app,
+						 const gchar	*fmt,
+						 ...)
+						 G_GNUC_PRINTF(2,3);
 void		 cra_app_set_requires_appdata	(CraApp		*app,
 						 gboolean	 requires_appdata);
 void		 cra_app_set_pixbuf		(CraApp		*app,
@@ -69,7 +73,7 @@ gboolean	 cra_app_add_screenshot_source	(CraApp		*app,
 						 const gchar	*filename,
 						 GError		**error);
 
-gboolean	 cra_app_get_requires_appdata	(CraApp		*app);
+GPtrArray	*cra_app_get_requires_appdata	(CraApp		*app);
 GPtrArray	*cra_app_get_vetos		(CraApp		*app);
 CraPackage	*cra_app_get_package		(CraApp		*app);
 

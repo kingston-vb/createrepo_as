@@ -264,11 +264,8 @@ cra_plugin_process_app (CraPlugin *plugin,
 
 		/* we need AppData if the app needs saving */
 		else if (days > 365 * 5) {
-			cra_package_log (cra_app_get_package (app),
-					 CRA_PACKAGE_LOG_LEVEL_INFO,
-					 "Dead upstream for > %i years, "
-					 "and so requries AppData", 5);
-			cra_app_set_requires_appdata (app, TRUE);
+			cra_app_add_requires_appdata (app,
+				"Dead upstream for > %i years", 5);
 		}
 	}
 
@@ -286,12 +283,8 @@ cra_plugin_process_app (CraPlugin *plugin,
 	}
 
 	/* no categories means we require AppData */
-	if (as_app_get_categories(AS_APP(app))->len == 0) {
-		cra_package_log (cra_app_get_package (app),
-				 CRA_PACKAGE_LOG_LEVEL_INFO,
-				 "no Categories so requries AppData");
-		cra_app_set_requires_appdata (app, TRUE);
-	}
+	if (as_app_get_categories(AS_APP(app))->len == 0)
+		cra_app_add_requires_appdata (app, "no Categories");
 
 out:
 	g_free (dirname);
