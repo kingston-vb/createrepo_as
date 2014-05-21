@@ -239,6 +239,10 @@ cra_plugin_process_app (CraPlugin *plugin,
 			cra_app_add_veto (app, "Uses obsolete QT3 toolkit");
 			break;
 		}
+		if (g_strcmp0 (deps[i], "libXt.so.6") == 0) {
+			cra_app_add_requires_appdata (app, "Uses obsolete X11 toolkit");
+			break;
+		}
 	}
 
 	/* has the application been updated in the last year */
