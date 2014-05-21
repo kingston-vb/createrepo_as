@@ -284,6 +284,15 @@ cra_plugin_process_app (CraPlugin *plugin,
 				goto out;
 		}
 	}
+
+	/* no categories means we require AppData */
+	if (as_app_get_categories(AS_APP(app))->len == 0) {
+		cra_package_log (cra_app_get_package (app),
+				 CRA_PACKAGE_LOG_LEVEL_INFO,
+				 "no Categories so requries AppData");
+		cra_app_set_requires_appdata (app, TRUE);
+	}
+
 out:
 	g_free (dirname);
 	return ret;
