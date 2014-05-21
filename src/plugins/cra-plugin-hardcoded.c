@@ -174,6 +174,13 @@ cra_plugin_process_app (CraPlugin *plugin,
 	if (g_strcmp0 (tmp, "pessulus") == 0)
 		as_app_add_category (AS_APP (app), "System", -1);
 
+	/* any abandoned projects */
+	if (g_str_has_prefix (tmp, "spacefm")) {
+		cra_app_add_veto (app,
+				  "Upstream abandoned, see: "
+				  "http://igurublog.wordpress.com/2014/04/28/ignorantgurus-hiatus/");
+	}
+
 	/* add extra project groups */
 	if (g_strcmp0 (tmp, "nemo") == 0)
 		as_app_set_project_group (AS_APP (app), "Cinnamon", -1);
