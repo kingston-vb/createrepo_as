@@ -237,26 +237,42 @@ cra_package_rpm_ensure_simple (CraPackage *pkg, GError **error)
 }
 
 /**
- * cra_package_rpm_check_release_text:
+ * cra_package_rpm_release_set_text:
  **/
 static gboolean
-cra_package_rpm_check_release_text (AsRelease *release, const gchar *text)
+cra_package_rpm_release_set_text (AsRelease *release,
+					 const gchar *text)
 {
+	gboolean ret = TRUE;
+	gchar *markup = NULL;
 	guint i;
 	const gchar *blacklisted[] = { " BR ",
+				       " >= ",
 				       "BuildRequires",
+				       "Buildroot",
 				       "Bump release",
+				       "compile fixes",
+				       "%configure",
 				       "%doc",
+				       "ExcludeArch",
+				       "fix build",
 				       "fix typo",
 				       "FTBFS",
 				       "initial version",
+				       "Latest upstream",
+				       "missing BR",
 				       "New release",
+				       "New upstream",
 				       "New version",
 				       "%post",
 				       "rebuild",
 				       "Rebuild",
 				       "rebuilt",
 				       "Rebuilt",
+				       " Requires ",
+				       "revbump",
+				       "scriptlets",
+				       "spec file",
 				       "subpackage",
 				       "Updated to ",
 				       "Update to ",
@@ -264,13 +280,23 @@ cra_package_rpm_check_release_text (AsRelease *release, const gchar *text)
 				       "Upstream new release",
 				       "upstream release",
 				       "Upstream update",
+				       "vendor prefix",
 				       as_release_get_version (release),
 				       NULL };
 	for (i = 0; blacklisted[i] != NULL; i++) {
-		if (g_strstr_len (text, -1, blacklisted[i]) != NULL)
-			return FALSE;
+		if (g_strstr_len (text, -1, blacklisted[i]) != NULL) {
+			ret = FALSE;
+			goto out;
+		}
 	}
-	return TRUE;
+	/* remove prefix */
+	if (g_str_has_prefix (text, "- "))
+		text += 2;
+	markup = g_strdup_printf ("<p>%s</p>", text);
+	as_release_set_description (release, NULL, markup, -1);
+out:
+	g_free (markup);
+	return ret;
 }
 
 /**
@@ -318,19 +344,13 @@ cra_package_rpm_add_release (CraPackage *pkg,
 			as_release_set_timestamp (release, timestamp);
 
 		/* we didn't have anything interesting before; try now */
-		if (as_release_get_description (release, NULL) == NULL &&
-		    cra_package_rpm_check_release_text (release, text)) {
-			as_release_set_description (release, NULL,
-						    text, -1);
-		}
+		if (as_release_get_description (release, NULL) == NULL)
+			cra_package_rpm_release_set_text (release, text);
 	} else {
 		release = as_release_new ();
 		as_release_set_version (release, version, -1);
 		as_release_set_timestamp (release, timestamp);
-		if (cra_package_rpm_check_release_text (release, text)) {
-			as_release_set_description (release, NULL,
-						    text, -1);
-		}
+		cra_package_rpm_release_set_text (release, text);
 		cra_package_add_release (pkg, version, release);
 		g_object_unref (release);
 	}
