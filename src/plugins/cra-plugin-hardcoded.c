@@ -175,6 +175,11 @@ cra_plugin_process_app (CraPlugin *plugin,
 		as_app_add_category (AS_APP (app), "System", -1);
 
 	/* any abandoned projects */
+	if (g_strcmp0 (tmp, "mm3d") == 0) {
+		cra_app_add_veto (app,
+				  "Upstream abandoned, see: "
+				  "http://www.misfitcode.com/misfitmodel3d/");
+	}
 	if (g_str_has_prefix (tmp, "spacefm")) {
 		cra_app_add_veto (app,
 				  "Upstream abandoned, see: "
