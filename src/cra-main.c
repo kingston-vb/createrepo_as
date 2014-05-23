@@ -199,6 +199,7 @@ cra_task_process_func (gpointer data, gpointer user_data)
 	AsRelease *release;
 	CraTask *task = (CraTask *) data;
 	gboolean ret;
+	gboolean valid;
 	gchar *basename = NULL;
 	gchar *cache_id;
 	gchar *tmp;
@@ -276,6 +277,9 @@ cra_task_process_func (gpointer data, gpointer user_data)
 	for (l = apps; l != NULL; l = l->next) {
 		app = l->data;
 
+		/* all apps assumed to be okay */
+		valid = TRUE;
+
 		/* never set */
 		if (as_app_get_id_full (AS_APP (app)) == NULL) {
 			cra_package_log (task->pkg,
@@ -350,14 +354,14 @@ cra_task_process_func (gpointer data, gpointer user_data)
 						 CRA_PACKAGE_LOG_LEVEL_WARNING,
 						 " - %s", tmp);
 			}
-			continue;
+			valid = FALSE;
 		}
 
 		/* don't include apps that *still* require appdata */
 		array = cra_app_get_requires_appdata (app);
 		if (array->len > 0) {
 			cra_package_log (task->pkg,
-					 CRA_PACKAGE_LOG_LEVEL_INFO,
+					 CRA_PACKAGE_LOG_LEVEL_WARNING,
 					 "%s required appdata but none provided",
 					 as_app_get_id_full (AS_APP (app)));
 			for (i = 0; i < array->len; i++) {
@@ -365,11 +369,13 @@ cra_task_process_func (gpointer data, gpointer user_data)
 				if (tmp == NULL)
 					continue;
 				cra_package_log (task->pkg,
-						 CRA_PACKAGE_LOG_LEVEL_INFO,
+						 CRA_PACKAGE_LOG_LEVEL_WARNING,
 						 " - %s", tmp);
 			}
-			continue;
+			valid = FALSE;
 		}
+		if (!valid)
+			continue;
 
 		/* verify URLs still exist */
 		if (ctx->extra_checks)
