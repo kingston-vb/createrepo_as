@@ -175,6 +175,11 @@ cra_plugin_process_app (CraPlugin *plugin,
 		as_app_add_category (AS_APP (app), "System", -1);
 
 	/* any abandoned projects */
+	if (g_strcmp0 (tmp, "conduit") == 0 ||
+	    g_strcmp0 (tmp, "gnome-dasher") == 0 ||
+	    g_strcmp0 (tmp, "fusion-icon") == 0) {
+		cra_app_add_veto (app, "Upstream abandoned");
+	}
 	if (g_strcmp0 (tmp, "mm3d") == 0) {
 		cra_app_add_veto (app,
 				  "Upstream abandoned, see: "
