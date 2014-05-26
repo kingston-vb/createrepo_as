@@ -185,6 +185,20 @@ cra_plugin_process_app (CraPlugin *plugin,
 				  "Upstream abandoned, see: "
 				  "http://www.misfitcode.com/misfitmodel3d/");
 	}
+	if (g_strcmp0 (tmp, "chromium-bsu") == 0) {
+		cra_app_add_veto (app,
+				  "Upstream abandoned, see: "
+				  "http://chromium-bsu.sourceforge.net/faq.htm#q11");
+	}
+	if (g_strcmp0 (tmp, "birdie") == 0) {
+		cra_app_add_veto (app,
+				  "Upstream abandoned, see: "
+				  "http://birdieapp.github.io/2014/02/26/time-to-say-goodbye.html");
+	}
+	if (g_strcmp0 (tmp, "schismtracker") == 0) {
+		cra_app_add_veto (app,
+				  "Upstream abandoned, see: http://www.nimh.org/");
+	}
 	if (g_str_has_prefix (tmp, "spacefm")) {
 		cra_app_add_veto (app,
 				  "Upstream abandoned, see: "
