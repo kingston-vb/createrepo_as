@@ -177,6 +177,13 @@ cra_plugin_process_app (CraPlugin *plugin,
 	/* any abandoned projects */
 	if (g_strcmp0 (tmp, "conduit") == 0 ||
 	    g_strcmp0 (tmp, "gnome-dasher") == 0 ||
+	    g_strcmp0 (tmp, "coccinella") == 0 ||
+	    g_strcmp0 (tmp, "rasterview") == 0 ||
+	    g_strcmp0 (tmp, "nicotine") == 0 ||
+	    g_strcmp0 (tmp, "ailurus") == 0 ||
+	    g_strcmp0 (tmp, "vkeybd") == 0 ||
+	    g_strcmp0 (tmp, "listen") == 0 ||
+	    g_strcmp0 (tmp, "kupfer") == 0 ||
 	    g_strcmp0 (tmp, "fusion-icon") == 0) {
 		cra_app_add_veto (app, "Upstream abandoned");
 	}
@@ -198,6 +205,46 @@ cra_plugin_process_app (CraPlugin *plugin,
 	if (g_strcmp0 (tmp, "schismtracker") == 0) {
 		cra_app_add_veto (app,
 				  "Upstream abandoned, see: http://www.nimh.org/");
+	}
+	if (g_strcmp0 (tmp, "resapplet") == 0) {
+		cra_app_add_veto (app,
+				  "Obsolete, see: "
+				  "https://mail.gnome.org/archives/gnome-bugsquad/2011-June/msg00000.html");
+	}
+	if (g_strcmp0 (tmp, "specto") == 0) {
+		cra_app_add_veto (app,
+				  "Upstream abandoned, see: "
+				  "http://jeff.ecchi.ca/blog/2013/03/21/a-programs-obsolescence/");
+	}
+	if (g_strcmp0 (tmp, "scantailor") == 0) {
+		cra_app_add_veto (app,
+				  "Upstream abandoned, see: "
+				  "http://www.diybookscanner.org/forum/viewtopic.php?f=21&t=2979");
+	}
+	if (g_strcmp0 (tmp, "postler") == 0) {
+		cra_app_add_veto (app,
+				  "Upstream abandoned, see: "
+				  "https://launchpad.net/postler");
+	}
+	if (g_strcmp0 (tmp, "doom-shareware") == 0) {
+		cra_app_add_veto (app,
+				  "Upstream abandoned, see: "
+				  "https://www.ohloh.net/p/8278");
+	}
+	if (g_strcmp0 (tmp, "bareftp") == 0) {
+		cra_app_add_veto (app,
+				  "Upstream abandoned, see: "
+				  "http://bareftp.eide-itc.no/news/?p=228");
+	}
+	if (g_strcmp0 (tmp, "emesene") == 0) {
+		cra_app_add_veto (app,
+				  "Upstream abandoned, see: "
+				  "https://github.com/emesene/emesene/issues/1588");
+	}
+	if (g_strcmp0 (tmp, "sigil") == 0) {
+		cra_app_add_veto (app,
+				  "Upstream abandoned, see: "
+				  "http://sigildev.blogspot.co.uk/2014/02/sigils-spiritual-successor.html");
 	}
 	if (g_str_has_prefix (tmp, "spacefm")) {
 		cra_app_add_veto (app,

@@ -126,6 +126,7 @@ cra_context_new (void)
 	cra_context_add_blacklist_pkg (ctx, "mate-control-center");
 	cra_context_add_blacklist_pkg (ctx, "lxde-common");
 	cra_context_add_blacklist_pkg (ctx, "xscreensaver-*");
+	cra_context_add_blacklist_pkg (ctx, "bmpanel2-cfg");
 
 	/* add blacklisted applications */
 	cra_context_add_blacklist_app_id (ctx, "display-properties");
@@ -160,6 +161,23 @@ cra_context_new (void)
 	cra_context_add_blacklist_app_id (ctx, "midori-private");
 	cra_context_add_blacklist_app_id (ctx, "xinput_calibrator");
 	cra_context_add_blacklist_app_id (ctx, "bted");
+	cra_context_add_blacklist_app_id (ctx, "freedinkedit");
+	cra_context_add_blacklist_app_id (ctx, "freedink-dfarc");
+	cra_context_add_blacklist_app_id (ctx, "*-release-notes");
+	cra_context_add_blacklist_app_id (ctx, "*-server");
+	cra_context_add_blacklist_app_id (ctx, "megaglest_*");
+	cra_context_add_blacklist_app_id (ctx, "gnome-system-monitor-kde");
+	cra_context_add_blacklist_app_id (ctx, "transgui");
+	cra_context_add_blacklist_app_id (ctx, "bf-*-editor");
+	cra_context_add_blacklist_app_id (ctx, "*-demo");
+	cra_context_add_blacklist_app_id (ctx, "*-shareware");
+	cra_context_add_blacklist_app_id (ctx, "xpilot-ng-x11");
+	cra_context_add_blacklist_app_id (ctx, "Rodent-*");
+	cra_context_add_blacklist_app_id (ctx, "qterminal_*");
+	cra_context_add_blacklist_app_id (ctx, "*-session-manager");
+	cra_context_add_blacklist_app_id (ctx, "pioneers-editor");
+	cra_context_add_blacklist_app_id (ctx, "bitmap2component");
+	cra_context_add_blacklist_app_id (ctx, "luckybackup-*");
 
 	return ctx;
 }

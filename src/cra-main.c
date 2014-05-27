@@ -295,7 +295,7 @@ cra_task_process_func (gpointer data, gpointer user_data)
 			cra_package_log (task->pkg,
 					 CRA_PACKAGE_LOG_LEVEL_INFO,
 					 "app id %s is blacklisted",
-					 cra_package_get_name (task->pkg));
+					 as_app_get_id (AS_APP (app)));
 			continue;
 		}
 
