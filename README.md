@@ -96,8 +96,8 @@ The current rules of inclusion are thus:
    or `/usr/share/applications/kde4/`
  * Desktop files **MUST** have `Name`, `Comment` and `Icon` entries
  * Valid applications with `NoDisplay=true` **MUST** have an AppData file.
- * Applications with `Categories=Settings` or `Categories=DesktopSettings`
-   **MUST** have an AppData file.
+ * Applications with `Categories=Settings`, `Categories=ConsoleOnly` or
+   `Categories=DesktopSettings` **MUST** have an AppData file.
  * Applications **MUST** have had an upstream release in the last 5 years or
    have an AppData file.
  * Application icon **MUST** be available in 48x48 or larger

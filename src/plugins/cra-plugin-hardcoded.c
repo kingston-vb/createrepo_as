@@ -329,6 +329,10 @@ cra_plugin_process_app (CraPlugin *plugin,
 		}
 	}
 
+	/* a ConsoleOnly category means we require AppData */
+	if (as_app_has_category (AS_APP(app), "ConsoleOnly"))
+		cra_app_add_requires_appdata (app, "ConsoleOnly");
+
 	/* no categories means we require AppData */
 	if (as_app_get_categories(AS_APP(app))->len == 0)
 		cra_app_add_requires_appdata (app, "no Categories");
