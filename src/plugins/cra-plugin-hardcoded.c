@@ -279,6 +279,11 @@ cra_plugin_process_app (CraPlugin *plugin,
 			as_app_set_project_group (AS_APP (app), tmp, -1);
 	}
 
+	/* use summary to guess the project group */
+	tmp = as_app_get_comment (AS_APP (app), NULL);
+	if (tmp != NULL && g_strstr_len (tmp, -1, "for KDE") != NULL)
+		as_app_set_project_group (AS_APP (app), "KDE", -1);
+
 	/* look for any installed docs */
 	filelist = cra_package_get_filelist (pkg);
 	for (i = 0; filelist[i] != NULL; i++) {
