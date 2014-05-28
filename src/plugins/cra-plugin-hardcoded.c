@@ -173,6 +173,10 @@ cra_plugin_process_app (CraPlugin *plugin,
 		as_app_add_category (AS_APP (app), "System", -1);
 	if (g_strcmp0 (tmp, "pessulus") == 0)
 		as_app_add_category (AS_APP (app), "System", -1);
+	if (g_strcmp0 (tmp, "pmdefaults") == 0)
+		as_app_add_category (AS_APP (app), "System", -1);
+	if (g_strcmp0 (tmp, "fwfstab") == 0)
+		as_app_add_category (AS_APP (app), "System", -1);
 
 	/* any abandoned projects */
 	if (g_strcmp0 (tmp, "conduit") == 0 ||
@@ -182,6 +186,7 @@ cra_plugin_process_app (CraPlugin *plugin,
 	    g_strcmp0 (tmp, "nicotine") == 0 ||
 	    g_strcmp0 (tmp, "ailurus") == 0 ||
 	    g_strcmp0 (tmp, "vkeybd") == 0 ||
+	    g_strcmp0 (tmp, "nekobee") == 0 ||
 	    g_strcmp0 (tmp, "listen") == 0 ||
 	    g_strcmp0 (tmp, "kupfer") == 0 ||
 	    g_strcmp0 (tmp, "fusion-icon") == 0) {
@@ -245,6 +250,16 @@ cra_plugin_process_app (CraPlugin *plugin,
 		cra_app_add_veto (app,
 				  "Upstream abandoned, see: "
 				  "http://sigildev.blogspot.co.uk/2014/02/sigils-spiritual-successor.html");
+	}
+	if (g_strcmp0 (tmp, "logjam") == 0) {
+		cra_app_add_veto (app,
+				  "Upstream abandoned, see: "
+				  "http://andy-shev.github.io/LogJam/dev/");
+	}
+	if (g_strcmp0 (tmp, "chmsee") == 0) {
+		cra_app_add_veto (app,
+				  "Upstream abandoned, see: "
+				  "https://code.google.com/p/chmsee/");
 	}
 	if (g_str_has_prefix (tmp, "spacefm")) {
 		cra_app_add_veto (app,
