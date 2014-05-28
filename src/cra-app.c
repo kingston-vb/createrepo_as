@@ -392,6 +392,7 @@ cra_app_add_screenshot_source (CraApp *app, const gchar *filename, GError **erro
 			as_image_set_url (im_tmp, url_tmp, -1);
 			as_image_set_pixbuf (im_tmp, pixbuf);
 			as_image_set_kind (im_tmp, AS_IMAGE_KIND_THUMBNAIL);
+			as_image_set_basename (im_tmp, basename);
 			as_screenshot_add_image (ss, im_tmp);
 			g_free (url_tmp);
 			g_free (size_str);
