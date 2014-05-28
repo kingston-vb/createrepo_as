@@ -491,7 +491,7 @@ cra_plugin_process_filename (CraPlugin *plugin,
 	}
 
 	/* log updateinfo */
-	tmp = as_app_get_update_contact (AS_APP (app));
+	tmp = as_app_get_update_contact (AS_APP (appdata));
 	if (tmp != NULL) {
 		cra_package_log (cra_app_get_package (app),
 				 CRA_PACKAGE_LOG_LEVEL_INFO,
