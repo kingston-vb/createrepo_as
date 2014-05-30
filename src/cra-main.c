@@ -241,19 +241,25 @@ cra_task_process_func (gpointer data, gpointer user_data)
 			 CRA_PACKAGE_LOG_LEVEL_DEBUG,
 			 "Exploding tree for %s",
 			 cra_package_get_name (task->pkg));
-	ret = cra_package_explode (task->pkg, task->tmpdir, ctx->file_globs, &error);
-	if (!ret) {
-		cra_package_log (task->pkg,
-				 CRA_PACKAGE_LOG_LEVEL_WARNING,
-				 "Failed to explode: %s", error->message);
-		g_clear_error (&error);
-		goto skip;
-	}
+	if (!ctx->use_package_cache ||
+	    !g_file_test (task->tmpdir, G_FILE_TEST_EXISTS)) {
+		ret = cra_package_explode (task->pkg,
+					   task->tmpdir,
+					   ctx->file_globs,
+					   &error);
+		if (!ret) {
+			cra_package_log (task->pkg,
+					 CRA_PACKAGE_LOG_LEVEL_WARNING,
+					 "Failed to explode: %s", error->message);
+			g_clear_error (&error);
+			goto skip;
+		}
 
-	/* add extra packages */
-	ret = cra_context_explode_extra_packages (ctx, task);
-	if (!ret)
-		goto skip;
+		/* add extra packages */
+		ret = cra_context_explode_extra_packages (ctx, task);
+		if (!ret)
+			goto skip;
+	}
 
 	/* run plugins */
 	for (i = 0; i < task->plugins_to_run->len; i++) {

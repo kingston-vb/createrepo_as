@@ -480,11 +480,6 @@ cra_package_explode (CraPackage *pkg,
 {
 	CraPackageClass *klass = CRA_PACKAGE_GET_CLASS (pkg);
 	CraPackagePrivate *priv = GET_PRIVATE (pkg);
-
-	/* already exists */
-	if (g_file_test (dir, G_FILE_TEST_EXISTS))
-		return TRUE;
-
 	if (klass->explode != NULL)
 		return klass->explode (pkg, dir, glob, error);
 	return cra_utils_explode (priv->filename, dir, glob, error);
