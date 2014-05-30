@@ -289,16 +289,6 @@ cra_task_process_func (gpointer data, gpointer user_data)
 			continue;
 		}
 
-		/* is application backlisted */
-		if (cra_glob_value_search (ctx->blacklisted_ids,
-					   as_app_get_id (AS_APP (app)))) {
-			cra_package_log (task->pkg,
-					 CRA_PACKAGE_LOG_LEVEL_INFO,
-					 "app id %s is blacklisted",
-					 as_app_get_id (AS_APP (app)));
-			continue;
-		}
-
 		/* copy data from pkg into app */
 		if (cra_package_get_url (task->pkg) != NULL) {
 			as_app_add_url (AS_APP (app),

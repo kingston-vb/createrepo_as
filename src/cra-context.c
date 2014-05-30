@@ -62,15 +62,6 @@ cra_context_add_blacklist_pkg (CraContext *ctx, const gchar *pkg)
 }
 
 /**
- * cra_context_add_blacklist_app_id:
- */
-static void
-cra_context_add_blacklist_app_id (CraContext *ctx, const gchar *id)
-{
-	g_ptr_array_add (ctx->blacklisted_ids, cra_glob_value_new (id, ""));
-}
-
-/**
  * cra_context_add_app:
  */
 void
@@ -90,7 +81,6 @@ cra_context_new (void)
 	CraContext *ctx;
 	ctx = g_new0 (CraContext, 1);
 	ctx->blacklisted_pkgs = cra_glob_value_array_new ();
-	ctx->blacklisted_ids = cra_glob_value_array_new ();
 	ctx->plugins = cra_plugin_loader_new ();
 	ctx->packages = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
 	ctx->extra_pkgs = cra_glob_value_array_new ();
@@ -128,57 +118,6 @@ cra_context_new (void)
 	cra_context_add_blacklist_pkg (ctx, "xscreensaver-*");
 	cra_context_add_blacklist_pkg (ctx, "bmpanel2-cfg");
 
-	/* add blacklisted applications */
-	cra_context_add_blacklist_app_id (ctx, "display-properties");
-	cra_context_add_blacklist_app_id (ctx, "mate-*");
-	cra_context_add_blacklist_app_id (ctx, "xfce4-accessibility-settings");
-	cra_context_add_blacklist_app_id (ctx, "xfce4-mime-settings");
-	cra_context_add_blacklist_app_id (ctx, "xfce4-settings-editor");
-	cra_context_add_blacklist_app_id (ctx, "xfce-keyboard-settings");
-	cra_context_add_blacklist_app_id (ctx, "xfce-mouse-settings");
-	cra_context_add_blacklist_app_id (ctx, "xfce-settings-manager");
-	cra_context_add_blacklist_app_id (ctx, "xfce-ui-settings");
-	cra_context_add_blacklist_app_id (ctx, "xfce4-about");
-	cra_context_add_blacklist_app_id (ctx, "redhat-userpasswd");
-	cra_context_add_blacklist_app_id (ctx, "redhat-userinfo");
-	cra_context_add_blacklist_app_id (ctx, "system-config-date");
-	cra_context_add_blacklist_app_id (ctx, "gnome-wacom-panel");
-	cra_context_add_blacklist_app_id (ctx, "redhat-usermount");
-	cra_context_add_blacklist_app_id (ctx, "system-config-*");
-	cra_context_add_blacklist_app_id (ctx, "nm-connection-editor");
-	cra_context_add_blacklist_app_id (ctx, "lxinput");
-	cra_context_add_blacklist_app_id (ctx, "lxrandr");
-	cra_context_add_blacklist_app_id (ctx, "xfce4-session-logout");
-	cra_context_add_blacklist_app_id (ctx, "gnome-glade-2");
-	cra_context_add_blacklist_app_id (ctx, "glade3");
-	cra_context_add_blacklist_app_id (ctx, "active-*");
-	cra_context_add_blacklist_app_id (ctx, "caja-home");
-	cra_context_add_blacklist_app_id (ctx, "gcompris-edit");
-	cra_context_add_blacklist_app_id (ctx, "razor-config*");
-	cra_context_add_blacklist_app_id (ctx, "lxde-desktop-preferences");
-	cra_context_add_blacklist_app_id (ctx, "authconfig");
-	cra_context_add_blacklist_app_id (ctx, "cinnamon-settings");
-	cra_context_add_blacklist_app_id (ctx, "midori-private");
-	cra_context_add_blacklist_app_id (ctx, "xinput_calibrator");
-	cra_context_add_blacklist_app_id (ctx, "bted");
-	cra_context_add_blacklist_app_id (ctx, "freedinkedit");
-	cra_context_add_blacklist_app_id (ctx, "freedink-dfarc");
-	cra_context_add_blacklist_app_id (ctx, "*-release-notes");
-	cra_context_add_blacklist_app_id (ctx, "*-server");
-	cra_context_add_blacklist_app_id (ctx, "megaglest_*");
-	cra_context_add_blacklist_app_id (ctx, "gnome-system-monitor-kde");
-	cra_context_add_blacklist_app_id (ctx, "transgui");
-	cra_context_add_blacklist_app_id (ctx, "bf-*-editor");
-	cra_context_add_blacklist_app_id (ctx, "*-demo");
-	cra_context_add_blacklist_app_id (ctx, "*-shareware");
-	cra_context_add_blacklist_app_id (ctx, "xpilot-ng-x11");
-	cra_context_add_blacklist_app_id (ctx, "Rodent-*");
-	cra_context_add_blacklist_app_id (ctx, "qterminal_*");
-	cra_context_add_blacklist_app_id (ctx, "*-session-manager");
-	cra_context_add_blacklist_app_id (ctx, "pioneers-editor");
-	cra_context_add_blacklist_app_id (ctx, "bitmap2component");
-	cra_context_add_blacklist_app_id (ctx, "luckybackup-*");
-
 	return ctx;
 }
 
@@ -195,7 +134,6 @@ cra_context_free (CraContext *ctx)
 	g_list_foreach (ctx->apps, (GFunc) g_object_unref, NULL);
 	g_list_free (ctx->apps);
 	g_ptr_array_unref (ctx->blacklisted_pkgs);
-	g_ptr_array_unref (ctx->blacklisted_ids);
 	g_ptr_array_unref (ctx->file_globs);
 	g_mutex_clear (&ctx->apps_mutex);
 	g_free (ctx);

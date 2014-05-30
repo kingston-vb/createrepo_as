@@ -32,7 +32,6 @@ G_BEGIN_DECLS
 
 typedef struct {
 	GPtrArray	*blacklisted_pkgs;	/* of CraGlobValue */
-	GPtrArray	*blacklisted_ids;	/* of CraGlobValue */
 	GPtrArray	*extra_pkgs;		/* of CraGlobValue */
 	GPtrArray	*plugins;		/* of CraPlugin */
 	GPtrArray	*packages;		/* of CraPackage */

@@ -13,6 +13,7 @@ AM_CPPFLAGS =						\
 plugindir = $(libdir)/cra-plugins
 plugin_LTLIBRARIES =					\
 	libcra_plugin_appdata.la			\
+	libcra_plugin_blacklist.la			\
 	libcra_plugin_desktop.la			\
 	libcra_plugin_gir.la				\
 	libcra_plugin_font.la				\
@@ -32,6 +33,11 @@ libcra_plugin_gettext_la_SOURCES = cra-plugin-gettext.c
 libcra_plugin_gettext_la_LIBADD = $(GLIB_LIBS)
 libcra_plugin_gettext_la_LDFLAGS = -module -avoid-version
 libcra_plugin_gettext_la_CFLAGS = $(GLIB_CFLAGS) $(WARNINGFLAGS_C)
+
+libcra_plugin_blacklist_la_SOURCES = cra-plugin-blacklist.c
+libcra_plugin_blacklist_la_LIBADD = $(GLIB_LIBS)
+libcra_plugin_blacklist_la_LDFLAGS = -module -avoid-version
+libcra_plugin_blacklist_la_CFLAGS = $(GLIB_CFLAGS) $(WARNINGFLAGS_C)
 
 libcra_plugin_hardcoded_la_SOURCES = cra-plugin-hardcoded.c
 libcra_plugin_hardcoded_la_LIBADD = $(GLIB_LIBS)
