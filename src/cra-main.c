@@ -956,7 +956,7 @@ main (int argc, char **argv)
 		task->plugins_to_run = g_ptr_array_new ();
 		task->id = i;
 		task->filename = g_strdup (cra_package_get_filename (pkg));
-		task->tmpdir = g_build_filename (temp_dir, cra_package_get_name (pkg), NULL);
+		task->tmpdir = g_build_filename (temp_dir, cra_package_get_nevr (pkg), NULL);
 		task->pkg = g_object_ref (pkg);
 		g_ptr_array_add (tasks, task);
 
