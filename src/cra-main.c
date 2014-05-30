@@ -225,13 +225,15 @@ cra_task_process_func (gpointer data, gpointer user_data)
 		goto out;
 
 	/* delete old tree if it exists */
-	ret = cra_utils_ensure_exists_and_empty (task->tmpdir, &error);
-	if (!ret) {
-		cra_package_log (task->pkg,
-				 CRA_PACKAGE_LOG_LEVEL_WARNING,
-				 "Failed to clear: %s", error->message);
-		g_error_free (error);
-		goto out;
+	if (!ctx->use_package_cache) {
+		ret = cra_utils_ensure_exists_and_empty (task->tmpdir, &error);
+		if (!ret) {
+			cra_package_log (task->pkg,
+					 CRA_PACKAGE_LOG_LEVEL_WARNING,
+					 "Failed to clear: %s", error->message);
+			g_error_free (error);
+			goto out;
+		}
 	}
 
 	/* explode tree */
@@ -428,14 +430,16 @@ skip:
 	}
 
 	/* delete tree */
-	ret = cra_utils_rmtree (task->tmpdir, &error);
-	if (!ret) {
-		cra_package_log (task->pkg,
-				 CRA_PACKAGE_LOG_LEVEL_WARNING,
-				 "Failed to delete tree: %s",
-				 error->message);
-		g_error_free (error);
-		goto out;
+	if (!ctx->use_package_cache) {
+		ret = cra_utils_rmtree (task->tmpdir, &error);
+		if (!ret) {
+			cra_package_log (task->pkg,
+					 CRA_PACKAGE_LOG_LEVEL_WARNING,
+					 "Failed to delete tree: %s",
+					 error->message);
+			g_error_free (error);
+			goto out;
+		}
 	}
 
 	/* write log */
@@ -653,6 +657,7 @@ main (int argc, char **argv)
 	gboolean extra_checks = FALSE;
 	gboolean verbose = FALSE;
 	gboolean no_net = FALSE;
+	gboolean use_package_cache = FALSE;
 	gdouble api_version = 0.0f;
 	gchar *basename = NULL;
 	gchar *extra_appdata = NULL;
@@ -682,6 +687,8 @@ main (int argc, char **argv)
 			"Show extra debugging information", NULL },
 		{ "no-net", '\0', 0, G_OPTION_ARG_NONE, &no_net,
 			"Do not use the network to download screenshots", NULL },
+		{ "use-package-cache", '\0', 0, G_OPTION_ARG_NONE, &use_package_cache,
+			"Do not delete the decompressed package cache", NULL },
 		{ "extra-checks", '\0', 0, G_OPTION_ARG_NONE, &extra_checks,
 			"Perform extra checks on the source metadata", NULL },
 		{ "add-cache-id", '\0', 0, G_OPTION_ARG_NONE, &add_cache_id,
@@ -761,12 +768,10 @@ main (int argc, char **argv)
 	setlocale (LC_ALL, "");
 
 	/* set up state */
-	tmp = g_build_filename (temp_dir, "icons", NULL);
-	if (old_metadata != NULL) {
-		add_cache_id = TRUE;
-		ret = g_file_test (tmp, G_FILE_TEST_EXISTS);
-		if (!ret) {
-			g_warning ("%s has to exist to use old metadata", tmp);
+	if (use_package_cache) {
+		rc = g_mkdir_with_parents (temp_dir, 0700);
+		if (rc != 0) {
+			g_warning ("failed to create temp dir");
 			goto out;
 		}
 	} else {
@@ -776,6 +781,16 @@ main (int argc, char **argv)
 			g_error_free (error);
 			goto out;
 		}
+	}
+	tmp = g_build_filename (temp_dir, "icons", NULL);
+	if (old_metadata != NULL) {
+		add_cache_id = TRUE;
+		ret = g_file_test (tmp, G_FILE_TEST_EXISTS);
+		if (!ret) {
+			g_warning ("%s has to exist to use old metadata", tmp);
+			goto out;
+		}
+	} else {
 		ret = cra_utils_ensure_exists_and_empty (tmp, &error);
 		if (!ret) {
 			g_warning ("failed to create icons dir: %s", error->message);
@@ -836,6 +851,7 @@ main (int argc, char **argv)
 		goto out;
 	}
 	ctx->no_net = no_net;
+	ctx->use_package_cache = use_package_cache;
 	ctx->api_version = api_version;
 	ctx->add_cache_id = add_cache_id;
 	ctx->file_globs = cra_plugin_loader_get_globs (ctx->plugins);

@@ -42,6 +42,7 @@ typedef struct {
 	gdouble		 api_version;
 	gboolean	 add_cache_id;
 	gboolean	 extra_checks;
+	gboolean	 use_package_cache;
 	AsStore		*old_md_cache;
 } CraContext;
 
