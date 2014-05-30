@@ -186,31 +186,17 @@ gboolean
 cra_package_log_flush (CraPackage *pkg, GError **error)
 {
 	CraPackagePrivate *priv = GET_PRIVATE (pkg);
-	const gchar *tmp;
 	gboolean ret;
-	gchar *logdir;
 	gchar *logfile;
-	gint rc;
 
 	/* overwrite old log */
-	tmp = cra_package_get_config (pkg, "LogDir");
-	logdir = g_build_filename (tmp, cra_package_get_name (pkg), NULL);
-	rc = g_mkdir_with_parents (logdir, 0700);
-	if (rc < 0) {
-		ret = FALSE;
-		g_set_error (error,
-			     CRA_PLUGIN_ERROR,
-			     CRA_PLUGIN_ERROR_FAILED,
-			     "Failed to create %s", logdir);
-	}
 	logfile = g_strdup_printf ("%s/%s.log",
-				   logdir,
-				   cra_package_get_nevr (pkg));
+				   cra_package_get_config (pkg, "LogDir"),
+				   cra_package_get_name (pkg));
 	ret = g_file_set_contents (logfile, priv->log->str, -1, error);
 	if (!ret)
 		goto out;
 out:
-	g_free (logdir);
 	g_free (logfile);
 	return ret;
 }
