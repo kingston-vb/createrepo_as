@@ -164,6 +164,8 @@ cra_package_log (CraPackage *pkg,
 		break;
 	case CRA_PACKAGE_LOG_LEVEL_DEBUG:
 		g_debug ("DEBUG:   %s", tmp);
+		if (g_getenv ("CRA_PROFILE") != NULL)
+			g_string_append_printf (priv->log, "DEBUG:   %s\n", tmp);
 		break;
 	case CRA_PACKAGE_LOG_LEVEL_WARNING:
 		g_debug ("WARNING: %s", tmp);
