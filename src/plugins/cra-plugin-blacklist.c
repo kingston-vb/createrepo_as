@@ -81,6 +81,8 @@ cra_plugin_initialize (CraPlugin *plugin)
 		{ "lxde-desktop-preferences",	"Not an application" },
 		{ "lxinput",			"Not an application" },
 		{ "lxrandr",			"Not an application" },
+		{ "manaplustest",		"Not an application" },
+		{ "mana",			"Upstream abandoned, private email" },
 		{ "mate-*",			"Not an application" },
 		{ "megaglest_*",		"Not an application" },
 		{ "midori-private",		"Not an application" },
