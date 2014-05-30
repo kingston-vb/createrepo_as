@@ -142,6 +142,15 @@ cra_app_find_icon (const gchar *tmpdir, const gchar *something, GError **error)
 	/* is this an absolute path */
 	if (something[0] == '/') {
 		tmp = g_build_filename (tmpdir, something, NULL);
+		if (!g_file_test (tmp, G_FILE_TEST_EXISTS)) {
+			g_set_error (error,
+				     CRA_PLUGIN_ERROR,
+				     CRA_PLUGIN_ERROR_FAILED,
+				     "specified icon '%s' does not exist",
+				     something);
+			g_free (tmp);
+			goto out;
+		}
 		pixbuf = cra_app_load_icon (tmp, error);
 		g_free (tmp);
 		goto out;
