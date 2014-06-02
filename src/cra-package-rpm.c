@@ -504,6 +504,36 @@ out:
 }
 
 /**
+ * cra_package_rpm_strerror:
+ **/
+static const gchar *
+cra_package_rpm_strerror (rpmRC rc)
+{
+	const gchar *str;
+	switch (rc) {
+	case RPMRC_OK:
+		str = "Generic success";
+		break;
+	case RPMRC_NOTFOUND:
+		str = "Generic not found";
+		break;
+	case RPMRC_FAIL:
+		str = "Generic failure";
+		break;
+	case RPMRC_NOTTRUSTED:
+		str = "Signature is OK, but key is not trusted";
+		break;
+	case RPMRC_NOKEY:
+		str = "Public key is unavailable";
+		break;
+	default:
+		str = "unknown";
+		break;
+	}
+	return str;
+}
+
+/**
  * cra_package_rpm_open:
  **/
 static gboolean
@@ -513,7 +543,7 @@ cra_package_rpm_open (CraPackage *pkg, const gchar *filename, GError **error)
 	CraPackageRpmPrivate *priv = GET_PRIVATE (pkg_rpm);
 	FD_t fd;
 	gboolean ret = TRUE;
-	gint rc;
+	rpmRC rc;
 	rpmts ts;
 
 	/* open the file */
@@ -530,12 +560,13 @@ cra_package_rpm_open (CraPackage *pkg, const gchar *filename, GError **error)
 
 	/* create package */
 	rc = rpmReadPackageFile (ts, fd, filename, &priv->h);
-	if (rc != RPMRC_OK) {
+	if (rc == RPMRC_FAIL) {
 		ret = FALSE;
 		g_set_error (error,
 			     CRA_PLUGIN_ERROR,
 			     CRA_PLUGIN_ERROR_FAILED,
-			     "Failed to read package %s", filename);
+			     "Failed to read package %s: %s",
+			     filename, cra_package_rpm_strerror (rc));
 		goto out;
 	}
 
