@@ -27,6 +27,7 @@
 #include <gio/gio.h>
 
 #include "cra-app.h"
+#include "cra-cleanup.h"
 #include "cra-package.h"
 #include "cra-utils.h"
 

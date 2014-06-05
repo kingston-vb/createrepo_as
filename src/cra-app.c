@@ -25,6 +25,7 @@
 #include <appstream-glib.h>
 
 #include "cra-app.h"
+#include "cra-cleanup.h"
 
 typedef struct _CraAppPrivate	CraAppPrivate;
 struct _CraAppPrivate
@@ -85,15 +86,14 @@ cra_app_class_init (CraAppClass *klass)
 gchar *
 cra_app_to_xml (CraApp *app)
 {
-	AsStore *store;
 	GString *str;
+	_cleanup_object_unref_ AsStore *store;
 
 	store = as_store_new ();
 	as_store_add_app (store, AS_APP (app));
 	str = as_store_to_xml (store,
 			       AS_NODE_TO_XML_FLAG_FORMAT_INDENT |
 			       AS_NODE_TO_XML_FLAG_FORMAT_MULTILINE);
-	g_object_unref (store);
 	return g_string_free (str, FALSE);
 }
 
@@ -200,8 +200,8 @@ cra_app_save_resources_image (CraApp *app,
 {
 	const gchar *output_dir;
 	gboolean ret = TRUE;
-	gchar *filename = NULL;
-	gchar *size_str;
+	_cleanup_free_ gchar *filename = NULL;
+	_cleanup_free_ gchar *size_str;
 
 	/* treat source images differently */
 	if (as_image_get_kind (image) == AS_IMAGE_KIND_SOURCE) {
@@ -223,7 +223,7 @@ cra_app_save_resources_image (CraApp *app,
 		cra_package_log (cra_app_get_package (app),
 				 CRA_PACKAGE_LOG_LEVEL_DEBUG,
 				 "%s screenshot already exists", size_str);
-		goto out;
+		return TRUE;
 	}
 
 	/* thumbnails will already be 16:9 */
@@ -233,16 +233,13 @@ cra_app_save_resources_image (CraApp *app,
 				      AS_IMAGE_SAVE_FLAG_NONE,
 				      error);
 	if (!ret)
-		goto out;
+		return FALSE;
 
 	/* set new AppStream compatible screenshot name */
 	cra_package_log (cra_app_get_package (app),
 			 CRA_PACKAGE_LOG_LEVEL_DEBUG,
 			 "saved %s screenshot", size_str);
-out:
-	g_free (filename);
-	g_free (size_str);
-	return ret;
+	return TRUE;
 
 }
 
@@ -256,18 +253,15 @@ cra_app_save_resources_screenshot (CraApp *app,
 {
 	AsImage *im;
 	GPtrArray *images;
-	gboolean ret = TRUE;
 	guint i;
 
 	images = as_screenshot_get_images (screenshot);
 	for (i = 0; i < images->len; i++) {
 		im = g_ptr_array_index (images, i);
-		ret = cra_app_save_resources_image (app, im, error);
-		if (!ret)
-			goto out;
+		if (!cra_app_save_resources_image (app, im, error))
+			return FALSE;
 	}
-out:
-	return ret;
+	return TRUE;
 }
 
 /**
@@ -278,26 +272,21 @@ cra_app_save_resources (CraApp *app, GError **error)
 {
 	CraAppPrivate *priv = GET_PRIVATE (app);
 	AsScreenshot *ss;
-	const gchar *tmpdir;
-	gboolean ret = TRUE;
 	guint i;
-	gchar *filename = NULL;
 	GPtrArray *screenshots;
 
 	/* any non-stock icon set */
 	if (priv->pixbuf != NULL) {
+		const gchar *tmpdir;
+		_cleanup_free_ gchar *filename = NULL;
+
 		tmpdir = cra_package_get_config (priv->pkg, "TempDir");
 		filename = g_build_filename (tmpdir,
 					     "icons",
 					     as_app_get_icon (AS_APP (app)),
 					     NULL);
-		ret = gdk_pixbuf_save (priv->pixbuf,
-				       filename,
-				       "png",
-				       error,
-				       NULL);
-		if (!ret)
-			goto out;
+		if (!gdk_pixbuf_save (priv->pixbuf, filename, "png", error, NULL))
+			return FALSE;
 
 		/* set new AppStream compatible icon name */
 		cra_package_log (priv->pkg,
@@ -309,13 +298,10 @@ cra_app_save_resources (CraApp *app, GError **error)
 	screenshots = as_app_get_screenshots (AS_APP (app));
 	for (i = 0; i < screenshots->len; i++) {
 		ss = g_ptr_array_index (screenshots, i);
-		ret = cra_app_save_resources_screenshot (app, ss, error);
-		if (!ret)
-			goto out;
+		if (!cra_app_save_resources_screenshot (app, ss, error))
+			return FALSE;
 	}
-out:
-	g_free (filename);
-	return ret;
+	return TRUE;
 }
 
 /**
@@ -324,23 +310,17 @@ out:
 gboolean
 cra_app_add_screenshot_source (CraApp *app, const gchar *filename, GError **error)
 {
-	AsImage *im_src;
-	AsImage *im_tmp;
-	AsScreenshot *ss = NULL;
-	gboolean ret;
 	gboolean is_default;
 	guint sizes[] = { 624, 351, 112, 63, 752, 423, 0 };
 	const gchar *mirror_uri;
-	gchar *basename = NULL;
-	gchar *size_str;
-	gchar *url_tmp;
 	guint i;
-	GdkPixbuf *pixbuf;
+	_cleanup_free_ gchar *basename = NULL;
+	_cleanup_object_unref_ AsImage *im_src;
+	_cleanup_object_unref_ AsScreenshot *ss = NULL;
 
 	im_src = as_image_new ();
-	ret = as_image_load_filename (im_src, filename, error);
-	if (!ret)
-		goto out;
+	if (!as_image_load_filename (im_src, filename, error))
+		return FALSE;
 
 	/* is the aspect ratio of the source perfectly 16:9 */
 	if ((as_image_get_width (im_src) / 16) * 9 !=
@@ -365,6 +345,7 @@ cra_app_add_screenshot_source (CraApp *app, const gchar *filename, GError **erro
 	/* only fonts have full sized screenshots */
 	mirror_uri = cra_package_get_config (cra_app_get_package (app), "MirrorURI");
 	if (as_app_get_id_kind (AS_APP (app)) == AS_ID_KIND_FONT) {
+		_cleanup_free_ gchar *url_tmp;
 		url_tmp = g_build_filename (mirror_uri,
 					    "source",
 					    basename,
@@ -372,9 +353,13 @@ cra_app_add_screenshot_source (CraApp *app, const gchar *filename, GError **erro
 		as_image_set_url (im_src, url_tmp, -1);
 		as_image_set_kind (im_src, AS_IMAGE_KIND_SOURCE);
 		as_screenshot_add_image (ss, im_src);
-		g_free (url_tmp);
 	} else {
 		for (i = 0; sizes[i] != 0; i += 2) {
+			_cleanup_free_ gchar *size_str;
+			_cleanup_free_ gchar *url_tmp;
+			_cleanup_object_unref_ AsImage *im_tmp;
+			_cleanup_object_unref_ GdkPixbuf *pixbuf;
+
 			size_str = g_strdup_printf ("%ix%i",
 						    sizes[i],
 						    sizes[i+1]);
@@ -394,19 +379,10 @@ cra_app_add_screenshot_source (CraApp *app, const gchar *filename, GError **erro
 			as_image_set_kind (im_tmp, AS_IMAGE_KIND_THUMBNAIL);
 			as_image_set_basename (im_tmp, basename);
 			as_screenshot_add_image (ss, im_tmp);
-			g_free (url_tmp);
-			g_free (size_str);
-			g_object_unref (im_tmp);
-			g_object_unref (pixbuf);
 		}
 	}
 	as_app_add_screenshot (AS_APP (app), ss);
-out:
-	if (ss != NULL)
-		g_object_unref (ss);
-	g_free (basename);
-	g_object_unref (im_src);
-	return ret;
+	return TRUE;
 }
 
 /**

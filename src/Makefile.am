@@ -16,6 +16,7 @@ bin_PROGRAMS =						\
 createrepo_as_SOURCES =					\
 	cra-app.c					\
 	cra-app.h					\
+	cra-cleanup.h					\
 	cra-context.c					\
 	cra-context.h					\
 	cra-package.c					\

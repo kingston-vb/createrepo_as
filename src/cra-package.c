@@ -23,6 +23,7 @@
 
 #include <limits.h>
 
+#include "cra-cleanup.h"
 #include "cra-package.h"
 #include "cra-plugin.h"
 
@@ -143,9 +144,9 @@ cra_package_log (CraPackage *pkg,
 		 const gchar *fmt, ...)
 {
 	CraPackagePrivate *priv = GET_PRIVATE (pkg);
-	gchar *tmp;
 	va_list args;
 	gdouble now;
+	_cleanup_free_ gchar *tmp;
 
 	va_start (args, fmt);
 	tmp = g_strdup_vprintf (fmt, args);
@@ -176,7 +177,6 @@ cra_package_log (CraPackage *pkg,
 		g_string_append_printf (priv->log, "%s\n", tmp);
 		break;
 	}
-	g_free (tmp);
 }
 
 /**
@@ -186,19 +186,13 @@ gboolean
 cra_package_log_flush (CraPackage *pkg, GError **error)
 {
 	CraPackagePrivate *priv = GET_PRIVATE (pkg);
-	gboolean ret;
-	gchar *logfile;
+	_cleanup_free_ gchar *logfile;
 
 	/* overwrite old log */
 	logfile = g_strdup_printf ("%s/%s.log",
 				   cra_package_get_config (pkg, "LogDir"),
 				   cra_package_get_name (pkg));
-	ret = g_file_set_contents (logfile, priv->log->str, -1, error);
-	if (!ret)
-		goto out;
-out:
-	g_free (logfile);
-	return ret;
+	return g_file_set_contents (logfile, priv->log->str, -1, error);
 }
 
 /**
@@ -454,19 +448,15 @@ cra_package_open (CraPackage *pkg, const gchar *filename, GError **error)
 {
 	CraPackageClass *klass = CRA_PACKAGE_GET_CLASS (pkg);
 	CraPackagePrivate *priv = GET_PRIVATE (pkg);
-	gboolean ret = TRUE;
 
 	/* cache here */
 	priv->filename = g_strdup (filename);
 	priv->basename = g_path_get_basename (filename);
 
 	/* call distro-specific method */
-	if (klass->open != NULL) {
-		ret = klass->open (pkg, filename, error);
-		goto out;
-	}
-out:
-	return ret;
+	if (klass->open != NULL)
+		return klass->open (pkg, filename, error);
+	return TRUE;
 }
 
 /**

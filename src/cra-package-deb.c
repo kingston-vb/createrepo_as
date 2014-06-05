@@ -21,6 +21,7 @@
 
 #include "config.h"
 
+#include "cra-cleanup.h"
 #include "cra-package-deb.h"
 #include "cra-plugin.h"
 
@@ -41,24 +42,22 @@ cra_package_deb_init (CraPackageDeb *pkg)
 static gboolean
 cra_package_deb_ensure_simple (CraPackage *pkg, GError **error)
 {
-	GPtrArray *deps = NULL;
 	const gchar *argv[4] = { "dpkg", "--field", "fn", NULL };
-	gboolean ret;
-	gchar **lines = NULL;
-	gchar *output = NULL;
 	gchar *tmp;
 	gchar **vr;
 	guint i;
 	guint j;
+	_cleanup_free_ gchar *output = NULL;
+	_cleanup_ptrarray_unref_ GPtrArray *deps = NULL;
+	_cleanup_strv_free_ gchar **lines = NULL;
 
 	/* spawn sync */
 	argv[2] = cra_package_get_filename (pkg);
-	ret = g_spawn_sync (NULL, (gchar **) argv, NULL,
-			    G_SPAWN_SEARCH_PATH,
-			    NULL, NULL,
-			    &output, NULL, NULL, error);
-	if (!ret)
-		goto out;
+	if (!g_spawn_sync (NULL, (gchar **) argv, NULL,
+			   G_SPAWN_SEARCH_PATH,
+			   NULL, NULL,
+			   &output, NULL, NULL, error))
+		return FALSE;
 
 	/* parse output */
 	deps = g_ptr_array_new_with_free_func (g_free);
@@ -100,12 +99,7 @@ cra_package_deb_ensure_simple (CraPackage *pkg, GError **error)
 	}
 	g_ptr_array_add (deps, NULL);
 	cra_package_set_deps (pkg, (gchar **) deps->pdata);
-out:
-	if (deps != NULL)
-		g_ptr_array_unref (deps);
-	g_strfreev (lines);
-	g_free (output);
-	return ret;
+	return TRUE;
 }
 
 /**
@@ -114,22 +108,20 @@ out:
 static gboolean
 cra_package_deb_ensure_filelists (CraPackage *pkg, GError **error)
 {
-	GPtrArray *files = NULL;
 	const gchar *argv[4] = { "dpkg", "--contents", "fn", NULL };
 	const gchar *fn;
-	gboolean ret;
-	gchar **lines = NULL;
-	gchar *output = NULL;
 	guint i;
+	_cleanup_free_ gchar *output = NULL;
+	_cleanup_ptrarray_unref_ GPtrArray *files = NULL;
+	_cleanup_strv_free_ gchar **lines = NULL;
 
 	/* spawn sync */
 	argv[2] = cra_package_get_filename (pkg);
-	ret = g_spawn_sync (NULL, (gchar **) argv, NULL,
-			    G_SPAWN_SEARCH_PATH,
-			    NULL, NULL,
-			    &output, NULL, NULL, error);
-	if (!ret)
-		goto out;
+	if (!g_spawn_sync (NULL, (gchar **) argv, NULL,
+			   G_SPAWN_SEARCH_PATH,
+			   NULL, NULL,
+			   &output, NULL, NULL, error))
+		return FALSE;
 
 	/* parse output */
 	files = g_ptr_array_new_with_free_func (g_free);
@@ -147,12 +139,7 @@ cra_package_deb_ensure_filelists (CraPackage *pkg, GError **error)
 	/* save */
 	g_ptr_array_add (files, NULL);
 	cra_package_set_filelist (pkg, (gchar **) files->pdata);
-out:
-	if (files != NULL)
-		g_ptr_array_unref (files);
-	g_strfreev (lines);
-	g_free (output);
-	return ret;
+	return TRUE;
 }
 
 /**
@@ -161,17 +148,12 @@ out:
 static gboolean
 cra_package_deb_open (CraPackage *pkg, const gchar *filename, GError **error)
 {
-	gboolean ret;
-
 	/* read package stuff */
-	ret = cra_package_deb_ensure_simple (pkg, error);
-	if (!ret)
-		goto out;
-	ret = cra_package_deb_ensure_filelists (pkg, error);
-	if (!ret)
-		goto out;
-out:
-	return ret;
+	if (!cra_package_deb_ensure_simple (pkg, error))
+		return FALSE;
+	if (!cra_package_deb_ensure_filelists (pkg, error))
+		return FALSE;
+	return TRUE;
 }
 
 /**
@@ -183,8 +165,6 @@ cra_package_deb_explode (CraPackage *pkg,
 			 GPtrArray *glob,
 			 GError **error)
 {
-	gboolean ret;
-	gchar *data_fn = NULL;
 	guint i;
 	const gchar *data_names[] = { "data.tar.xz",
 				      "data.tar.bz2",
@@ -194,23 +174,20 @@ cra_package_deb_explode (CraPackage *pkg,
 				      NULL };
 
 	/* first decompress the main deb */
-	ret = cra_utils_explode (cra_package_get_filename (pkg),
-				 dir, NULL, error);
-	if (!ret)
-		goto out;
+	if (!cra_utils_explode (cra_package_get_filename (pkg),
+				dir, NULL, error))
+		return FALSE;
 
 	/* then decompress the data file */
 	for (i = 0; data_names[i] != NULL; i++) {
+		_cleanup_free_ gchar *data_fn = NULL;
 		data_fn = g_build_filename (dir, data_names[i], NULL);
 		if (g_file_test (data_fn, G_FILE_TEST_EXISTS)) {
-			ret = cra_utils_explode (data_fn, dir, glob, error);
-			if (!ret)
-				goto out;
+			if (!cra_utils_explode (data_fn, dir, glob, error))
+				return FALSE;
 		}
-		g_free (data_fn);
 	}
-out:
-	return ret;
+	return TRUE;
 }
 
 /**

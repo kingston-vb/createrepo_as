@@ -135,14 +135,14 @@ cra_plugin_process (CraPlugin *plugin,
 		    GError **error)
 {
 	const gchar *tmp;
-	CraApp *app = NULL;
-	gchar *app_id = NULL;
 	gchar **split;
 	GList *apps = NULL;
 	GPtrArray *keywords;
-	GString *str = NULL;
 	guint i;
 	guint j;
+	_cleanup_free_ gchar *app_id = NULL;
+	_cleanup_object_unref_ CraApp *app = NULL;
+	_cleanup_string_free_ GString *str = NULL;
 
 	/* use the pkgname suffix as the app-id */
 	tmp = cra_package_get_name (pkg);
@@ -181,7 +181,7 @@ cra_plugin_process (CraPlugin *plugin,
 			     CRA_PLUGIN_ERROR_FAILED,
 			     "nothing interesting in %s",
 			     cra_package_get_basename (pkg));
-		goto out;
+		return NULL;
 	}
 
 	/* sort categories by name */
@@ -204,10 +204,5 @@ cra_plugin_process (CraPlugin *plugin,
 
 	/* add */
 	cra_plugin_add_app (&apps, app);
-out:
-	if (str != NULL)
-		g_string_free (str, TRUE);
-	g_object_unref (app);
-	g_free (app_id);
 	return apps;
 }

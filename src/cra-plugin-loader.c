@@ -23,6 +23,7 @@
 
 #include <glib.h>
 
+#include "cra-cleanup.h"
 #include "cra-plugin.h"
 #include "cra-plugin-loader.h"
 
@@ -90,13 +91,10 @@ cra_plugin_loader_process_app (GPtrArray *plugins,
 				 CRA_PACKAGE_LOG_LEVEL_DEBUG,
 				 "Running cra_plugin_process_app() from %s",
 				 plugin->name);
-		ret = plugin_func (plugin, pkg, app, tmpdir, error);
-		if (!ret)
-			goto out;
+		if (!plugin_func (plugin, pkg, app, tmpdir, error))
+			return FALSE;
 	}
-	ret = TRUE;
-out:
-	return ret;
+	return TRUE;
 }
 
 /**
@@ -161,9 +159,9 @@ cra_plugin_loader_merge (GPtrArray *plugins, GList **apps)
 	CraPluginMergeFunc plugin_func = NULL;
 	CraPlugin *plugin;
 	gboolean ret;
-	GHashTable *hash;
 	GList *l;
 	guint i;
+	_cleanup_hashtable_unref_ GHashTable *hash;
 
 	/* run each plugin */
 	for (i = 0; i < plugins->len; i++) {
@@ -211,7 +209,6 @@ cra_plugin_loader_merge (GPtrArray *plugins, GList **apps)
 				 "duplicate %s not included as added from %s",
 				 key, tmp);
 	}
-	g_hash_table_unref (hash);
 }
 
 /**
@@ -230,7 +227,7 @@ cra_plugin_loader_open_plugin (GPtrArray *plugins,
 	if (module == NULL) {
 		g_warning ("failed to open plugin %s: %s",
 			   filename, g_module_error ());
-		goto out;
+		return NULL;
 	}
 
 	/* get description */
@@ -240,7 +237,7 @@ cra_plugin_loader_open_plugin (GPtrArray *plugins,
 	if (!ret) {
 		g_warning ("Plugin %s requires name", filename);
 		g_module_close (module);
-		goto out;
+		return NULL;
 	}
 
 	/* print what we know */
@@ -253,7 +250,6 @@ cra_plugin_loader_open_plugin (GPtrArray *plugins,
 
 	/* add to array */
 	g_ptr_array_add (plugins, plugin);
-out:
 	return plugin;
 }
 
@@ -276,9 +272,7 @@ cra_plugin_loader_setup (GPtrArray *plugins, GError **error)
 {
 	const gchar *filename_tmp;
 	const gchar *location = "./plugins/.libs/";
-	gboolean ret = TRUE;
-	gchar *filename_plugin;
-	GDir *dir;
+	_cleanup_dir_close_ GDir *dir;
 
 	/* search system-wide if not found locally */
 	if (!g_file_test (location, G_FILE_TEST_EXISTS))
@@ -286,14 +280,13 @@ cra_plugin_loader_setup (GPtrArray *plugins, GError **error)
 
 	/* search in the plugin directory for plugins */
 	dir = g_dir_open (location, 0, error);
-	if (dir == NULL) {
-		ret = FALSE;
-		goto out;
-	}
+	if (dir == NULL)
+		return FALSE;
 
 	/* try to open each plugin */
 	g_debug ("searching for plugins in %s", location);
 	do {
+		_cleanup_free_ gchar *filename_plugin = NULL;
 		filename_tmp = g_dir_read_name (dir);
 		if (filename_tmp == NULL)
 			break;
@@ -303,16 +296,12 @@ cra_plugin_loader_setup (GPtrArray *plugins, GError **error)
 						    filename_tmp,
 						    NULL);
 		cra_plugin_loader_open_plugin (plugins, filename_plugin);
-		g_free (filename_plugin);
 	} while (TRUE);
 
 	/* run the plugins */
 	cra_plugin_loader_run (plugins, "cra_plugin_initialize");
 	g_ptr_array_sort (plugins, cra_plugin_loader_sort_cb);
-out:
-	if (dir != NULL)
-		g_dir_close (dir);
-	return ret;
+	return TRUE;
 }
 
 /**

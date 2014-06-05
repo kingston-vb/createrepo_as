@@ -45,8 +45,8 @@ static gboolean
 cra_plugin_nm_app (CraApp *app, const gchar *filename, GError **error)
 {
 	gboolean ret;
-	gchar *data_err = NULL;
-	gchar *data_out = NULL;
+	_cleanup_free_ gchar *data_err = NULL;
+	_cleanup_free_ gchar *data_out = NULL;
 	const gchar *argv[] = { "/usr/bin/nm",
 				"--dynamic",
 				"--no-sort",
@@ -65,15 +65,12 @@ cra_plugin_nm_app (CraApp *app, const gchar *filename, GError **error)
 			    &data_err,
 			    NULL, error);
 	if (!ret)
-		goto out;
+		return FALSE;
 	if (g_strstr_len (data_out, -1, "gtk_application_new") != NULL)
 		as_app_add_metadata (AS_APP (app), "X-Kudo-GTK3", "", -1);
 	if (g_strstr_len (data_out, -1, "gtk_application_set_app_menu") != NULL)
 		as_app_add_metadata (AS_APP (app), "X-Kudo-UsesAppMenu", "", -1);
-out:
-	g_free (data_err);
-	g_free (data_out);
-	return ret;
+	return TRUE;
 }
 
 /**
@@ -86,21 +83,20 @@ cra_plugin_process_app (CraPlugin *plugin,
 			const gchar *tmpdir,
 			GError **error)
 {
-	gboolean ret;
 	gchar **filelist;
-	gchar *filename;
-	GError *error_local = NULL;
 	guint i;
 
 	filelist = cra_package_get_filelist (pkg);
 	for (i = 0; filelist[i] != NULL; i++) {
+		GError *error_local = NULL;
+		_cleanup_free_ gchar *filename = NULL;
+
 		if (!g_str_has_prefix (filelist[i], "/usr/bin/"))
 			continue;
 		if (as_app_get_metadata_item (AS_APP (app), "X-Kudo-UsesAppMenu") != NULL)
 			break;
 		filename = g_build_filename (tmpdir, filelist[i], NULL);
-		ret = cra_plugin_nm_app (app, filename, &error_local);
-		if (!ret) {
+		if (!cra_plugin_nm_app (app, filename, &error_local)) {
 			cra_package_log (pkg,
 					 CRA_PACKAGE_LOG_LEVEL_WARNING,
 					 "Failed to run nm on %s: %s",
@@ -108,7 +104,6 @@ cra_plugin_process_app (CraPlugin *plugin,
 					 error_local->message);
 			g_clear_error (&error_local);
 		}
-		g_free (filename);
 	}
 	return TRUE;
 }

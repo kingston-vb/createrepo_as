@@ -82,15 +82,14 @@ cra_plugin_check_filename (CraPlugin *plugin, const gchar *filename)
 static void
 cra_font_fix_metadata (CraApp *app)
 {
+	GList *l;
+	PangoLanguage *plang;
 	const gchar *tmp;
 	const gchar *value;
-	gchar *icon_tmp;
-	GList *l;
-	GList *langs = NULL;
-	GString *str = NULL;
 	gint percentage;
 	guint j;
-	PangoLanguage *plang;
+	_cleanup_list_free_ GList *langs = NULL;
+	_cleanup_string_free_ GString *str = NULL;
 	struct {
 		const gchar	*lang;
 		const gchar	*value;
@@ -175,7 +174,7 @@ cra_font_fix_metadata (CraApp *app)
 		cra_package_log (cra_app_get_package (app),
 				 CRA_PACKAGE_LOG_LEVEL_WARNING,
 				 "No langs detected");
-		goto out;
+		return;
 	}
 	if (as_app_get_metadata_item (AS_APP (app), "FontIconText") == NULL) {
 		for (l = langs; l != NULL; l = l->next) {
@@ -192,11 +191,11 @@ cra_font_fix_metadata (CraApp *app)
 						      "FontIconText",
 						      "Aa", -1);
 			} else {
+				_cleanup_free_ gchar *icon_tmp;
 				icon_tmp = g_utf8_substring (value, 0, 2);
 				as_app_add_metadata (AS_APP (app),
 						      "FontIconText",
 						      icon_tmp, -1);
-				g_free (icon_tmp);
 			}
 		}
 	}
@@ -215,10 +214,6 @@ cra_font_fix_metadata (CraApp *app)
 				 "No FontSampleText for langs: %s",
 				 str->str);
 	}
-out:
-	g_list_free (langs);
-	if (str != NULL)
-		g_string_free (str, TRUE);
 }
 
 /**
@@ -243,7 +238,6 @@ static void
 cra_font_add_metadata (CraApp *app, FT_Face ft_face)
 {
 	FT_SfntName sfname;
-	gchar *val;
 	guint i;
 	guint j;
 	guint len;
@@ -265,6 +259,7 @@ cra_font_add_metadata (CraApp *app, FT_Face ft_face)
 	for (i = 0; i < len; i++) {
 		FT_Get_Sfnt_Name (ft_face, i, &sfname);
 		for (j = 0; tt_idx_to_md_name[j].key != NULL; j++) {
+			_cleanup_free_ gchar *val = NULL;
 			if (sfname.name_id != tt_idx_to_md_name[j].idx)
 				continue;
 			val = g_locale_to_utf8 ((gchar *) sfname.string,
@@ -282,7 +277,6 @@ cra_font_add_metadata (CraApp *app, FT_Face ft_face)
 						 "Ignoring %s value: '%s'",
 						 tt_idx_to_md_name[j].key, val);
 			}
-			g_free (val);
 		}
 	}
 }
@@ -393,21 +387,20 @@ cra_font_get_caption (CraApp *app)
 static gboolean
 cra_font_add_screenshot (CraApp *app, FT_Face ft_face, GError **error)
 {
-	AsScreenshot *ss = NULL;
-	AsImage *im = NULL;
-	GdkPixbuf *pixbuf = NULL;
 	const gchar *cache_dir;
 	const gchar *mirror_uri;
 	const gchar *tmp;
-	gboolean ret = TRUE;
-	gchar *basename = NULL;
-	gchar *cache_fn = NULL;
-	gchar *caption = NULL;
-	gchar *url_tmp = NULL;
+	_cleanup_free_ gchar *basename = NULL;
+	_cleanup_free_ gchar *cache_fn = NULL;
+	_cleanup_free_ gchar *caption = NULL;
+	_cleanup_free_ gchar *url_tmp = NULL;
+	_cleanup_object_unref_ AsImage *im = NULL;
+	_cleanup_object_unref_ AsScreenshot *ss = NULL;
+	_cleanup_object_unref_ GdkPixbuf *pixbuf = NULL;
 
 	tmp = as_app_get_metadata_item (AS_APP (app), "FontSampleText");
 	if (tmp == NULL)
-		goto out;
+		return TRUE;
 
 	/* is in the cache */
 	cache_dir = cra_package_get_config (cra_app_get_package (app), "CacheDir");
@@ -416,26 +409,21 @@ cra_font_add_screenshot (CraApp *app, FT_Face ft_face, GError **error)
 				    as_app_get_id (AS_APP (app)));
 	if (g_file_test (cache_fn, G_FILE_TEST_EXISTS)) {
 		pixbuf = gdk_pixbuf_new_from_file (cache_fn, error);
-		if (pixbuf == NULL) {
-			ret = FALSE;
-			goto out;
-		}
+		if (pixbuf == NULL)
+			return FALSE;
 	} else {
 		pixbuf = cra_font_get_pixbuf (ft_face, 640, 48, tmp, error);
-		if (pixbuf == NULL) {
-			ret = FALSE;
-			goto out;
-		}
+		if (pixbuf == NULL)
+			return FALSE;
 	}
 
 	/* check pixbuf is not just blank */
 	if (cra_font_is_pixbuf_empty (pixbuf)) {
-		ret = FALSE;
 		g_set_error_literal (error,
 				     CRA_PLUGIN_ERROR,
 				     CRA_PLUGIN_ERROR_FAILED,
 				     "Could not generate font preview");
-		goto out;
+		return FALSE;
 	}
 
 	mirror_uri = cra_package_get_config (cra_app_get_package (app),
@@ -463,22 +451,10 @@ cra_font_add_screenshot (CraApp *app, FT_Face ft_face, GError **error)
 
 	/* save to cache */
 	if (!g_file_test (cache_fn, G_FILE_TEST_EXISTS)) {
-		ret = gdk_pixbuf_save (pixbuf, cache_fn, "png", error, NULL);
-		if (!ret)
-			goto out;
+		if (!gdk_pixbuf_save (pixbuf, cache_fn, "png", error, NULL))
+			return FALSE;
 	}
-out:
-	if (pixbuf != NULL)
-		g_object_unref (pixbuf);
-	if (ss != NULL)
-		g_object_unref (ss);
-	if (im != NULL)
-		g_object_unref (im);
-	g_free (basename);
-	g_free (cache_fn);
-	g_free (caption);
-	g_free (url_tmp);
-	return ret;
+	return TRUE;
 }
 
 /**
@@ -522,9 +498,9 @@ static void
 cra_plugin_font_set_name (CraApp *app, const gchar *name)
 {
 	const gchar *ptr;
-	gchar *tmp;
 	guint i;
 	guint len;
+	_cleanup_free_ gchar *tmp;
 	const gchar *prefixes[] = { "GFS ", NULL };
 	const gchar *suffixes[] = { " SIL",
 				    " ADF",
@@ -549,7 +525,6 @@ cra_plugin_font_set_name (CraApp *app, const gchar *name)
 			ptr += strlen (prefixes[i]);
 	}
 	as_app_set_name (AS_APP (app), "C", ptr, -1);
-	g_free (tmp);
 }
 
 /**
@@ -563,7 +538,6 @@ cra_plugin_process_filename (CraPlugin *plugin,
 			     const gchar *tmpdir,
 			     GError **error)
 {
-	CraApp *app = NULL;
 	FcConfig *config;
 	FcFontSet *fonts;
 	FT_Error rc;
@@ -571,12 +545,13 @@ cra_plugin_process_filename (CraPlugin *plugin,
 	FT_Library library = NULL;
 	const gchar *tmp;
 	gboolean ret = TRUE;
-	gchar *app_id = NULL;
-	gchar *comment = NULL;
-	gchar *filename_full;
-	gchar *icon_filename = NULL;
-	GdkPixbuf *pixbuf = NULL;
 	const FcPattern *pattern;
+	_cleanup_free_ gchar *app_id = NULL;
+	_cleanup_free_ gchar *comment = NULL;
+	_cleanup_free_ gchar *filename_full;
+	_cleanup_free_ gchar *icon_filename = NULL;
+	_cleanup_object_unref_ CraApp *app = NULL;
+	_cleanup_object_unref_ GdkPixbuf *pixbuf = NULL;
 
 	/* load font */
 	filename_full = g_build_filename (tmpdir, filename, NULL);
@@ -658,20 +633,12 @@ cra_plugin_process_filename (CraPlugin *plugin,
 	/* add */
 	cra_plugin_add_app (apps, app);
 out:
-	if (pixbuf != NULL)
-		g_object_unref (pixbuf);
-	if (app != NULL)
-		g_object_unref (app);
 	FcConfigAppFontClear (config);
 	FcConfigDestroy (config);
 	if (ft_face != NULL)
 		FT_Done_Face (ft_face);
 	if (library != NULL)
 		FT_Done_Library (library);
-	g_free (app_id);
-	g_free (comment);
-	g_free (filename_full);
-	g_free (icon_filename);
 	return ret;
 }
 
@@ -701,8 +668,7 @@ cra_plugin_process (CraPlugin *plugin,
 						   error);
 		if (!ret) {
 			g_list_free_full (apps, (GDestroyNotify) g_object_unref);
-			apps = NULL;
-			goto out;
+			return NULL;
 		}
 	}
 
@@ -713,9 +679,8 @@ cra_plugin_process (CraPlugin *plugin,
 			     CRA_PLUGIN_ERROR_FAILED,
 			     "nothing interesting in %s",
 			     cra_package_get_basename (pkg));
-		goto out;
+		return NULL;
 	}
-out:
 	return apps;
 }
 
@@ -767,11 +732,11 @@ cra_font_merge_family (GList **list, const gchar *md_key)
 {
 	CraApp *app;
 	CraApp *found;
-	GHashTable *hash;
 	GList *hash_values = NULL;
 	GList *l;
 	GList *list_new = NULL;
 	const gchar *tmp;
+	_cleanup_hashtable_unref_ GHashTable *hash;
 
 	hash = g_hash_table_new_full (g_str_hash, g_str_equal,
 				      g_free, (GDestroyNotify) g_object_unref);
@@ -820,9 +785,6 @@ cra_font_merge_family (GList **list, const gchar *md_key)
 	/* success */
 	g_list_free_full (*list, (GDestroyNotify) g_object_unref);
 	*list = list_new;
-
-
-	g_hash_table_unref (hash);
 }
 
 /**

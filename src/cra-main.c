@@ -21,6 +21,7 @@
 
 #include "config.h"
 
+#include "cra-cleanup.h"
 #include "cra-context.h"
 #include "cra-package.h"
 #include "cra-plugin.h"
@@ -72,7 +73,7 @@ cra_task_add_suitable_plugins (CraTask *task, GPtrArray *plugins)
 
 	filelist = cra_package_get_filelist (task->pkg);
 	if (filelist == NULL)
-		goto out;
+		return;
 	for (i = 0; filelist[i] != NULL; i++) {
 		plugin = cra_plugin_loader_match_fn (plugins, filelist[i]);
 		if (plugin == NULL)
@@ -88,8 +89,6 @@ cra_task_add_suitable_plugins (CraTask *task, GPtrArray *plugins)
 		if (j == task->plugins_to_run->len)
 			g_ptr_array_add (task->plugins_to_run, plugin);
 	}
-out:
-	return;
 }
 
 /**
@@ -101,13 +100,13 @@ cra_context_explode_extra_package (CraContext *ctx,
 				   const gchar *pkg_name)
 {
 	CraPackage *pkg_extra;
-	GError *error = NULL;
 	gboolean ret = TRUE;
+	_cleanup_error_free_ GError *error = NULL;
 
 	/* if not found, that's fine */
 	pkg_extra = cra_context_find_by_pkgname (ctx, pkg_name);
 	if (pkg_extra == NULL)
-		goto out;
+		return TRUE;
 	cra_package_log (task->pkg,
 			 CRA_PACKAGE_LOG_LEVEL_DEBUG,
 			 "Adding extra package %s for %s",
@@ -120,9 +119,7 @@ cra_context_explode_extra_package (CraContext *ctx,
 				 CRA_PACKAGE_LOG_LEVEL_WARNING,
 				 "Failed to explode extra file: %s",
 				 error->message);
-		g_error_free (error);
 	}
-out:
 	return ret;
 }
 
@@ -132,10 +129,9 @@ out:
 static gboolean
 cra_context_explode_extra_packages (CraContext *ctx, CraTask *task)
 {
-	GPtrArray *array;
 	const gchar *tmp;
-	gboolean ret = TRUE;
 	guint i;
+	_cleanup_ptrarray_unref_ GPtrArray *array;
 
 	/* anything hardcoded */
 	array = g_ptr_array_new_with_free_func (g_free);
@@ -150,13 +146,10 @@ cra_context_explode_extra_packages (CraContext *ctx, CraTask *task)
 	g_ptr_array_add (array, g_strdup_printf ("%s-common", tmp));
 	for (i = 0; i < array->len; i++) {
 		tmp = g_ptr_array_index (array, i);
-		ret = cra_context_explode_extra_package (ctx, task, tmp);
-		if (!ret)
-			goto out;
+		if (!cra_context_explode_extra_package (ctx, task, tmp))
+			return FALSE;
 	}
-out:
-	g_ptr_array_unref (array);
-	return ret;
+	return TRUE;
 }
 
 /**
@@ -165,10 +158,10 @@ out:
 static void
 cra_context_check_urls (AsApp *app, CraPackage *pkg)
 {
-	GError *error = NULL;
 	const gchar *url;
 	gboolean ret;
 	guint i;
+	_cleanup_error_free_ GError *error = NULL;
 
 	for (i = 0; i < AS_URL_KIND_LAST; i++) {
 		url = as_app_get_url_item (app, i);
@@ -200,16 +193,16 @@ cra_task_process_func (gpointer data, gpointer user_data)
 	CraTask *task = (CraTask *) data;
 	gboolean ret;
 	gboolean valid;
-	gchar *basename = NULL;
 	gchar *cache_id;
 	gchar *tmp;
-	GError *error = NULL;
 	GList *apps = NULL;
 	GList *l;
 	GPtrArray *array;
 	guint i;
 	guint nr_added = 0;
 	const gchar * const *kudos;
+	_cleanup_error_free_ GError *error = NULL;
+	_cleanup_free_ gchar *basename = NULL;
 
 	/* reset the profile timer */
 	cra_package_log_start (task->pkg);
@@ -231,7 +224,6 @@ cra_task_process_func (gpointer data, gpointer user_data)
 			cra_package_log (task->pkg,
 					 CRA_PACKAGE_LOG_LEVEL_WARNING,
 					 "Failed to clear: %s", error->message);
-			g_error_free (error);
 			goto out;
 		}
 	}
@@ -423,7 +415,7 @@ skip:
 	/* add a dummy element to the AppStream metadata so that we don't keep
 	 * parsing this every time */
 	if (ctx->add_cache_id && nr_added == 0) {
-		AsApp *dummy;
+		_cleanup_object_unref_ AsApp *dummy;
 		dummy = as_app_new ();
 		as_app_set_id_full (dummy, cra_package_get_name (task->pkg), -1);
 		cache_id = cra_utils_get_cache_id_for_filename (task->filename);
@@ -432,30 +424,25 @@ skip:
 				     cache_id, -1);
 		cra_context_add_app (ctx, (CraApp *) dummy);
 		g_free (cache_id);
-		g_object_unref (dummy);
 	}
 
 	/* delete tree */
 	if (!ctx->use_package_cache) {
-		ret = cra_utils_rmtree (task->tmpdir, &error);
-		if (!ret) {
+		if (!cra_utils_rmtree (task->tmpdir, &error)) {
 			cra_package_log (task->pkg,
 					 CRA_PACKAGE_LOG_LEVEL_WARNING,
 					 "Failed to delete tree: %s",
 					 error->message);
-			g_error_free (error);
 			goto out;
 		}
 	}
 
 	/* write log */
-	ret = cra_package_log_flush (task->pkg, &error);
-	if (!ret) {
+	if (!cra_package_log_flush (task->pkg, &error)) {
 		cra_package_log (task->pkg,
 				 CRA_PACKAGE_LOG_LEVEL_WARNING,
 				 "Failed to write package log: %s",
 				 error->message);
-		g_error_free (error);
 		goto out;
 	}
 
@@ -465,7 +452,6 @@ skip:
 		 ctx->packages->len,
 		 cra_package_get_name (task->pkg));
 out:
-	g_free (basename);
 	g_list_free_full (apps, (GDestroyNotify) g_object_unref);
 }
 
@@ -475,8 +461,7 @@ out:
 static gboolean
 cra_context_add_filename (CraContext *ctx, const gchar *filename, GError **error)
 {
-	CraPackage *pkg = NULL;
-	gboolean ret;
+	_cleanup_object_unref_ CraPackage *pkg = NULL;
 
 	/* open */
 #if HAVE_RPM
@@ -486,17 +471,15 @@ cra_context_add_filename (CraContext *ctx, const gchar *filename, GError **error
 	if (g_str_has_suffix (filename, ".deb"))
 		pkg = cra_package_deb_new ();
 	if (pkg == NULL) {
-		ret = FALSE;
 		g_set_error (error,
 			     CRA_PLUGIN_ERROR,
 			     CRA_PLUGIN_ERROR_FAILED,
 			     "No idea how to handle %s",
 			     filename);
-		goto out;
+		return FALSE;
 	}
-	ret = cra_package_open (pkg, filename, error);
-	if (!ret)
-		goto out;
+	if (!cra_package_open (pkg, filename, error))
+		return FALSE;
 
 	/* is package name blacklisted */
 	if (cra_glob_value_search (ctx->blacklisted_pkgs,
@@ -505,15 +488,12 @@ cra_context_add_filename (CraContext *ctx, const gchar *filename, GError **error
 				 CRA_PACKAGE_LOG_LEVEL_INFO,
 				 "%s is blacklisted",
 				 cra_package_get_filename (pkg));
-		goto out;
+		return TRUE;
 	}
 
 	/* add to array */
 	g_ptr_array_add (ctx->packages, g_object_ref (pkg));
-out:
-	if (pkg != NULL)
-		g_object_unref (pkg);
-	return ret;
+	return TRUE;
 }
 
 /**
@@ -526,17 +506,13 @@ cra_context_write_icons (CraContext *ctx,
 			 const gchar *basename,
 			 GError **error)
 {
-	gboolean ret;
-	gchar *filename;
-	gchar *icons_dir;
+	_cleanup_free_ gchar *filename;
+	_cleanup_free_ gchar *icons_dir;
 
 	icons_dir = g_build_filename (temp_dir, "icons", NULL);
 	filename = g_strdup_printf ("%s/%s-icons.tar.gz", output_dir, basename);
 	g_print ("Writing %s...\n", filename);
-	ret = cra_utils_write_archive_dir (filename, icons_dir, error);
-	g_free (filename);
-	g_free (icons_dir);
-	return ret;
+	return cra_utils_write_archive_dir (filename, icons_dir, error);
 }
 
 /**
@@ -549,11 +525,10 @@ cra_context_write_xml (CraContext *ctx,
 		       GError **error)
 {
 	AsApp *app;
-	AsStore *store;
 	GList *l;
-	gchar *filename = NULL;
-	GFile *file;
-	gboolean ret;
+	_cleanup_free_ gchar *filename = NULL;
+	_cleanup_object_unref_ AsStore *store;
+	_cleanup_object_unref_ GFile *file;
 
 	store = as_store_new ();
 	for (l = ctx->apps; l != NULL; l = l->next) {
@@ -570,20 +545,12 @@ cra_context_write_xml (CraContext *ctx,
 	g_print ("Writing %s...\n", filename);
 	as_store_set_origin (store, basename);
 	as_store_set_api_version (store, ctx->api_version);
-	ret = as_store_to_file (store,
-				file,
-				AS_NODE_TO_XML_FLAG_ADD_HEADER |
-				AS_NODE_TO_XML_FLAG_FORMAT_INDENT |
-				AS_NODE_TO_XML_FLAG_FORMAT_MULTILINE,
-				NULL, error);
-	if (!ret)
-		goto out;
-
-out:
-	g_free (filename);
-	g_object_unref (file);
-	g_object_unref (store);
-	return ret;
+	return as_store_to_file (store,
+				 file,
+				 AS_NODE_TO_XML_FLAG_ADD_HEADER |
+				 AS_NODE_TO_XML_FLAG_FORMAT_INDENT |
+				 AS_NODE_TO_XML_FLAG_FORMAT_MULTILINE,
+				 NULL, error);
 }
 
 /**
@@ -595,8 +562,8 @@ cra_context_disable_older_packages (CraContext *ctx)
 	const gchar *key;
 	CraPackage *found;
 	CraPackage *pkg;
-	GHashTable *newest;
 	guint i;
+	_cleanup_hashtable_unref_ GHashTable *newest;
 
 	newest = g_hash_table_new_full (g_str_hash, g_str_equal,
 					g_free, (GDestroyNotify) g_object_unref);
@@ -615,7 +582,6 @@ cra_context_disable_older_packages (CraContext *ctx)
 		}
 		g_hash_table_insert (newest, g_strdup (key), g_object_ref (pkg));
 	}
-	g_hash_table_unref (newest);
 }
 
 /**
@@ -625,27 +591,21 @@ static gboolean
 cra_main_find_in_cache (CraContext *ctx, const gchar *filename)
 {
 	AsApp *app;
-	GPtrArray *apps;
-	gboolean ret = TRUE;
-	gchar *cache_id;
 	guint i;
+	_cleanup_free_ gchar *cache_id;
+	_cleanup_ptrarray_unref_ GPtrArray *apps;
 
 	cache_id = cra_utils_get_cache_id_for_filename (filename);
 	apps = as_store_get_apps_by_metadata (ctx->old_md_cache,
 					      "X-CreaterepoAsCacheID",
 					      cache_id);
-	if (apps->len == 0) {
-		ret = FALSE;
-		goto out;
-	}
+	if (apps->len == 0)
+		return FALSE;
 	for (i = 0; i < apps->len; i++) {
 		app = g_ptr_array_index (apps, i);
 		cra_context_add_app (ctx, (CraApp *) app);
 	}
-out:
-	g_ptr_array_unref (apps);
-	g_free (cache_id);
-	return ret;
+	return TRUE;
 }
 
 /**
@@ -654,40 +614,40 @@ out:
 int
 main (int argc, char **argv)
 {
-	const gchar *filename;
 	CraContext *ctx = NULL;
 	CraPackage *pkg;
 	CraTask *task;
-	gboolean ret;
+	GOptionContext *option_context;
+	GThreadPool *pool;
+	const gchar *filename;
 	gboolean add_cache_id = FALSE;
 	gboolean extra_checks = FALSE;
-	gboolean verbose = FALSE;
 	gboolean no_net = FALSE;
+	gboolean ret;
 	gboolean use_package_cache = FALSE;
-	gdouble api_version = 0.0f;
-	gchar *basename = NULL;
-	gchar *extra_appdata = NULL;
-	gchar *extra_appstream = NULL;
-	gchar *extra_screenshots = NULL;
-	gchar *log_dir = NULL;
-	gchar *old_metadata = NULL;
-	gchar *output_dir = NULL;
-	gchar *cache_dir = NULL;
-	gchar *packages_dir = NULL;
-	gchar *screenshot_uri = NULL;
+	gboolean verbose = FALSE;
 	gchar *temp_dir = NULL;
 	gchar *tmp;
-	GDir *dir = NULL;
-	GError *error = NULL;
+	gdouble api_version = 0.0f;
 	gint max_threads = 4;
 	gint rc;
-	GFile *old_metadata_file = NULL;
-	GOptionContext *option_context;
-	GPtrArray *tasks = NULL;
-	GPtrArray *packages = NULL;
-	GThreadPool *pool;
-	GTimer *timer = NULL;
 	guint i;
+	_cleanup_dir_close_ GDir *dir = NULL;
+	_cleanup_error_free_ GError *error = NULL;
+	_cleanup_free_ gchar *basename = NULL;
+	_cleanup_free_ gchar *cache_dir = NULL;
+	_cleanup_free_ gchar *extra_appdata = NULL;
+	_cleanup_free_ gchar *extra_appstream = NULL;
+	_cleanup_free_ gchar *extra_screenshots = NULL;
+	_cleanup_free_ gchar *log_dir = NULL;
+	_cleanup_free_ gchar *old_metadata = NULL;
+	_cleanup_free_ gchar *output_dir = NULL;
+	_cleanup_free_ gchar *packages_dir = NULL;
+	_cleanup_free_ gchar *screenshot_uri = NULL;
+	_cleanup_object_unref_ GFile *old_metadata_file = NULL;
+	_cleanup_ptrarray_unref_ GPtrArray *packages = NULL;
+	_cleanup_ptrarray_unref_ GPtrArray *tasks = NULL;
+	_cleanup_timer_destroy_ GTimer *timer = NULL;
 	const GOptionEntry options[] = {
 		{ "verbose", 'v', 0, G_OPTION_ARG_NONE, &verbose,
 			"Show extra debugging information", NULL },
@@ -733,7 +693,6 @@ main (int argc, char **argv)
 	ret = g_option_context_parse (option_context, &argc, &argv, &error);
 	if (!ret) {
 		g_print ("Failed to parse arguments: %s\n", error->message);
-		g_error_free (error);
 		goto out;
 	}
 
@@ -784,7 +743,6 @@ main (int argc, char **argv)
 		ret = cra_utils_ensure_exists_and_empty (temp_dir, &error);
 		if (!ret) {
 			g_warning ("failed to create temp dir: %s", error->message);
-			g_error_free (error);
 			goto out;
 		}
 	}
@@ -800,7 +758,6 @@ main (int argc, char **argv)
 		ret = cra_utils_ensure_exists_and_empty (tmp, &error);
 		if (!ret) {
 			g_warning ("failed to create icons dir: %s", error->message);
-			g_error_free (error);
 			goto out;
 		}
 	}
@@ -853,7 +810,6 @@ main (int argc, char **argv)
 	ret = cra_plugin_loader_setup (ctx->plugins, &error);
 	if (!ret) {
 		g_warning ("failed to set up plugins: %s", error->message);
-		g_error_free (error);
 		goto out;
 	}
 	ctx->no_net = no_net;
@@ -871,7 +827,6 @@ main (int argc, char **argv)
 		if (!ret) {
 			g_warning ("failed to load old metadata: %s",
 				   error->message);
-			g_error_free (error);
 			goto out;
 		}
 	}
@@ -884,7 +839,6 @@ main (int argc, char **argv)
 				  &error);
 	if (pool == NULL) {
 		g_warning ("failed to set up pool: %s", error->message);
-		g_error_free (error);
 		goto out;
 	}
 
@@ -897,7 +851,6 @@ main (int argc, char **argv)
 		if (!ret) {
 			g_warning ("failed to open appstream-extra: %s",
 				   error->message);
-			g_error_free (error);
 			goto out;
 		}
 		g_print ("Added extra %i apps\n", g_list_length (ctx->apps));
@@ -909,7 +862,6 @@ main (int argc, char **argv)
 		dir = g_dir_open (packages_dir, 0, &error);
 		if (dir == NULL) {
 			g_warning ("failed to open packages: %s", error->message);
-			g_error_free (error);
 			goto out;
 		}
 		while ((filename = g_dir_read_name (dir)) != NULL) {
@@ -937,7 +889,6 @@ main (int argc, char **argv)
 		ret = cra_context_add_filename (ctx, filename, &error);
 		if (!ret) {
 			g_warning ("%s", error->message);
-			g_error_free (error);
 			goto out;
 		}
 		if (g_timer_elapsed (timer, NULL) > 3.f) {
@@ -989,7 +940,6 @@ main (int argc, char **argv)
 					 CRA_PACKAGE_LOG_LEVEL_WARNING,
 					 "failed to set up pool: %s",
 					 error->message);
-			g_error_free (error);
 			goto out;
 		}
 	}
@@ -1005,7 +955,6 @@ main (int argc, char **argv)
 	ret = cra_context_write_xml (ctx, output_dir, basename, &error);
 	if (!ret) {
 		g_warning ("Failed to write XML file: %s", error->message);
-		g_error_free (error);
 		goto out;
 	}
 
@@ -1017,36 +966,14 @@ main (int argc, char **argv)
 				       &error);
 	if (!ret) {
 		g_warning ("Failed to write icons archive: %s", error->message);
-		g_error_free (error);
 		goto out;
 	}
 
 	/* success */
 	g_print ("Done!\n");
 out:
-	g_free (screenshot_uri);
-	g_free (extra_appstream);
-	g_free (extra_appdata);
-	g_free (extra_screenshots);
-	g_free (packages_dir);
-	g_free (cache_dir);
-	g_free (temp_dir);
-	g_free (output_dir);
-	g_free (old_metadata);
-	g_free (basename);
-	g_free (log_dir);
 	g_option_context_free (option_context);
-	if (packages != NULL)
-		g_ptr_array_unref (packages);
-	if (timer != NULL)
-		g_timer_destroy (timer);
-	if (old_metadata_file != NULL)
-		g_object_unref (old_metadata_file);
-	if (tasks != NULL)
-		g_ptr_array_unref (tasks);
 	if (ctx != NULL)
 		cra_context_free (ctx);
-	if (dir != NULL)
-		g_dir_close (dir);
 	return 0;
 }

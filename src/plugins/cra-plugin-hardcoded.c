@@ -106,9 +106,9 @@ cra_plugin_hardcoded_add_screenshots (CraApp *app,
 {
 	const gchar *tmp;
 	gboolean ret = TRUE;
-	GDir *dir;
 	GList *l;
 	GList *list = NULL;
+	_cleanup_dir_close_ GDir *dir;
 
 	/* scan for files */
 	dir = g_dir_open (location, 0, error);
@@ -133,8 +133,6 @@ cra_plugin_hardcoded_add_screenshots (CraApp *app,
 	}
 out:
 	g_list_free_full (list, g_free);
-	if (dir != NULL)
-		g_dir_close (dir);
 	return ret;
 }
 
@@ -150,9 +148,7 @@ cra_plugin_process_app (CraPlugin *plugin,
 {
 	const gchar *tmp;
 	AsRelease *release;
-	gboolean ret = TRUE;
 	gchar **deps;
-	gchar *dirname = NULL;
 	gchar **filelist;
 	GPtrArray *releases;
 	guint i;
@@ -297,13 +293,11 @@ cra_plugin_process_app (CraPlugin *plugin,
 	/* do any extra screenshots exist */
 	tmp = cra_package_get_config (pkg, "ScreenshotsExtra");
 	if (tmp != NULL) {
+		_cleanup_free_ gchar *dirname = NULL;
 		dirname = g_build_filename (tmp, as_app_get_id (AS_APP (app)), NULL);
 		if (g_file_test (dirname, G_FILE_TEST_EXISTS)) {
-			ret = cra_plugin_hardcoded_add_screenshots (app,
-								    dirname,
-								    error);
-			if (!ret)
-				goto out;
+			if (!cra_plugin_hardcoded_add_screenshots (app, dirname, error))
+				return FALSE;
 		}
 	}
 
@@ -315,7 +309,5 @@ cra_plugin_process_app (CraPlugin *plugin,
 	if (as_app_get_categories(AS_APP(app))->len == 0)
 		cra_app_add_requires_appdata (app, "no Categories");
 
-out:
-	g_free (dirname);
-	return ret;
+	return TRUE;
 }

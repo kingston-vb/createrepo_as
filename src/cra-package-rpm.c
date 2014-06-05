@@ -28,6 +28,7 @@
 #include <rpm/rpmlib.h>
 #include <rpm/rpmts.h>
 
+#include "cra-cleanup.h"
 #include "cra-package-rpm.h"
 #include "cra-plugin.h"
 
@@ -69,11 +70,11 @@ cra_package_rpm_init (CraPackageRpm *pkg)
 static void
 cra_package_rpm_set_license (CraPackage *pkg, const gchar *license)
 {
-	GString *new;
 	const gchar *tmp;
-	gchar **split;
 	guint i;
 	guint j;
+	_cleanup_strv_free_ gchar **split;
+	_cleanup_string_free_ GString *new;
 	struct {
 		const gchar	*fedora;
 		const gchar	*spdx;
@@ -189,8 +190,6 @@ cra_package_rpm_set_license (CraPackage *pkg, const gchar *license)
 	}
 
 	cra_package_set_license (pkg, new->str);
-	g_string_free (new, TRUE);
-	g_strfreev (split);
 }
 
 /**
@@ -202,7 +201,7 @@ cra_package_rpm_ensure_simple (CraPackage *pkg, GError **error)
 	CraPackageRpm *pkg_rpm = CRA_PACKAGE_RPM (pkg);
 	CraPackageRpmPrivate *priv = GET_PRIVATE (pkg_rpm);
 	gboolean ret = TRUE;
-	gchar *srcrpm;
+	_cleanup_free_ gchar *srcrpm;
 	gchar *tmp;
 	rpmtd td = NULL;
 
@@ -232,7 +231,6 @@ cra_package_rpm_ensure_simple (CraPackage *pkg, GError **error)
 	cra_package_set_source (pkg, srcrpm);
 	if (td != NULL)
 		rpmtdFree (td);
-	g_free (srcrpm);
 	return ret;
 }
 
@@ -243,9 +241,8 @@ static gboolean
 cra_package_rpm_release_set_text (AsRelease *release,
 					 const gchar *text)
 {
-	gboolean ret = TRUE;
-	gchar *markup = NULL;
 	guint i;
+	_cleanup_free_ gchar *markup = NULL;
 	const gchar *blacklisted[] = { " BR ",
 				       " >= ",
 				       "BuildRequires",
@@ -284,19 +281,15 @@ cra_package_rpm_release_set_text (AsRelease *release,
 				       as_release_get_version (release),
 				       NULL };
 	for (i = 0; blacklisted[i] != NULL; i++) {
-		if (g_strstr_len (text, -1, blacklisted[i]) != NULL) {
-			ret = FALSE;
-			goto out;
-		}
+		if (g_strstr_len (text, -1, blacklisted[i]) != NULL)
+			return FALSE;
 	}
 	/* remove prefix */
 	if (g_str_has_prefix (text, "- "))
 		text += 2;
 	markup = g_strdup_printf ("<p>%s</p>", text);
 	as_release_set_description (release, NULL, markup, -1);
-out:
-	g_free (markup);
-	return ret;
+	return TRUE;
 }
 
 /**
@@ -310,7 +303,7 @@ cra_package_rpm_add_release (CraPackage *pkg,
 {
 	AsRelease *release;
 	const gchar *version;
-	gchar *name_dup;
+	_cleanup_free_ gchar *name_dup;
 	gchar *tmp;
 	gchar *vr;
 
@@ -318,14 +311,14 @@ cra_package_rpm_add_release (CraPackage *pkg,
 	name_dup = g_strchomp (g_strdup (name));
 	vr = g_strrstr (name_dup, " ");
 	if (vr == NULL)
-		goto out;
+		return;
 
 	/* get last string chunk */
 	version = vr + 1;
 	tmp = g_strstr_len (version, -1, "-");
 	if (tmp == NULL) {
 		if (g_strstr_len (version, -1, ">") != NULL)
-			goto out;
+			return;
 	} else {
 		*tmp = '\0';
 	}
@@ -354,8 +347,6 @@ cra_package_rpm_add_release (CraPackage *pkg,
 		cra_package_add_release (pkg, version, release);
 		g_object_unref (release);
 	}
-out:
-	g_free (name_dup);
 }
 
 /**
@@ -366,7 +357,6 @@ cra_package_rpm_ensure_releases (CraPackage *pkg, GError **error)
 {
 	CraPackageRpm *pkg_rpm = CRA_PACKAGE_RPM (pkg);
 	CraPackageRpmPrivate *priv = GET_PRIVATE (pkg_rpm);
-	gboolean ret = TRUE;
 	guint i;
 	rpmtd td[3] = { NULL, NULL, NULL };
 
@@ -389,7 +379,7 @@ cra_package_rpm_ensure_releases (CraPackage *pkg, GError **error)
 		rpmtdFreeData (td[i]);
 		rpmtdFree (td[i]);
 	}
-	return ret;
+	return TRUE;
 }
 
 /**
@@ -401,12 +391,12 @@ cra_package_rpm_ensure_deps (CraPackage *pkg, GError **error)
 	CraPackageRpm *pkg_rpm = CRA_PACKAGE_RPM (pkg);
 	CraPackageRpmPrivate *priv = GET_PRIVATE (pkg_rpm);
 	const gchar *dep;
-	gchar **deps = NULL;
 	gboolean ret = TRUE;
 	gchar *tmp;
 	gint rc;
 	guint i = 0;
 	rpmtd td = NULL;
+	_cleanup_strv_free_ gchar **deps = NULL;
 
 	/* read out the dep list */
 	td = rpmtdNew ();
@@ -436,7 +426,6 @@ cra_package_rpm_ensure_deps (CraPackage *pkg, GError **error)
 	}
 	cra_package_set_deps (pkg, deps);
 out:
-	g_strfreev (deps);
 	rpmtdFreeData (td);
 	rpmtdFree (td);
 	return ret;
@@ -450,13 +439,13 @@ cra_package_rpm_ensure_filelists (CraPackage *pkg, GError **error)
 {
 	CraPackageRpm *pkg_rpm = CRA_PACKAGE_RPM (pkg);
 	CraPackageRpmPrivate *priv = GET_PRIVATE (pkg_rpm);
-	const gchar **dirnames = NULL;
 	gboolean ret = TRUE;
-	gchar **filelist = NULL;
-	gint32 *dirindex = NULL;
 	gint rc;
 	guint i;
 	rpmtd td[3] = { NULL, NULL, NULL };
+	_cleanup_free_ const gchar **dirnames = NULL;
+	_cleanup_free_ gint32 *dirindex = NULL;
+	_cleanup_strv_free_ gchar **filelist = NULL;
 
 	/* read out the file list */
 	for (i = 0; i < 3; i++)
@@ -497,9 +486,6 @@ out:
 		rpmtdFreeData (td[i]);
 		rpmtdFree (td[i]);
 	}
-	g_strfreev (filelist);
-	g_free (dirindex);
-	g_free (dirnames);
 	return ret;
 }
 

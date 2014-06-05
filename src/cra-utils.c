@@ -27,6 +27,7 @@
 #include <archive_entry.h>
 #include <string.h>
 
+#include "cra-cleanup.h"
 #include "cra-utils.h"
 #include "cra-plugin.h"
 
@@ -38,17 +39,13 @@
 gchar *
 cra_utils_get_cache_id_for_filename (const gchar *filename)
 {
-	gchar *basename;
-	gchar *cache_id;
+	_cleanup_free_ gchar *basename;
 
 	/* only use the basename and the cache version */
 	basename = g_path_get_basename (filename);
-	cache_id = g_strdup_printf ("%s:%i",
-				    basename,
-				    CRA_METADATA_CACHE_VERSION);
-
-	g_free (basename);
-	return cache_id;
+	return g_strdup_printf ("%s:%i",
+				basename,
+				CRA_METADATA_CACHE_VERSION);
 }
 
 /**
@@ -62,18 +59,16 @@ cra_utils_rmtree (const gchar *directory, GError **error)
 
 	ret = cra_utils_ensure_exists_and_empty (directory, error);
 	if (!ret)
-		goto out;
+		return FALSE;
 	rc = g_remove (directory);
 	if (rc != 0) {
-		ret = FALSE;
 		g_set_error (error,
 			     CRA_PLUGIN_ERROR,
 			     CRA_PLUGIN_ERROR_FAILED,
 			     "Failed to delete: %s", directory);
-		goto out;
+		return FALSE;
 	}
-out:
-	return ret;
+	return TRUE;
 }
 
 /**
@@ -83,58 +78,43 @@ gboolean
 cra_utils_ensure_exists_and_empty (const gchar *directory, GError **error)
 {
 	const gchar *filename;
-	gboolean ret = TRUE;
-	gchar *src;
-	GDir *dir = NULL;
-	gint rc;
+	_cleanup_dir_close_ GDir *dir = NULL;
 
 	/* does directory exist */
 	if (!g_file_test (directory, G_FILE_TEST_EXISTS)) {
-		rc = g_mkdir_with_parents (directory, 0700);
-		if (rc != 0) {
-			ret = FALSE;
+		if (g_mkdir_with_parents (directory, 0700) != 0) {
 			g_set_error (error,
 				     CRA_PLUGIN_ERROR,
 				     CRA_PLUGIN_ERROR_FAILED,
-				     "Failed to delete: %s", directory);
-			goto out;
+				     "Failed to create: %s", directory);
+			return FALSE;
 		}
-		goto out;
+		return TRUE;
 	}
 
 	/* try to open */
 	dir = g_dir_open (directory, 0, error);
 	if (dir == NULL)
-		goto out;
+		return FALSE;
 
 	/* find each */
 	while ((filename = g_dir_read_name (dir))) {
+		_cleanup_free_ gchar *src;
 		src = g_build_filename (directory, filename, NULL);
-		ret = g_file_test (src, G_FILE_TEST_IS_DIR);
-		if (ret) {
-			ret = cra_utils_rmtree (src, error);
-			if (!ret)
-				goto out;
+		if (g_file_test (src, G_FILE_TEST_IS_DIR)) {
+			if (!cra_utils_rmtree (src, error))
+				return FALSE;
 		} else {
-			rc = g_unlink (src);
-			if (rc != 0) {
-				ret = FALSE;
+			if (g_unlink (src) != 0) {
 				g_set_error (error,
 					     CRA_PLUGIN_ERROR,
 					     CRA_PLUGIN_ERROR_FAILED,
 					     "Failed to delete: %s", src);
-				goto out;
+				return FALSE;
 			}
 		}
-		g_free (src);
 	}
-
-	/* success */
-	ret = TRUE;
-out:
-	if (dir != NULL)
-		g_dir_close (dir);
-	return ret;
+	return TRUE;
 }
 
 /**
@@ -146,13 +126,12 @@ cra_utils_explode_file (struct archive_entry *entry,
 			GPtrArray *glob)
 {
 	const gchar *tmp;
-	gboolean ret = TRUE;
 	gchar buf[PATH_MAX];
-	gchar *path = NULL;
+	_cleanup_free_ gchar *path = NULL;
 
 	/* no output file */
 	if (archive_entry_pathname (entry) == NULL)
-		goto out;
+		return FALSE;
 
 	/* do we have to decompress this file */
 	tmp = archive_entry_pathname (entry);
@@ -164,9 +143,8 @@ cra_utils_explode_file (struct archive_entry *entry,
 		} else {
 			path = g_strconcat ("/", tmp, NULL);
 		}
-		ret = cra_glob_value_search (glob, path) != NULL;
-		if (!ret)
-			goto out;
+		if (cra_glob_value_search (glob, path) == NULL)
+			return FALSE;
 	}
 
 	/* update output path */
@@ -186,9 +164,7 @@ cra_utils_explode_file (struct archive_entry *entry,
 		g_snprintf (buf, PATH_MAX, "%s/%s", dir, tmp);
 		archive_entry_update_symlink_utf8 (entry, buf);
 	}
-out:
-	g_free (path);
-	return ret;
+	return TRUE;
 }
 
 /**
@@ -202,11 +178,11 @@ cra_utils_explode (const gchar *filename,
 {
 	gboolean ret = TRUE;
 	gboolean valid;
-	gchar *data = NULL;
 	gsize len;
 	int r;
 	struct archive *arch = NULL;
 	struct archive_entry *entry;
+	_cleanup_free_ gchar *data = NULL;
 
 	/* load file at once to avoid seeking */
 	ret = g_file_get_contents (filename, &data, &len, error);
@@ -259,7 +235,6 @@ cra_utils_explode (const gchar *filename,
 		}
 	}
 out:
-	g_free (data);
 	if (arch != NULL) {
 		archive_read_close (arch);
 		archive_read_free (arch);
@@ -277,8 +252,6 @@ cra_utils_write_archive (const gchar *filename,
 {
 	const gchar *tmp;
 	gboolean ret = TRUE;
-	gchar *basename;
-	gchar *data;
 	gsize len;
 	guint i;
 	struct archive *a;
@@ -290,12 +263,13 @@ cra_utils_write_archive (const gchar *filename,
 	archive_write_set_format_pax_restricted (a);
 	archive_write_open_filename (a, filename);
 	for (i = 0; i < files->len; i++) {
+		_cleanup_free_ gchar *basename;
+		_cleanup_free_ gchar *data = NULL;
 		tmp = g_ptr_array_index (files, i);
 		stat (tmp, &st);
 		entry = archive_entry_new ();
 		basename = g_path_get_basename (tmp);
 		archive_entry_set_pathname (entry, basename);
-		g_free (basename);
 		archive_entry_set_size (entry, st.st_size);
 		archive_entry_set_filetype (entry, AE_IFREG);
 		archive_entry_set_perm (entry, 0644);
@@ -304,7 +278,6 @@ cra_utils_write_archive (const gchar *filename,
 		if (!ret)
 			goto out;
 		archive_write_data (a, data, len);
-		g_free (data);
 		archive_entry_free (entry);
 	}
 out:

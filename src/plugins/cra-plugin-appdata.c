@@ -93,32 +93,24 @@ cra_plugin_add_globs (CraPlugin *plugin, GPtrArray *globs)
 static gboolean
 cra_plugin_appdata_add_path (CraPlugin *plugin, const gchar *path, GError **error)
 {
-	GDir *dir = NULL;
 	const gchar *tmp;
-	gboolean ret = TRUE;
-	gchar *filename;
+	_cleanup_dir_close_ GDir *dir = NULL;
 
 	/* scan all the files */
 	dir = g_dir_open (path, 0, error);
-	if (dir == NULL) {
-		ret = FALSE;
-		goto out;
-	}
+	if (dir == NULL)
+		return FALSE;
 	while ((tmp = g_dir_read_name (dir)) != NULL) {
+		_cleanup_free_ gchar *filename;
 		filename = g_build_filename (path, tmp, NULL);
 		if (g_file_test (filename, G_FILE_TEST_IS_DIR)) {
-			ret = cra_plugin_appdata_add_path (plugin, filename, error);
-			g_free (filename);
-			if (!ret)
-				goto out;
+			if (!cra_plugin_appdata_add_path (plugin, filename, error))
+				return FALSE;
 		} else {
-			g_ptr_array_add (plugin->priv->filenames, filename);
+			g_ptr_array_add (plugin->priv->filenames, g_strdup (filename));
 		}
 	}
-out:
-	if (dir != NULL)
-		g_dir_close (dir);
-	return ret;
+	return TRUE;
 }
 
 /**
@@ -127,16 +119,15 @@ out:
 static gboolean
 cra_plugin_appdata_add_files (CraPlugin *plugin, const gchar *path, GError **error)
 {
-	gboolean ret = TRUE;
+	gboolean ret;
 
 	/* already done */
 	if (plugin->priv->filenames->len > 0)
-		goto out;
+		return TRUE;
 
 	g_mutex_lock (&plugin->priv->filenames_mutex);
 	ret = cra_plugin_appdata_add_path (plugin, path, error);
 	g_mutex_unlock  (&plugin->priv->filenames_mutex);
-out:
 	return ret;
 }
 
@@ -216,11 +207,11 @@ cra_plugin_appdata_load_url (CraPlugin *plugin,
 {
 	const gchar *cache_dir;
 	gboolean ret = TRUE;
-	gchar *basename;
-	gchar *cache_filename;
-	SoupMessage *msg = NULL;
 	SoupStatus status;
 	SoupURI *uri = NULL;
+	_cleanup_free_ gchar *basename;
+	_cleanup_free_ gchar *cache_filename;
+	_cleanup_object_unref_ SoupMessage *msg = NULL;
 
 	/* download to cache if not already added */
 	basename = g_path_get_basename (url);
@@ -270,10 +261,6 @@ cra_plugin_appdata_load_url (CraPlugin *plugin,
 out:
 	if (uri != NULL)
 		soup_uri_free (uri);
-	if (msg != NULL)
-		g_object_unref (msg);
-	g_free (basename);
-	g_free (cache_filename);
 	return ret;
 }
 
@@ -286,10 +273,8 @@ cra_plugin_process_filename (CraPlugin *plugin,
 			     const gchar *filename,
 			     GError **error)
 {
-	AsApp *appdata;
 	AsProblemKind problem_kind;
 	AsProblem *problem;
-	GPtrArray *problems = NULL;
 	const gchar *key;
 	const gchar *old;
 	const gchar *tmp;
@@ -299,23 +284,22 @@ cra_plugin_process_filename (CraPlugin *plugin,
 	GList *l;
 	GList *list;
 	guint i;
+	_cleanup_object_unref_ AsApp *appdata;
+	_cleanup_ptrarray_unref_ GPtrArray *problems = NULL;
 
 	/* validate */
 	appdata = as_app_new ();
-	ret = as_app_parse_file (appdata,
-				 filename,
+	ret = as_app_parse_file (appdata, filename,
 				 AS_APP_PARSE_FLAG_NONE,
 				 error);
 	if (!ret)
-		goto out;
+		return FALSE;
 	problems = as_app_validate (appdata,
 				    AS_APP_VALIDATE_FLAG_NO_NETWORK |
 				    AS_APP_VALIDATE_FLAG_RELAX,
 				    error);
-	if (problems == NULL) {
-		ret = FALSE;
-		goto out;
-	}
+	if (problems == NULL)
+		return FALSE;
 	for (i = 0; i < problems->len; i++) {
 		problem = g_ptr_array_index (problems, i);
 		problem_kind = as_problem_get_kind (problem);
@@ -329,16 +313,14 @@ cra_plugin_process_filename (CraPlugin *plugin,
 	/* check app id */
 	tmp = as_app_get_id_full (appdata);
 	if (tmp == NULL) {
-		ret = FALSE;
 		g_set_error (error,
 			     CRA_PLUGIN_ERROR,
 			     CRA_PLUGIN_ERROR_FAILED,
 			     "AppData %s has no ID",
 			     filename);
-		goto out;
+		return FALSE;
 	}
 	if (g_strcmp0 (tmp, as_app_get_id_full (AS_APP (app))) != 0) {
-		ret = FALSE;
 		g_set_error (error,
 			     CRA_PLUGIN_ERROR,
 			     CRA_PLUGIN_ERROR_FAILED,
@@ -346,28 +328,26 @@ cra_plugin_process_filename (CraPlugin *plugin,
 			     filename,
 			     tmp,
 			     as_app_get_id_full (AS_APP (app)));
-		goto out;
+		return FALSE;
 	}
 
 	/* check license */
 	tmp = as_app_get_metadata_license (appdata);
 	if (tmp == NULL) {
-		ret = FALSE;
 		g_set_error (error,
 			     CRA_PLUGIN_ERROR,
 			     CRA_PLUGIN_ERROR_FAILED,
 			     "AppData %s has no licence",
 			     filename);
-		goto out;
+		return FALSE;
 	}
 	if (!cra_plugin_appdata_license_valid (tmp)) {
-		ret = FALSE;
 		g_set_error (error,
 			     CRA_PLUGIN_ERROR,
 			     CRA_PLUGIN_ERROR_FAILED,
 			     "AppData %s license invalid:'%s'",
 			     filename, tmp);
-		goto out;
+		return FALSE;
 	}
 
 	/* other optional data */
@@ -500,12 +480,7 @@ cra_plugin_process_filename (CraPlugin *plugin,
 
 	/* success */
 	cra_app_set_requires_appdata (app, FALSE);
-	ret = TRUE;
-out:
-	g_object_unref (appdata);
-	if (problems != NULL)
-		g_ptr_array_unref (problems);
-	return ret;
+	return TRUE;
 }
 
 /**
@@ -520,18 +495,16 @@ cra_plugin_process_app (CraPlugin *plugin,
 {
 	const gchar *kind_str;
 	const gchar *tmp;
-	gboolean ret = TRUE;
-	gchar *appdata_filename;
-	gchar *appdata_filename_extra = NULL;
+	_cleanup_free_ gchar *appdata_filename;
+	_cleanup_free_ gchar *appdata_filename_extra = NULL;
 
 	/* get possible sources */
 	appdata_filename = g_strdup_printf ("%s/usr/share/appdata/%s.appdata.xml",
 					    tmpdir, as_app_get_id (AS_APP (app)));
 	tmp = cra_package_get_config (pkg, "AppDataExtra");
 	if (tmp != NULL && g_file_test (tmp, G_FILE_TEST_EXISTS)) {
-		ret = cra_plugin_appdata_add_files (plugin, tmp, error);
-		if (!ret)
-			goto out;
+		if (!cra_plugin_appdata_add_files (plugin, tmp, error))
+			return FALSE;
 		kind_str = as_id_kind_to_string (as_app_get_id_kind (AS_APP (app)));
 		appdata_filename_extra = g_strdup_printf ("%s/%s/%s.appdata.xml",
 							  tmp,
@@ -551,21 +524,19 @@ cra_plugin_process_app (CraPlugin *plugin,
 
 	/* any installed appdata file */
 	if (g_file_test (appdata_filename, G_FILE_TEST_EXISTS)) {
-		ret = cra_plugin_process_filename (plugin,
-						   app,
-						   appdata_filename,
-						   error);
-		goto out;
+		return cra_plugin_process_filename (plugin,
+						    app,
+						    appdata_filename,
+						    error);
 	}
 
 	/* any appdata-extra file */
 	if (appdata_filename_extra != NULL &&
 	    g_file_test (appdata_filename_extra, G_FILE_TEST_EXISTS)) {
-		ret = cra_plugin_process_filename (plugin,
-						   app,
-						   appdata_filename_extra,
-						   error);
-		goto out;
+		return cra_plugin_process_filename (plugin,
+						    app,
+						    appdata_filename_extra,
+						    error);
 	}
 
 	/* we're going to require this for F22 */
@@ -577,8 +548,5 @@ cra_plugin_process_app (CraPlugin *plugin,
 				 "will not be shown in Fedora 22 and later",
 				 as_app_get_id (AS_APP (app)));
 	}
-out:
-	g_free (appdata_filename);
-	g_free (appdata_filename_extra);
-	return ret;
+	return TRUE;
 }

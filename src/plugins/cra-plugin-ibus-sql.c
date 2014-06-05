@@ -85,19 +85,19 @@ cra_plugin_process_filename (CraPlugin *plugin,
 			     const gchar *tmpdir,
 			     GError **error)
 {
-	CraApp *app = NULL;
 	gboolean ret = TRUE;
-	gchar *basename = NULL;
-	gchar *description = NULL;
 	gchar *error_msg = 0;
 	gchar *filename_tmp;
-	gchar *name = NULL;
-	gchar *symbol = NULL;
-	gchar *language_string = NULL;
-	gchar **languages = NULL;
 	gint rc;
 	guint i;
 	sqlite3 *db = NULL;
+	_cleanup_free_ gchar *basename = NULL;
+	_cleanup_free_ gchar *description = NULL;
+	_cleanup_free_ gchar *language_string = NULL;
+	_cleanup_free_ gchar *name = NULL;
+	_cleanup_free_ gchar *symbol = NULL;
+	_cleanup_object_unref_ CraApp *app = NULL;
+	_cleanup_strv_free_ gchar **languages = NULL;
 
 	/* open IME database */
 	filename_tmp = g_build_filename (tmpdir, filename, NULL);
@@ -207,15 +207,6 @@ cra_plugin_process_filename (CraPlugin *plugin,
 	cra_app_set_requires_appdata (app, TRUE);
 	cra_plugin_add_app (apps, app);
 out:
-	g_free (name);
-	g_free (symbol);
-	g_free (language_string);
-	g_strfreev (languages);
-	g_free (basename);
-	g_free (filename_tmp);
-	g_free (description);
-	if (app != NULL)
-		g_object_unref (app);
 	if (db != NULL)
 		sqlite3_close (db);
 	return ret;

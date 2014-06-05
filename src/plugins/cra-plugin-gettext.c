@@ -121,15 +121,13 @@ cra_gettext_parse_file (CraGettextContext *ctx,
 			const gchar *filename,
 			GError **error)
 {
-	gboolean ret;
-	gchar *data = NULL;
 	CraGettextEntry *entry;
 	CraGettextHeader *h;
+	_cleanup_free_ gchar *data = NULL;
 
 	/* read data, although we only strictly need the header */
-	ret = g_file_get_contents (filename, &data, NULL, error);
-	if (!ret)
-		goto out;
+	if (!g_file_get_contents (filename, &data, NULL, error))
+		return FALSE;
 
 	h = (CraGettextHeader *) data;
 	entry = cra_gettext_entry_new ();
@@ -138,9 +136,7 @@ cra_gettext_parse_file (CraGettextContext *ctx,
 	if (entry->nstrings > ctx->max_nstrings)
 		ctx->max_nstrings = entry->nstrings;
 	ctx->data = g_list_prepend (ctx->data, entry);
-out:
-	g_free (data);
-	return ret;
+	return TRUE;
 }
 
 /**
@@ -153,28 +149,20 @@ cra_gettext_ctx_search_locale (CraGettextContext *ctx,
 			       GError **error)
 {
 	const gchar *filename;
-	gboolean ret = TRUE;
-	gchar *path;
-	GDir *dir;
+	_cleanup_dir_close_ GDir *dir;
 
 	dir = g_dir_open (messages_path, 0, error);
-	if (dir == NULL) {
-		ret = FALSE;
-		goto out;
-	}
+	if (dir == NULL)
+		return FALSE;
 	while ((filename = g_dir_read_name (dir)) != NULL) {
+		_cleanup_free_ gchar *path;
 		path = g_build_filename (messages_path, filename, NULL);
 		if (g_file_test (path, G_FILE_TEST_EXISTS)) {
-			ret = cra_gettext_parse_file (ctx, locale, path, error);
-			if (!ret)
-				goto out;
+			if (!cra_gettext_parse_file (ctx, locale, path, error))
+				return FALSE;
 		}
-		g_free (path);
 	}
-out:
-	if (dir != NULL)
-		g_dir_close (dir);
-	return ret;
+	return TRUE;
 }
 
 static gint
@@ -193,29 +181,24 @@ cra_gettext_ctx_search_path (CraGettextContext *ctx,
 {
 	const gchar *filename;
 	CraGettextEntry *e;
-	gboolean ret = TRUE;
-	gchar *path;
-	gchar *root = NULL;
-	GDir *dir = NULL;
 	GList *l;
+	_cleanup_dir_close_ GDir *dir = NULL;
+	_cleanup_free_ gchar *root = NULL;
 
 	/* search for .mo files in the prefix */
 	root = g_build_filename (prefix, "/usr/share/locale", NULL);
 	if (!g_file_test (root, G_FILE_TEST_EXISTS))
-		goto out;
+		return TRUE;
 	dir = g_dir_open (root, 0, error);
-	if (dir == NULL) {
-		ret = FALSE;
-		goto out;
-	}
+	if (dir == NULL)
+		return FALSE;
 	while ((filename = g_dir_read_name (dir)) != NULL) {
+		_cleanup_free_ gchar *path;
 		path = g_build_filename (root, filename, "LC_MESSAGES", NULL);
 		if (g_file_test (path, G_FILE_TEST_EXISTS)) {
-			ret = cra_gettext_ctx_search_locale (ctx, filename, path, error);
-			if (!ret)
-				goto out;
+			if (!cra_gettext_ctx_search_locale (ctx, filename, path, error))
+				return FALSE;
 		}
-		g_free (path);
 	}
 
 	/* calculate percentages */
@@ -226,11 +209,7 @@ cra_gettext_ctx_search_path (CraGettextContext *ctx,
 
 	/* sort */
 	ctx->data = g_list_sort (ctx->data, cra_gettext_entry_sort_cb);
-out:
-	g_free (root);
-	if (dir != NULL)
-		g_dir_close (dir);
-	return ret;
+	return TRUE;
 }
 
 /**
@@ -262,7 +241,6 @@ cra_plugin_process_app (CraPlugin *plugin,
 		as_app_add_language (AS_APP (app), e->percentage, e->locale, -1);
 	}
 out:
-	if (ctx != NULL)
-		cra_gettext_ctx_free (ctx);
+	cra_gettext_ctx_free (ctx);
 	return ret;
 }

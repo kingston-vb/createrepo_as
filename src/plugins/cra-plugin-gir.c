@@ -62,13 +62,13 @@ cra_plugin_process_gir (CraApp *app,
 			const gchar *filename,
 			GError **error)
 {
-	GFile *file = NULL;
 	GNode *l;
 	GNode *node = NULL;
 	const gchar *name;
 	const gchar *version;
 	gboolean ret = TRUE;
-	gchar *filename_full;
+	_cleanup_free_ gchar *filename_full;
+	_cleanup_object_unref_ GFile *file = NULL;
 
 	/* load file */
 	filename_full = g_build_filename (tmpdir, filename, NULL);
@@ -97,9 +97,6 @@ cra_plugin_process_gir (CraApp *app,
 out:
 	if (node != NULL)
 		as_node_unref (node);
-	if (file != NULL)
-		g_object_unref (file);
-	g_free (filename_full);
 	return ret;
 }
 
@@ -113,7 +110,6 @@ cra_plugin_process_app (CraPlugin *plugin,
 			const gchar *tmpdir,
 			GError **error)
 {
-	gboolean ret = TRUE;
 	gchar **filelist;
 	guint i;
 
@@ -122,10 +118,8 @@ cra_plugin_process_app (CraPlugin *plugin,
 	for (i = 0; filelist[i] != NULL; i++) {
 		if (!_cra_plugin_check_filename (filelist[i]))
 			continue;
-		ret = cra_plugin_process_gir (app, tmpdir, filelist[i], error);
-		if (!ret)
-			goto out;
+		if (!cra_plugin_process_gir (app, tmpdir, filelist[i], error))
+			return FALSE;
 	}
-out:
-	return ret;
+	return TRUE;
 }

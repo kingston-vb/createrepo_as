@@ -75,19 +75,19 @@ cra_plugin_process_filename (CraPlugin *plugin,
 			     const gchar *tmpdir,
 			     GError **error)
 {
-	CraApp *app = NULL;
 	GNode *root = NULL;
-	gboolean ret;
-	gchar *basename = NULL;
-	gchar *filename_tmp;
-	gchar *data = NULL;
-	gchar **languages = NULL;
-	gchar **lines = NULL;
-	guint i;
-	gboolean found_header = FALSE;
 	GString *valid_xml;
-	const GNode *n;
 	const gchar *tmp;
+	const GNode *n;
+	gboolean found_header = FALSE;
+	gboolean ret;
+	guint i;
+	_cleanup_free_ gchar *basename = NULL;
+	_cleanup_free_ gchar *data = NULL;
+	_cleanup_free_ gchar *filename_tmp;
+	_cleanup_object_unref_ CraApp *app = NULL;
+	_cleanup_strv_free_ gchar **languages = NULL;
+	_cleanup_strv_free_ gchar **lines = NULL;
 
 	/* open file */
 	filename_tmp = g_build_filename (tmpdir, filename, NULL);
@@ -170,13 +170,6 @@ cra_plugin_process_filename (CraPlugin *plugin,
 	/* add */
 	cra_plugin_add_app (apps, app);
 out:
-	g_strfreev (languages);
-	g_strfreev (lines);
-	g_free (data);
-	g_free (basename);
-	g_free (filename_tmp);
-	if (app != NULL)
-		g_object_unref (app);
 	if (root != NULL)
 		as_node_unref (root);
 	return ret;
@@ -208,8 +201,7 @@ cra_plugin_process (CraPlugin *plugin,
 						   error);
 		if (!ret) {
 			g_list_free_full (apps, (GDestroyNotify) g_object_unref);
-			apps = NULL;
-			goto out;
+			return NULL;
 		}
 	}
 
@@ -220,8 +212,7 @@ cra_plugin_process (CraPlugin *plugin,
 			     CRA_PLUGIN_ERROR_FAILED,
 			     "nothing interesting in %s",
 			     cra_package_get_basename (pkg));
-		goto out;
+		return NULL;
 	}
-out:
 	return apps;
 }

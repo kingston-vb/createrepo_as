@@ -77,12 +77,12 @@ static GdkPixbuf *
 cra_app_load_icon (const gchar *filename, GError **error)
 {
 	GdkPixbuf *pixbuf = NULL;
-	GdkPixbuf *pixbuf_tmp;
+	_cleanup_object_unref_ GdkPixbuf *pixbuf_tmp;
 
 	/* open file in native size */
 	pixbuf_tmp = gdk_pixbuf_new_from_file (filename, error);
 	if (pixbuf_tmp == NULL)
-		goto out;
+		return NULL;
 
 	/* check size */
 	if (gdk_pixbuf_get_width (pixbuf_tmp) < 32 ||
@@ -94,7 +94,7 @@ cra_app_load_icon (const gchar *filename, GError **error)
 			     filename,
 			     gdk_pixbuf_get_width (pixbuf_tmp),
 			     gdk_pixbuf_get_height (pixbuf_tmp));
-		goto out;
+		return NULL;
 	}
 
 	/* re-open file at correct size */
@@ -102,11 +102,8 @@ cra_app_load_icon (const gchar *filename, GError **error)
 						    FALSE, error);
 	if (pixbuf == NULL) {
 		g_prefix_error (error, "Failed to open icon %s: ", filename);
-		goto out;
+		return NULL;
 	}
-out:
-	if (pixbuf_tmp != NULL)
-		g_object_unref (pixbuf_tmp);
 	return pixbuf;
 }
 
@@ -116,9 +113,6 @@ out:
 static GdkPixbuf *
 cra_app_find_icon (const gchar *tmpdir, const gchar *something, GError **error)
 {
-	gboolean ret = FALSE;
-	gchar *tmp;
-	GdkPixbuf *pixbuf = NULL;
 	guint i;
 	guint j;
 	const gchar *pixmap_dirs[] = { "pixmaps", "icons", NULL };
@@ -141,6 +135,7 @@ cra_app_find_icon (const gchar *tmpdir, const gchar *something, GError **error)
 
 	/* is this an absolute path */
 	if (something[0] == '/') {
+		_cleanup_free_ gchar *tmp;
 		tmp = g_build_filename (tmpdir, something, NULL);
 		if (!g_file_test (tmp, G_FILE_TEST_EXISTS)) {
 			g_set_error (error,
@@ -148,47 +143,36 @@ cra_app_find_icon (const gchar *tmpdir, const gchar *something, GError **error)
 				     CRA_PLUGIN_ERROR_FAILED,
 				     "specified icon '%s' does not exist",
 				     something);
-			g_free (tmp);
-			goto out;
+			return NULL;
 		}
-		pixbuf = cra_app_load_icon (tmp, error);
-		g_free (tmp);
-		goto out;
+		return cra_app_load_icon (tmp, error);
 	}
 
 	/* hicolor apps */
 	for (i = 0; sizes[i] != NULL; i++) {
 		for (j = 0; supported_ext[j] != NULL; j++) {
+			_cleanup_free_ gchar *tmp;
 			tmp = g_strdup_printf ("%s/usr/share/icons/hicolor/%s/apps/%s%s",
 					       tmpdir,
 					       sizes[i],
 					       something,
 					       supported_ext[j]);
-			ret = g_file_test (tmp, G_FILE_TEST_EXISTS);
-			if (ret) {
-				pixbuf = cra_app_load_icon (tmp, error);
-				g_free (tmp);
-				goto out;
-			}
-			g_free (tmp);
+			if (g_file_test (tmp, G_FILE_TEST_EXISTS))
+				return cra_app_load_icon (tmp, error);
 		}
 	}
 
 	/* pixmap */
 	for (i = 0; pixmap_dirs[i] != NULL; i++) {
 		for (j = 0; supported_ext[j] != NULL; j++) {
+			_cleanup_free_ gchar *tmp;
 			tmp = g_strdup_printf ("%s/usr/share/%s/%s%s",
 					       tmpdir,
 					       pixmap_dirs[i],
 					       something,
 					       supported_ext[j]);
-			ret = g_file_test (tmp, G_FILE_TEST_EXISTS);
-			if (ret) {
-				pixbuf = cra_app_load_icon (tmp, error);
-				g_free (tmp);
-				goto out;
-			}
-			g_free (tmp);
+			if (g_file_test (tmp, G_FILE_TEST_EXISTS))
+				return cra_app_load_icon (tmp, error);
 		}
 	}
 
@@ -197,8 +181,7 @@ cra_app_find_icon (const gchar *tmpdir, const gchar *something, GError **error)
 		     CRA_PLUGIN_ERROR,
 		     CRA_PLUGIN_ERROR_FAILED,
 		     "Failed to find icon %s", something);
-out:
-	return pixbuf;
+	return NULL;
 }
 
 /**
@@ -213,12 +196,12 @@ cra_plugin_process_filename (CraPlugin *plugin,
 			     GError **error)
 {
 	const gchar *key;
-	CraApp *app = NULL;
 	gboolean ret;
-	gchar *app_id = NULL;
-	gchar *full_filename = NULL;
-	gchar *icon_filename = NULL;
-	GdkPixbuf *pixbuf = NULL;
+	_cleanup_free_ gchar *app_id = NULL;
+	_cleanup_free_ gchar *full_filename = NULL;
+	_cleanup_free_ gchar *icon_filename = NULL;
+	_cleanup_object_unref_ CraApp *app = NULL;
+	_cleanup_object_unref_ GdkPixbuf *pixbuf = NULL;
 
 	/* create app */
 	app_id = g_path_get_basename (filename);
@@ -229,7 +212,7 @@ cra_plugin_process_filename (CraPlugin *plugin,
 				 AS_APP_PARSE_FLAG_USE_HEURISTICS,
 				 error);
 	if (!ret)
-		goto out;
+		return FALSE;
 
 	/* NoDisplay requires AppData */
 	if (as_app_get_metadata_item (AS_APP (app), "NoDisplay") != NULL)
@@ -260,10 +243,8 @@ cra_plugin_process_filename (CraPlugin *plugin,
 
 			/* find icon */
 			pixbuf = cra_app_find_icon (tmpdir, key, error);
-			if (pixbuf == NULL) {
-				ret = FALSE;
-				goto out;
-			}
+			if (pixbuf == NULL)
+				return FALSE;
 
 			/* save in target directory */
 			icon_filename = g_strdup_printf ("%s.png",
@@ -276,15 +257,7 @@ cra_plugin_process_filename (CraPlugin *plugin,
 
 	/* add */
 	cra_plugin_add_app (apps, app);
-out:
-	if (app != NULL)
-		g_object_unref (app);
-	if (pixbuf != NULL)
-		g_object_unref (pixbuf);
-	g_free (full_filename);
-	g_free (icon_filename);
-	g_free (app_id);
-	return ret;
+	return TRUE;
 }
 
 /**
@@ -329,8 +302,7 @@ cra_plugin_process (CraPlugin *plugin,
 			     CRA_PLUGIN_ERROR_FAILED,
 			     "nothing interesting in %s",
 			     cra_package_get_basename (pkg));
-		goto out;
+		return NULL;
 	}
-out:
 	return apps;
 }
