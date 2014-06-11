@@ -307,7 +307,7 @@ cra_package_rpm_release_set_text (AsRelease *release,
 	/* remove prefix */
 	if (g_str_has_prefix (text, "- "))
 		text += 2;
-	markup = g_strdup_printf ("<p>%s</p>", text);
+	markup = g_markup_printf_escaped ("<p>%s</p>", text);
 	as_release_set_description (release, NULL, markup, -1);
 	return TRUE;
 }
