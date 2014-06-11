@@ -177,6 +177,8 @@ cra_plugin_process_app (CraPlugin *plugin,
 	/* add extra project groups */
 	if (g_strcmp0 (tmp, "nemo") == 0)
 		as_app_set_project_group (AS_APP (app), "Cinnamon", -1);
+	if (g_strcmp0 (tmp, "xfdashboard") == 0)
+		as_app_set_project_group (AS_APP (app), "XFCE", -1);
 
 	/* use the URL to guess the project group */
 	tmp = cra_package_get_url (pkg);
