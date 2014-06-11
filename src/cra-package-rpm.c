@@ -73,8 +73,8 @@ cra_package_rpm_set_license (CraPackage *pkg, const gchar *license)
 	const gchar *tmp;
 	guint i;
 	guint j;
-	_cleanup_strv_free_ gchar **split;
-	_cleanup_string_free_ GString *new;
+	_cleanup_strv_free_ gchar **split = NULL;
+	_cleanup_string_free_ GString *new = NULL;
 	struct {
 		const gchar	*fedora;
 		const gchar	*spdx;
@@ -146,6 +146,13 @@ cra_package_rpm_set_license (CraPackage *pkg, const gchar *license)
 		{ "zlib",			"Zlib" },
 		{ "ZPLv2.0",			"ZPL-2.0" },
 		{ NULL, NULL } };
+
+	/* this isn't supposed to happen */
+	if (license == NULL) {
+		cra_package_log (pkg, CRA_PACKAGE_LOG_LEVEL_WARNING,
+				 "no license!");
+		return;
+	}
 
 	/* tokenize the license string and try to convert the Fedora license
 	 * string to a SPDX license the best we can */
