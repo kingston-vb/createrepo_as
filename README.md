@@ -61,11 +61,17 @@ like this in the megarpms-release.spec file:
     Source1:   http://www.megarpms.org/temp/megarpms-20.xml.gz
     Source2:   http://www.megarpms.org/temp/megarpms-20-icons.tar.gz
 
+    %install
     mkdir -p %{buildroot}%{_datadir}/app-info/xmls
     cp %{SOURCE1} %{buildroot}%{_datadir}/app-info/xmls
     mkdir -p %{buildroot}%{_datadir}/app-info/icons/megarpms-20
     tar xvzf %{SOURCE2}
     cd -
+
+or, if your distro ships a new enough libappstream-glib:
+
+    %install
+    DESTDIR=%{buildroot} appstream-util install %{SOURCE1} %{SOURCE2}
 
 This ensures that gnome-software can access both data files when starting up.
 
