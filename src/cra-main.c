@@ -323,13 +323,17 @@ cra_task_process_func (gpointer data, gpointer user_data)
 			goto skip;
 		}
 
-		/* don't include apps that have no icon, name or comment */
-		if (as_app_get_icon (AS_APP (app)) == NULL)
-			cra_app_add_veto (app, "Has no Icon");
+		/* don't include components that have no name or comment */
 		if (as_app_get_name (AS_APP (app), "C") == NULL)
 			cra_app_add_veto (app, "Has no Name");
 		if (as_app_get_comment (AS_APP (app), "C") == NULL)
 			cra_app_add_veto (app, "Has no Comment");
+
+		/* don't include apps that have no icon */
+		if (as_app_get_id_kind (AS_APP (app)) != AS_ID_KIND_ADDON) {
+			if (as_app_get_icon (AS_APP (app)) == NULL)
+				cra_app_add_veto (app, "Has no Icon");
+		}
 
 		/* list all the reasons we're ignoring the app */
 		array = cra_app_get_vetos (app);

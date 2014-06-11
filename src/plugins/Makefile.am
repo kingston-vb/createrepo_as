@@ -22,12 +22,18 @@ plugin_LTLIBRARIES =					\
 	libcra_plugin_hardcoded.la			\
 	libcra_plugin_ibus_sql.la			\
 	libcra_plugin_ibus_xml.la			\
+	libcra_plugin_metainfo.la			\
 	libcra_plugin_nm.la
 
 libcra_plugin_gstreamer_la_SOURCES = cra-plugin-gstreamer.c
 libcra_plugin_gstreamer_la_LIBADD = $(GLIB_LIBS)
 libcra_plugin_gstreamer_la_LDFLAGS = -module -avoid-version
 libcra_plugin_gstreamer_la_CFLAGS = $(GLIB_CFLAGS) $(WARNINGFLAGS_C)
+
+libcra_plugin_metainfo_la_SOURCES = cra-plugin-metainfo.c
+libcra_plugin_metainfo_la_LIBADD = $(GLIB_LIBS)
+libcra_plugin_metainfo_la_LDFLAGS = -module -avoid-version
+libcra_plugin_metainfo_la_CFLAGS = $(GLIB_CFLAGS) $(WARNINGFLAGS_C)
 
 libcra_plugin_gettext_la_SOURCES = cra-plugin-gettext.c
 libcra_plugin_gettext_la_LIBADD = $(GLIB_LIBS)
