@@ -200,6 +200,28 @@ cra_package_rpm_set_license (CraPackage *pkg, const gchar *license)
 }
 
 /**
+ * cra_package_rpm_set_source:
+ **/
+static void
+cra_package_rpm_set_source (CraPackage *pkg, const gchar *source)
+{
+	gchar *tmp;
+	_cleanup_free_ gchar *srcrpm = NULL;
+
+	/* this isn't supposed to happen */
+	if (source == NULL) {
+		cra_package_log (pkg, CRA_PACKAGE_LOG_LEVEL_WARNING,
+				 "no source!");
+		return;
+	}
+	srcrpm = g_strdup (source);
+	tmp = g_strstr_len (srcrpm, -1, ".src.rpm");
+	if (tmp != NULL)
+		*tmp = '\0';
+	cra_package_set_source (pkg, srcrpm);
+}
+
+/**
  * cra_package_rpm_ensure_simple:
  **/
 static gboolean
@@ -208,9 +230,7 @@ cra_package_rpm_ensure_simple (CraPackage *pkg, GError **error)
 	CraPackageRpm *pkg_rpm = CRA_PACKAGE_RPM (pkg);
 	CraPackageRpmPrivate *priv = GET_PRIVATE (pkg_rpm);
 	gboolean ret = TRUE;
-	_cleanup_free_ gchar *srcrpm;
-	gchar *tmp;
-	rpmtd td = NULL;
+	rpmtd td;
 
 	/* get the simple stuff */
 	td = rpmtdNew ();
@@ -228,16 +248,9 @@ cra_package_rpm_ensure_simple (CraPackage *pkg, GError **error)
 	cra_package_set_url (pkg, rpmtdGetString (td));
 	headerGet (priv->h, RPMTAG_LICENSE, td, HEADERGET_MINMEM);
 	cra_package_rpm_set_license (pkg, rpmtdGetString (td));
-
-	/* source */
 	headerGet (priv->h, RPMTAG_SOURCERPM, td, HEADERGET_MINMEM);
-	srcrpm = g_strdup (rpmtdGetString (td));
-	tmp = g_strstr_len (srcrpm, -1, ".src.rpm");
-	if (tmp != NULL)
-		*tmp = '\0';
-	cra_package_set_source (pkg, srcrpm);
-	if (td != NULL)
-		rpmtdFree (td);
+	cra_package_rpm_set_source (pkg, rpmtdGetString (td));
+	rpmtdFree (td);
 	return ret;
 }
 
