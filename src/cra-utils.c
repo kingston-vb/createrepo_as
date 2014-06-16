@@ -19,6 +19,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+/**
+ * SECTION:cra-utils
+ * @short_description: Helper functionality.
+ * @stability: Unstable
+ */
+
 #include "config.h"
 
 #include <glib/gstdio.h>
@@ -35,7 +41,14 @@
 
 /**
  * cra_utils_get_cache_id_for_filename:
- */
+ * @filename: utf8 filename
+ *
+ * Gets the cache-id for a given filename.
+ *
+ * Returns: utf8 string
+ *
+ * Since: 0.1.0
+ **/
 gchar *
 cra_utils_get_cache_id_for_filename (const gchar *filename)
 {
@@ -50,6 +63,14 @@ cra_utils_get_cache_id_for_filename (const gchar *filename)
 
 /**
  * cra_utils_rmtree:
+ * @directory: utf8 directory name
+ * @error: A #GError or %NULL
+ *
+ * Removes a directory tree.
+ *
+ * Returns: %TRUE for success, %FALSE otherwise
+ *
+ * Since: 0.1.0
  **/
 gboolean
 cra_utils_rmtree (const gchar *directory, GError **error)
@@ -73,6 +94,14 @@ cra_utils_rmtree (const gchar *directory, GError **error)
 
 /**
  * cra_utils_ensure_exists_and_empty:
+ * @directory: utf8 directory name
+ * @error: A #GError or %NULL
+ *
+ * Ensures a directory exists and empty.
+ *
+ * Returns: %TRUE for success, %FALSE otherwise
+ *
+ * Since: 0.1.0
  **/
 gboolean
 cra_utils_ensure_exists_and_empty (const gchar *directory, GError **error)
@@ -169,7 +198,17 @@ cra_utils_explode_file (struct archive_entry *entry,
 
 /**
  * cra_utils_explode:
- */
+ * @filename: package filename
+ * @dir: directory to decompress into
+ * @glob: (element-type utf8): filename globs, or %NULL
+ * @error: A #GError or %NULL
+ *
+ * Decompresses the package into a given directory.
+ *
+ * Returns: %TRUE for success, %FALSE otherwise
+ *
+ * Since: 0.1.0
+ **/
 gboolean
 cra_utils_explode (const gchar *filename,
 		   const gchar *dir,
@@ -244,7 +283,7 @@ out:
 
 /**
  * cra_utils_write_archive:
- */
+ **/
 static gboolean
 cra_utils_write_archive (const gchar *filename,
 			 GPtrArray *files,
@@ -288,7 +327,16 @@ out:
 
 /**
  * cra_utils_write_archive_dir:
- */
+ * @filename: archive filename
+ * @directory: source directory
+ * @error: A #GError or %NULL
+ *
+ * Writes an archive from a directory.
+ *
+ * Returns: %TRUE for success, %FALSE otherwise
+ *
+ * Since: 0.1.0
+ **/
 gboolean
 cra_utils_write_archive_dir (const gchar *filename,
 			     const gchar *directory,
@@ -323,7 +371,16 @@ out:
 
 /**
  * cra_utils_add_apps_from_file:
- */
+ * @apps: (element-type CraApp): applications
+ * @filename: XML file to load
+ * @error: A #GError or %NULL
+ *
+ * Add applications from a file.
+ *
+ * Returns: %TRUE for success, %FALSE otherwise
+ *
+ * Since: 0.1.0
+ **/
 gboolean
 cra_utils_add_apps_from_file (GList **apps, const gchar *filename, GError **error)
 {
@@ -355,7 +412,16 @@ out:
 
 /**
  * cra_utils_add_apps_from_dir:
- */
+ * @apps: (element-type CraApp): applications
+ * @path: path to read
+ * @error: A #GError or %NULL
+ *
+ * Add applications from a directory.
+ *
+ * Returns: %TRUE for success, %FALSE otherwise
+ *
+ * Since: 0.1.0
+ **/
 gboolean
 cra_utils_add_apps_from_dir (GList **apps, const gchar *path, GError **error)
 {
@@ -384,7 +450,16 @@ out:
 
 /**
  * cra_string_replace:
- */
+ * @string: Source string
+ * @search: utf8 string to search for
+ * @replace: utf8 string to replace with
+ *
+ * Does search/replace on a given string.
+ *
+ * Returns: the number of times the string was replaced
+ *
+ * Since: 0.1.0
+ **/
 guint
 cra_string_replace (GString *string, const gchar *search, const gchar *replace)
 {
@@ -415,8 +490,13 @@ struct CraGlobValue {
 };
 
 /**
- * cra_glob_value_free:
- */
+ * cra_glob_value_free: (skip)
+ * @kv: key-value
+ *
+ * Frees a #CraGlobValue.
+ *
+ * Since: 0.1.0
+ **/
 void
 cra_glob_value_free (CraGlobValue *kv)
 {
@@ -426,8 +506,14 @@ cra_glob_value_free (CraGlobValue *kv)
 }
 
 /**
- * cra_glob_value_array_new:
- */
+ * cra_glob_value_array_new: (skip)
+ *
+ * Creates a new value array.
+ *
+ * Returns: (element-type CraGlobValue): A new array
+ *
+ * Since: 0.1.0
+ **/
 GPtrArray *
 cra_glob_value_array_new (void)
 {
@@ -435,8 +521,16 @@ cra_glob_value_array_new (void)
 }
 
 /**
- * cra_glob_value_new:
- */
+ * cra_glob_value_new: (skip)
+ * @glob: utf8 string
+ * @value: utf8 string
+ *
+ * Creates a new value.
+ *
+ * Returns: a #CraGlobValue
+ *
+ * Since: 0.1.0
+ **/
 CraGlobValue *
 cra_glob_value_new (const gchar *glob, const gchar *value)
 {
@@ -448,9 +542,15 @@ cra_glob_value_new (const gchar *glob, const gchar *value)
 }
 
 /**
- * cra_glob_value_search:
+ * cra_glob_value_search: (skip)
  * @array: of CraGlobValue, keys may contain globs
- * @needle: may not be a glob
+ * @search: may not be a glob
+ *
+ * Searches for a glob value.
+ *
+ * Returns: value, or %NULL
+ *
+ * Since: 0.1.0
  */
 const gchar *
 cra_glob_value_search (GPtrArray *array, const gchar *search)

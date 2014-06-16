@@ -24,6 +24,8 @@
 
 #include <glib.h>
 
+#include "cra-plugin.h"
+
 G_BEGIN_DECLS
 
 gboolean	 cra_plugin_loader_setup	(GPtrArray	*plugins,

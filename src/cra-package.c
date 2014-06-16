@@ -19,6 +19,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+/**
+ * SECTION:cra-package
+ * @short_description: Object representing a package file.
+ * @stability: Unstable
+ *
+ * This object represents one package file.
+ */
+
 #include "config.h"
 
 #include <limits.h>
@@ -107,6 +115,13 @@ cra_package_init (CraPackage *pkg)
 
 /**
  * cra_package_get_enabled:
+ * @pkg: A #CraPackage
+ *
+ * Gets if the package is enabled.
+ *
+ * Returns: enabled status
+ *
+ * Since: 0.1.0
  **/
 gboolean
 cra_package_get_enabled (CraPackage *pkg)
@@ -117,6 +132,12 @@ cra_package_get_enabled (CraPackage *pkg)
 
 /**
  * cra_package_set_enabled:
+ * @pkg: A #CraPackage
+ * @enabled: boolean
+ *
+ * Enables or disables the package.
+ *
+ * Since: 0.1.0
  **/
 void
 cra_package_set_enabled (CraPackage *pkg, gboolean enabled)
@@ -127,6 +148,11 @@ cra_package_set_enabled (CraPackage *pkg, gboolean enabled)
 
 /**
  * cra_package_log_start:
+ * @pkg: A #CraPackage
+ *
+ * Starts the log timer.
+ *
+ * Since: 0.1.0
  **/
 void
 cra_package_log_start (CraPackage *pkg)
@@ -137,6 +163,14 @@ cra_package_log_start (CraPackage *pkg)
 
 /**
  * cra_package_log:
+ * @pkg: A #CraPackage
+ * @log_level: a #CraPackageLogLevel
+ * @fmt: Format string
+ * @...: varargs
+ *
+ * Logs a message.
+ *
+ * Since: 0.1.0
  **/
 void
 cra_package_log (CraPackage *pkg,
@@ -181,6 +215,14 @@ cra_package_log (CraPackage *pkg,
 
 /**
  * cra_package_log_flush:
+ * @pkg: A #CraPackage
+ * @error: A #GError or %NULL
+ *
+ * Flushes the log queue.
+ *
+ * Returns: %TRUE for success, %FALSE otherwise
+ *
+ * Since: 0.1.0
  **/
 gboolean
 cra_package_log_flush (CraPackage *pkg, GError **error)
@@ -197,6 +239,13 @@ cra_package_log_flush (CraPackage *pkg, GError **error)
 
 /**
  * cra_package_get_filename:
+ * @pkg: A #CraPackage
+ *
+ * Gets the filename of the package.
+ *
+ * Returns: utf8 filename
+ *
+ * Since: 0.1.0
  **/
 const gchar *
 cra_package_get_filename (CraPackage *pkg)
@@ -207,6 +256,13 @@ cra_package_get_filename (CraPackage *pkg)
 
 /**
  * cra_package_get_basename:
+ * @pkg: A #CraPackage
+ *
+ * Gets the package basename.
+ *
+ * Returns: utf8 string
+ *
+ * Since: 0.1.0
  **/
 const gchar *
 cra_package_get_basename (CraPackage *pkg)
@@ -217,6 +273,13 @@ cra_package_get_basename (CraPackage *pkg)
 
 /**
  * cra_package_get_name:
+ * @pkg: A #CraPackage
+ *
+ * Gets the package name
+ *
+ * Returns: utf8 string
+ *
+ * Since: 0.1.0
  **/
 const gchar *
 cra_package_get_name (CraPackage *pkg)
@@ -227,6 +290,13 @@ cra_package_get_name (CraPackage *pkg)
 
 /**
  * cra_package_get_url:
+ * @pkg: A #CraPackage
+ *
+ * Gets the package homepage URL
+ *
+ * Returns: utf8 string
+ *
+ * Since: 0.1.0
  **/
 const gchar *
 cra_package_get_url (CraPackage *pkg)
@@ -237,6 +307,13 @@ cra_package_get_url (CraPackage *pkg)
 
 /**
  * cra_package_get_license:
+ * @pkg: A #CraPackage
+ *
+ * Gets the package license.
+ *
+ * Returns: utf8 string
+ *
+ * Since: 0.1.0
  **/
 const gchar *
 cra_package_get_license (CraPackage *pkg)
@@ -247,6 +324,13 @@ cra_package_get_license (CraPackage *pkg)
 
 /**
  * cra_package_get_source:
+ * @pkg: A #CraPackage
+ *
+ * Gets the package source name.
+ *
+ * Returns: utf8 string
+ *
+ * Since: 0.1.0
  **/
 const gchar *
 cra_package_get_source (CraPackage *pkg)
@@ -257,6 +341,13 @@ cra_package_get_source (CraPackage *pkg)
 
 /**
  * cra_package_get_filelist:
+ * @pkg: A #CraPackage
+ *
+ * Gets the package filelist.
+ *
+ * Returns: (transfer none) (element-type utf8): filelist
+ *
+ * Since: 0.1.0
  **/
 gchar **
 cra_package_get_filelist (CraPackage *pkg)
@@ -267,6 +358,13 @@ cra_package_get_filelist (CraPackage *pkg)
 
 /**
  * cra_package_get_deps:
+ * @pkg: A #CraPackage
+ *
+ * Get the package dependancy list.
+ *
+ * Returns: (transfer none) (element-type utf8): deplist
+ *
+ * Since: 0.1.0
  **/
 gchar **
 cra_package_get_deps (CraPackage *pkg)
@@ -277,6 +375,12 @@ cra_package_get_deps (CraPackage *pkg)
 
 /**
  * cra_package_set_name:
+ * @pkg: A #CraPackage
+ * @name: package name
+ *
+ * Sets the package name.
+ *
+ * Since: 0.1.0
  **/
 void
 cra_package_set_name (CraPackage *pkg, const gchar *name)
@@ -288,6 +392,12 @@ cra_package_set_name (CraPackage *pkg, const gchar *name)
 
 /**
  * cra_package_set_version:
+ * @pkg: A #CraPackage
+ * @version: package version
+ *
+ * Sets the package version.
+ *
+ * Since: 0.1.0
  **/
 void
 cra_package_set_version (CraPackage *pkg, const gchar *version)
@@ -299,6 +409,12 @@ cra_package_set_version (CraPackage *pkg, const gchar *version)
 
 /**
  * cra_package_set_release:
+ * @pkg: A #CraPackage
+ * @release: package release
+ *
+ * Sets the package release.
+ *
+ * Since: 0.1.0
  **/
 void
 cra_package_set_release (CraPackage *pkg, const gchar *release)
@@ -310,6 +426,12 @@ cra_package_set_release (CraPackage *pkg, const gchar *release)
 
 /**
  * cra_package_set_arch:
+ * @pkg: A #CraPackage
+ * @arch: package architecture
+ *
+ * Sets the package architecture.
+ *
+ * Since: 0.1.0
  **/
 void
 cra_package_set_arch (CraPackage *pkg, const gchar *arch)
@@ -321,6 +443,12 @@ cra_package_set_arch (CraPackage *pkg, const gchar *arch)
 
 /**
  * cra_package_set_epoch:
+ * @pkg: A #CraPackage
+ * @epoch: epoch, or 0 for unset
+ *
+ * Sets the package epoch
+ *
+ * Since: 0.1.0
  **/
 void
 cra_package_set_epoch (CraPackage *pkg, guint epoch)
@@ -331,6 +459,12 @@ cra_package_set_epoch (CraPackage *pkg, guint epoch)
 
 /**
  * cra_package_set_url:
+ * @pkg: A #CraPackage
+ * @url: homepage URL
+ *
+ * Sets the package URL.
+ *
+ * Since: 0.1.0
  **/
 void
 cra_package_set_url (CraPackage *pkg, const gchar *url)
@@ -342,6 +476,12 @@ cra_package_set_url (CraPackage *pkg, const gchar *url)
 
 /**
  * cra_package_set_license:
+ * @pkg: A #CraPackage
+ * @license: license string
+ *
+ * Sets the package license.
+ *
+ * Since: 0.1.0
  **/
 void
 cra_package_set_license (CraPackage *pkg, const gchar *license)
@@ -353,6 +493,13 @@ cra_package_set_license (CraPackage *pkg, const gchar *license)
 
 /**
  * cra_package_set_source:
+ * @pkg: A #CraPackage
+ * @source: source string, e.g. the srpm name
+ *
+ * Sets the package source name, which is usually the parent of a set of
+ * subpackages.
+ *
+ * Since: 0.1.0
  **/
 void
 cra_package_set_source (CraPackage *pkg, const gchar *source)
@@ -364,6 +511,12 @@ cra_package_set_source (CraPackage *pkg, const gchar *source)
 
 /**
  * cra_package_set_deps:
+ * @pkg: A #CraPackage
+ * @deps: package deps
+ *
+ * Sets the package dependancies.
+ *
+ * Since: 0.1.0
  **/
 void
 cra_package_set_deps (CraPackage *pkg, gchar **deps)
@@ -375,6 +528,12 @@ cra_package_set_deps (CraPackage *pkg, gchar **deps)
 
 /**
  * cra_package_set_filelist:
+ * @pkg: A #CraPackage
+ * @filelist: package filelist
+ *
+ * Sets the package filelist.
+ *
+ * Since: 0.1.0
  **/
 void
 cra_package_set_filelist (CraPackage *pkg, gchar **filelist)
@@ -386,6 +545,13 @@ cra_package_set_filelist (CraPackage *pkg, gchar **filelist)
 
 /**
  * cra_package_get_nevr:
+ * @pkg: A #CraPackage
+ *
+ * Gets the package NEVR.
+ *
+ * Returns: utf8 string
+ *
+ * Since: 0.1.0
  **/
 const gchar *
 cra_package_get_nevr (CraPackage *pkg)
@@ -410,6 +576,13 @@ cra_package_get_nevr (CraPackage *pkg)
 
 /**
  * cra_package_get_evr:
+ * @pkg: A #CraPackage
+ *
+ * Gets the package EVR.
+ *
+ * Returns: utf8 string
+ *
+ * Since: 0.1.0
  **/
 const gchar *
 cra_package_get_evr (CraPackage *pkg)
@@ -442,6 +615,15 @@ cra_package_class_init (CraPackageClass *klass)
 
 /**
  * cra_package_open:
+ * @pkg: A #CraPackage
+ * @filename: package filename
+ * @error: A #GError or %NULL
+ *
+ * Opens a package and parses the contents.
+ *
+ * Returns: %TRUE for success, %FALSE otherwise
+ *
+ * Since: 0.1.0
  **/
 gboolean
 cra_package_open (CraPackage *pkg, const gchar *filename, GError **error)
@@ -461,6 +643,16 @@ cra_package_open (CraPackage *pkg, const gchar *filename, GError **error)
 
 /**
  * cra_package_explode:
+ * @pkg: A #CraPackage
+ * @dir: directory to explode into
+ * @glob: (element-type utf8): the glob list, or %NULL
+ * @error: A #GError or %NULL
+ *
+ * Decompresses a package into a directory, optionally using a glob list.
+ *
+ * Returns: %TRUE for success, %FALSE otherwise
+ *
+ * Since: 0.1.0
  **/
 gboolean
 cra_package_explode (CraPackage *pkg,
@@ -477,6 +669,13 @@ cra_package_explode (CraPackage *pkg,
 
 /**
  * cra_package_set_config:
+ * @pkg: A #CraPackage
+ * @key: utf8 string
+ * @value: utf8 string
+ *
+ * Sets a config attribute on a package.
+ *
+ * Since: 0.1.0
  **/
 void
 cra_package_set_config (CraPackage *pkg, const gchar *key, const gchar *value)
@@ -487,6 +686,14 @@ cra_package_set_config (CraPackage *pkg, const gchar *key, const gchar *value)
 
 /**
  * cra_package_get_config:
+ * @pkg: A #CraPackage
+ * @key: utf8 string
+ *
+ * Gets a config attribute from a package.
+ *
+ * Returns: utf8 string
+ *
+ * Since: 0.1.0
  **/
 const gchar *
 cra_package_get_config (CraPackage *pkg, const gchar *key)
@@ -497,6 +704,13 @@ cra_package_get_config (CraPackage *pkg, const gchar *key)
 
 /**
  * cra_package_get_releases:
+ * @pkg: A #CraPackage
+ *
+ * Gets the releases of the package.
+ *
+ * Returns: (transfer none) (element-type AsRelease): the release data
+ *
+ * Since: 0.1.0
  **/
 GPtrArray *
 cra_package_get_releases (CraPackage *pkg)
@@ -507,6 +721,14 @@ cra_package_get_releases (CraPackage *pkg)
 
 /**
  * cra_package_compare:
+ * @pkg1: A #CraPackage
+ * @pkg2: A #CraPackage
+ *
+ * Compares one package with another.
+ *
+ * Returns: -1 for <, 0 for the same and +1 for >
+ *
+ * Since: 0.1.0
  **/
 gint
 cra_package_compare (CraPackage *pkg1, CraPackage *pkg2)
@@ -519,6 +741,14 @@ cra_package_compare (CraPackage *pkg1, CraPackage *pkg2)
 
 /**
  * cra_package_get_release:
+ * @pkg: A #CraPackage
+ * @version: package version
+ *
+ * Gets the release for a specific version.
+ *
+ * Returns: (transfer none): an #AsRelease, or %NULL for not found
+ *
+ * Since: 0.1.0
  **/
 AsRelease *
 cra_package_get_release	(CraPackage *pkg, const gchar *version)
@@ -529,6 +759,13 @@ cra_package_get_release	(CraPackage *pkg, const gchar *version)
 
 /**
  * cra_package_add_release:
+ * @pkg: A #CraPackage
+ * @version: a package version
+ * @release: a package release
+ *
+ * Adds a (downstream) release to a package.
+ *
+ * Since: 0.1.0
  **/
 void
 cra_package_add_release	(CraPackage *pkg,

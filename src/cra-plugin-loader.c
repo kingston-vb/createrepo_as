@@ -19,6 +19,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+/**
+ * SECTION:cra-plugin-loader
+ * @short_description: Plugin loader.
+ * @stability: Unstable
+ *
+ * This module provides an array of plugins which can operate on an exploded
+ * package tree.
+ */
+
 #include "config.h"
 
 #include <glib.h>
@@ -41,6 +50,14 @@ cra_plugin_loader_plugin_free (CraPlugin *plugin)
 
 /**
  * cra_plugin_loader_match_fn:
+ * @plugins: (element-type CraPlugin): An array of plugins
+ * @filename: filename
+ *
+ * Processes the list of plugins finding a plugin that can process the filename.
+ *
+ * Returns: (transfer none): a plugin, or %NULL
+ *
+ * Since: 0.1.0
  **/
 CraPlugin *
 cra_plugin_loader_match_fn (GPtrArray *plugins, const gchar *filename)
@@ -66,6 +83,17 @@ cra_plugin_loader_match_fn (GPtrArray *plugins, const gchar *filename)
 
 /**
  * cra_plugin_loader_process_app:
+ * @plugins: (element-type CraPlugin): An array of plugins
+ * @pkg: The #CraPackage
+ * @app: The #CraApp to refine
+ * @tmpdir: A temporary location to use
+ * @error: A #GError or %NULL
+ *
+ * Processes an application object, refining any available data.
+ *
+ * Returns: %TRUE for success, %FALSE otherwise
+ *
+ * Since: 0.1.0
  **/
 gboolean
 cra_plugin_loader_process_app (GPtrArray *plugins,
@@ -122,7 +150,14 @@ cra_plugin_loader_run (GPtrArray *plugins, const gchar *function_name)
 
 /**
  * cra_plugin_loader_get_globs:
- */
+ * @plugins: (element-type CraPlugin): An array of plugins
+ *
+ * Gets the list of globs.
+ *
+ * Returns: (transfer container) (element-type utf8): globs
+ *
+ * Since: 0.1.0
+ **/
 GPtrArray *
 cra_plugin_loader_get_globs (GPtrArray *plugins)
 {
@@ -148,7 +183,13 @@ cra_plugin_loader_get_globs (GPtrArray *plugins)
 
 /**
  * cra_plugin_loader_merge:
- */
+ * @plugins: (element-type CraPlugin): An array of plugins
+ * @apps: (element-type CraApp): a list of applications that need merging
+ *
+ * Merge the list of applications using the plugins.
+ *
+ * Since: 0.1.0
+ **/
 void
 cra_plugin_loader_merge (GPtrArray *plugins, GList **apps)
 {
@@ -213,7 +254,7 @@ cra_plugin_loader_merge (GPtrArray *plugins, GList **apps)
 
 /**
  * cra_plugin_loader_open_plugin:
- */
+ **/
 static CraPlugin *
 cra_plugin_loader_open_plugin (GPtrArray *plugins,
 			       const gchar *filename)
@@ -254,7 +295,7 @@ cra_plugin_loader_open_plugin (GPtrArray *plugins,
 
 /**
  * cra_plugin_loader_sort_cb:
- */
+ **/
 static gint
 cra_plugin_loader_sort_cb (gconstpointer a, gconstpointer b)
 {
@@ -265,7 +306,15 @@ cra_plugin_loader_sort_cb (gconstpointer a, gconstpointer b)
 
 /**
  * cra_plugin_loader_setup:
- */
+ * @plugins: (element-type CraPlugin): An array of plugins
+ * @error: A #GError or %NULL
+ *
+ * Set up the plugin loader.
+ *
+ * Returns: %TRUE for success, %FALSE otherwise
+ *
+ * Since: 0.1.0
+ **/
 gboolean
 cra_plugin_loader_setup (GPtrArray *plugins, GError **error)
 {
@@ -305,7 +354,13 @@ cra_plugin_loader_setup (GPtrArray *plugins, GError **error)
 
 /**
  * cra_plugin_loader_new:
- */
+ *
+ * Creates a new plugin loader interface.
+ *
+ * Returns: (transfer container) (element-type CraPlugin): state
+ *
+ * Since: 0.1.0
+ **/
 GPtrArray *
 cra_plugin_loader_new (void)
 {
@@ -314,7 +369,12 @@ cra_plugin_loader_new (void)
 
 /**
  * cra_plugin_loader_free:
- */
+ * @plugins: (element-type CraPlugin): An array of plugins
+ *
+ * Destroy the plugin state.
+ *
+ * Since: 0.1.0
+ **/
 void
 cra_plugin_loader_free (GPtrArray *plugins)
 {

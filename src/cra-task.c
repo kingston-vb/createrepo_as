@@ -19,6 +19,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+/**
+ * SECTION:cra-task
+ * @short_description: One specific task for building metadata.
+ * @stability: Unstable
+ *
+ * Thsi object represents a single task, typically a package which is created
+ * and then processed. Typically this is done in a number of threads.
+ */
+
 #include "config.h"
 
 #include "cra-cleanup.h"
@@ -46,7 +55,7 @@ G_DEFINE_TYPE_WITH_PRIVATE (CraTask, cra_task, G_TYPE_OBJECT)
 
 /**
  * cra_task_add_suitable_plugins:
- */
+ **/
 static void
 cra_task_add_suitable_plugins (CraTask *task, GPtrArray *plugins)
 {
@@ -78,7 +87,7 @@ cra_task_add_suitable_plugins (CraTask *task, GPtrArray *plugins)
 
 /**
  * cra_task_explode_extra_package:
- */
+ **/
 static gboolean
 cra_task_explode_extra_package (CraTask *task, const gchar *pkg_name)
 {
@@ -110,7 +119,7 @@ cra_task_explode_extra_package (CraTask *task, const gchar *pkg_name)
 
 /**
  * cra_task_explode_extra_packages:
- */
+ **/
 static gboolean
 cra_task_explode_extra_packages (CraTask *task)
 {
@@ -139,7 +148,7 @@ cra_task_explode_extra_packages (CraTask *task)
 
 /**
  * cra_task_check_urls:
- */
+ **/
 static void
 cra_task_check_urls (AsApp *app, CraPackage *pkg)
 {
@@ -167,7 +176,15 @@ cra_task_check_urls (AsApp *app, CraPackage *pkg)
 
 /**
  * cra_task_process:
- */
+ * @task: A #CraTask
+ * @error_not_used: A #GError or %NULL
+ *
+ * Processes the task.
+ *
+ * Returns: %TRUE for success, %FALSE otherwise
+ *
+ * Since: 0.1.0
+ **/
 gboolean
 cra_task_process (CraTask *task, GError **error_not_used)
 {
@@ -465,6 +482,12 @@ cra_task_finalize (GObject *object)
 
 /**
  * cra_task_set_package:
+ * @task: A #CraTask
+ * @pkg: A #CraPackage
+ *
+ * Sets the package used for the task.
+ *
+ * Since: 0.1.0
  **/
 void
 cra_task_set_package (CraTask *task, CraPackage *pkg)
@@ -478,6 +501,12 @@ cra_task_set_package (CraTask *task, CraPackage *pkg)
 
 /**
  * cra_task_set_id:
+ * @task: A #CraTask
+ * @id: numeric identifier
+ *
+ * Sets the ID to use for the task.
+ *
+ * Since: 0.1.0
  **/
 void
 cra_task_set_id (CraTask *task, guint id)
@@ -508,6 +537,13 @@ cra_task_class_init (CraTaskClass *klass)
 
 /**
  * cra_task_new:
+ * @ctx: A #CraContext
+ *
+ * Creates a new task.
+ *
+ * Returns: A #CraTask
+ *
+ * Since: 0.1.0
  **/
 CraTask *
 cra_task_new (CraContext *ctx)

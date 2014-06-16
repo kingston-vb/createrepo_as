@@ -19,6 +19,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+/**
+ * SECTION:cra-package-deb
+ * @short_description: Object representing a .DEB package file.
+ * @stability: Unstable
+ *
+ * This object represents one .deb package file.
+ */
+
 #include "config.h"
 
 #include "cra-cleanup.h"
@@ -203,6 +211,12 @@ cra_package_deb_class_init (CraPackageDebClass *klass)
 
 /**
  * cra_package_deb_new:
+ *
+ * Creates a new DEB package.
+ *
+ * Returns: a package
+ *
+ * Since: 0.1.0
  **/
 CraPackage *
 cra_package_deb_new (void)

@@ -57,7 +57,7 @@ typedef enum {
 typedef const gchar	*(*CraPluginGetNameFunc)	(void);
 typedef void		 (*CraPluginFunc)		(CraPlugin	*plugin);
 typedef void		 (*CraPluginGetGlobsFunc)	(CraPlugin	*plugin,
-							 GPtrArray	*globs);
+							 GPtrArray	*array);
 typedef void		 (*CraPluginMergeFunc)		(CraPlugin	*plugin,
 							 GList		**apps);
 typedef gboolean	 (*CraPluginCheckFilenameFunc)	(CraPlugin	*plugin,
@@ -79,7 +79,7 @@ void		 cra_plugin_set_enabled			(CraPlugin	*plugin,
 							 gboolean	 enabled);
 GList		*cra_plugin_process			(CraPlugin	*plugin,
 							 CraPackage	*pkg,
-							 const gchar	*tmp_dir,
+							 const gchar	*tmpdir,
 							 GError		**error);
 void		 cra_plugin_add_globs			(CraPlugin	*plugin,
 							 GPtrArray	*globs);

@@ -54,7 +54,7 @@ GType		 cra_task_get_type		(void);
 
 CraTask		*cra_task_new			(CraContext	*ctx);
 gboolean	 cra_task_process		(CraTask	*task,
-						 GError		**error);
+						 GError		**error_not_used);
 void		 cra_task_set_package		(CraTask	*task,
 						 CraPackage	*pkg);
 void		 cra_task_set_id		(CraTask	*task,

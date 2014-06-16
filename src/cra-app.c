@@ -19,6 +19,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+/**
+ * SECTION:cra-app
+ * @short_description: Application object.
+ * @stability: Unstable
+ *
+ * This is an application object that wraps AsApp and provides further features.
+ */
+
 #include "config.h"
 
 #include <stdlib.h>
@@ -82,6 +90,13 @@ cra_app_class_init (CraAppClass *klass)
 
 /**
  * cra_app_to_xml:
+ * @app: A #CraApp
+ *
+ * Converts the application to it's XML representation.
+ *
+ * Returns: allocated string
+ *
+ * Since: 0.1.0
  **/
 gchar *
 cra_app_to_xml (CraApp *app)
@@ -99,6 +114,13 @@ cra_app_to_xml (CraApp *app)
 
 /**
  * cra_app_add_veto:
+ * @app: A #CraApp
+ * @fmt: format string
+ * @...: varargs
+ *
+ * Adds a reason to not include the application.
+ *
+ * Since: 0.1.0
  **/
 void
 cra_app_add_veto (CraApp *app, const gchar *fmt, ...)
@@ -114,6 +136,13 @@ cra_app_add_veto (CraApp *app, const gchar *fmt, ...)
 
 /**
  * cra_app_add_requires_appdata:
+ * @app: A #CraApp
+ * @fmt: format string
+ * @...: varargs
+ *
+ * Adds a reason that AppData is required.
+ *
+ * Since: 0.1.0
  **/
 void
 cra_app_add_requires_appdata (CraApp *app, const gchar *fmt, ...)
@@ -129,6 +158,12 @@ cra_app_add_requires_appdata (CraApp *app, const gchar *fmt, ...)
 
 /**
  * cra_app_set_requires_appdata:
+ * @app: A #CraApp
+ * @requires_appdata: boolean
+ *
+ * Sets (or clears) the requirement for AppData.
+ *
+ * Since: 0.1.0
  **/
 void
 cra_app_set_requires_appdata (CraApp *app, gboolean requires_appdata)
@@ -143,6 +178,12 @@ cra_app_set_requires_appdata (CraApp *app, gboolean requires_appdata)
 
 /**
  * cra_app_set_pixbuf:
+ * @app: A #CraApp
+ * @pixbuf: a #GdkPixbuf
+ *
+ * Sets the icon for the application.
+ *
+ * Since: 0.1.0
  **/
 void
 cra_app_set_pixbuf (CraApp *app, GdkPixbuf *pixbuf)
@@ -162,6 +203,13 @@ cra_app_set_pixbuf (CraApp *app, GdkPixbuf *pixbuf)
 
 /**
  * cra_app_get_requires_appdata:
+ * @app: A #CraApp
+ *
+ * Gets if AppData is still required for the application.
+ *
+ * Returns: (transfer none) (element-type utf8): A list of reasons
+ *
+ * Since: 0.1.0
  **/
 GPtrArray *
 cra_app_get_requires_appdata (CraApp *app)
@@ -172,6 +220,13 @@ cra_app_get_requires_appdata (CraApp *app)
 
 /**
  * cra_app_get_vetos:
+ * @app: A #CraApp
+ *
+ * Gets the list of vetos.
+ *
+ * Returns: (transfer none) (element-type utf8): A list of vetos
+ *
+ * Since: 0.1.0
  **/
 GPtrArray *
 cra_app_get_vetos (CraApp *app)
@@ -182,6 +237,13 @@ cra_app_get_vetos (CraApp *app)
 
 /**
  * cra_app_get_package:
+ * @app: A #CraApp
+ *
+ * Gets the package that backs the application.
+ *
+ * Returns: (transfer none): package
+ *
+ * Since: 0.1.0
  **/
 CraPackage *
 cra_app_get_package (CraApp *app)
@@ -266,6 +328,14 @@ cra_app_save_resources_screenshot (CraApp *app,
 
 /**
  * cra_app_save_resources:
+ * @app: A #CraApp
+ * @error: A #GError or %NULL
+ *
+ * Saves to disk any resources set for the application.
+ *
+ * Returns: %TRUE for success, %FALSE otherwise
+ *
+ * Since: 0.1.0
  **/
 gboolean
 cra_app_save_resources (CraApp *app, GError **error)
@@ -306,6 +376,15 @@ cra_app_save_resources (CraApp *app, GError **error)
 
 /**
  * cra_app_add_screenshot_source:
+ * @app: A #CraApp
+ * @filename: filename to the source image
+ * @error: A #GError or %NULL
+ *
+ * Adds a screenshot from a previously saved image.
+ *
+ * Returns: %TRUE for success, %FALSE otherwise
+ *
+ * Since: 0.1.0
  **/
 gboolean
 cra_app_add_screenshot_source (CraApp *app, const gchar *filename, GError **error)
@@ -387,6 +466,14 @@ cra_app_add_screenshot_source (CraApp *app, const gchar *filename, GError **erro
 
 /**
  * cra_app_new:
+ * @pkg: A #CraPackage
+ * @id_full: The ID for the package
+ *
+ * Creates a new application object.
+ *
+ * Returns: a #CraApp
+ *
+ * Since: 0.1.0
  **/
 CraApp *
 cra_app_new (CraPackage *pkg, const gchar *id_full)

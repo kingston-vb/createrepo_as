@@ -19,6 +19,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+/**
+ * SECTION:cra-package-rpm
+ * @short_description: Object representing a .RPM package file.
+ * @stability: Unstable
+ *
+ * This object represents one .rpm package file.
+ */
+
 #include "config.h"
 
 #include <limits.h>
@@ -631,6 +639,12 @@ cra_package_rpm_init_cb (gpointer user_data)
 
 /**
  * cra_package_rpm_new:
+ *
+ * Creates a new RPM package.
+ *
+ * Returns: a package
+ *
+ * Since: 0.1.0
  **/
 CraPackage *
 cra_package_rpm_new (void)

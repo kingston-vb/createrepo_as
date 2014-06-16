@@ -19,6 +19,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+/**
+ * SECTION:cra-plugin
+ * @short_description: Generic plugin helpers.
+ * @stability: Unstable
+ *
+ * Utilities for plugins.
+ */
+
 #include "config.h"
 
 #include <glib.h>
@@ -28,6 +36,12 @@
 
 /**
  * cra_plugin_set_enabled:
+ * @plugin: A #CraPlugin
+ * @enabled: boolean
+ *
+ * Enables or disables a plugin.
+ *
+ * Since: 0.1.0
  **/
 void
 cra_plugin_set_enabled (CraPlugin *plugin, gboolean enabled)
@@ -37,7 +51,17 @@ cra_plugin_set_enabled (CraPlugin *plugin, gboolean enabled)
 
 /**
  * cra_plugin_process:
- */
+ * @plugin: A #CraPlugin
+ * @pkg: A #CraPackage
+ * @tmpdir: the temporary location
+ * @error: A #GError or %NULL
+ *
+ * Runs a function on a specific plugin.
+ *
+ * Returns: (transfer none) (element-type CraApp): applications
+ *
+ * Since: 0.1.0
+ **/
 GList *
 cra_plugin_process (CraPlugin *plugin,
 		    CraPackage *pkg,
@@ -67,7 +91,13 @@ cra_plugin_process (CraPlugin *plugin,
 
 /**
  * cra_plugin_add_app:
- */
+ * @list: (element-type CraApp): A list of #CraApp's
+ * @app: A #CraApp
+ *
+ * Adds an application to a list.
+ *
+ * Since: 0.1.0
+ **/
 void
 cra_plugin_add_app (GList **list, CraApp *app)
 {
@@ -76,7 +106,13 @@ cra_plugin_add_app (GList **list, CraApp *app)
 
 /**
  * cra_plugin_add_glob:
- */
+ * @array: (element-type utf8): A #GPtrArray
+ * @glob: a filename glob
+ *
+ * Adds a glob from the plugin.
+ *
+ * Since: 0.1.0
+ **/
 void
 cra_plugin_add_glob (GPtrArray *array, const gchar *glob)
 {

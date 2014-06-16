@@ -19,6 +19,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+/**
+ * SECTION:cra-context
+ * @short_description: High level interface for creating metadata.
+ * @stability: Unstable
+ *
+ * This high level object can be used to build metadata given some package
+ * filenames.
+ */
+
 #include "config.h"
 
 #include <stdlib.h>
@@ -73,7 +82,13 @@ G_DEFINE_TYPE_WITH_PRIVATE (CraContext, cra_context, G_TYPE_OBJECT)
 
 /**
  * cra_context_set_no_net:
- */
+ * @ctx: A #CraContext
+ * @no_net: if network is disallowed
+ *
+ * Sets if network access is disallowed.
+ *
+ * Since: 0.1.0
+ **/
 void
 cra_context_set_no_net (CraContext *ctx, gboolean no_net)
 {
@@ -83,7 +98,13 @@ cra_context_set_no_net (CraContext *ctx, gboolean no_net)
 
 /**
  * cra_context_set_api_version:
- */
+ * @ctx: A #CraContext
+ * @api_version: the AppStream API version
+ *
+ * Sets the version of the metadata to write.
+ *
+ * Since: 0.1.0
+ **/
 void
 cra_context_set_api_version (CraContext *ctx, gdouble api_version)
 {
@@ -93,7 +114,13 @@ cra_context_set_api_version (CraContext *ctx, gdouble api_version)
 
 /**
  * cra_context_set_add_cache_id:
- */
+ * @ctx: A #CraContext
+ * @add_cache_id: boolean
+ *
+ * Sets if the cache id should be included in the metadata.
+ *
+ * Since: 0.1.0
+ **/
 void
 cra_context_set_add_cache_id (CraContext *ctx, gboolean add_cache_id)
 {
@@ -103,7 +130,14 @@ cra_context_set_add_cache_id (CraContext *ctx, gboolean add_cache_id)
 
 /**
  * cra_context_set_extra_checks:
- */
+ * @ctx: A #CraContext
+ * @extra_checks: boolean
+ *
+ * Sets if extra checks should be performed when building the metadata.
+ * Doing this requires internet access and may take a lot longer.
+ *
+ * Since: 0.1.0
+ **/
 void
 cra_context_set_extra_checks (CraContext *ctx, gboolean extra_checks)
 {
@@ -113,7 +147,13 @@ cra_context_set_extra_checks (CraContext *ctx, gboolean extra_checks)
 
 /**
  * cra_context_set_use_package_cache:
- */
+ * @ctx: A #CraContext
+ * @use_package_cache: boolean
+ *
+ * Sets if the package cache should be used.
+ *
+ * Since: 0.1.0
+ **/
 void
 cra_context_set_use_package_cache (CraContext *ctx, gboolean use_package_cache)
 {
@@ -123,7 +163,13 @@ cra_context_set_use_package_cache (CraContext *ctx, gboolean use_package_cache)
 
 /**
  * cra_context_set_max_threads:
- */
+ * @ctx: A #CraContext
+ * @max_threads: integer
+ *
+ * Sets the maximum number of threads to use when processing packages.
+ *
+ * Since: 0.1.0
+ **/
 void
 cra_context_set_max_threads (CraContext *ctx, guint max_threads)
 {
@@ -133,7 +179,14 @@ cra_context_set_max_threads (CraContext *ctx, guint max_threads)
 
 /**
  * cra_context_set_old_metadata:
- */
+ * @ctx: A #CraContext
+ * @old_metadata: filename, or %NULL
+ *
+ * Sets the filename location of the old metadata file.
+ * Note: the old metadata must have been built with cache-ids to be useful.
+ *
+ * Since: 0.1.0
+ **/
 void
 cra_context_set_old_metadata (CraContext *ctx, const gchar *old_metadata)
 {
@@ -143,7 +196,14 @@ cra_context_set_old_metadata (CraContext *ctx, const gchar *old_metadata)
 
 /**
  * cra_context_set_extra_appstream:
- */
+ * @ctx: A #CraContext
+ * @extra_appstream: directory name, or %NULL
+ *
+ * Sets the location of a directory which is used for supplimental AppStream
+ * files.
+ *
+ * Since: 0.1.0
+ **/
 void
 cra_context_set_extra_appstream (CraContext *ctx, const gchar *extra_appstream)
 {
@@ -153,7 +213,14 @@ cra_context_set_extra_appstream (CraContext *ctx, const gchar *extra_appstream)
 
 /**
  * cra_context_set_extra_appdata:
- */
+ * @ctx: A #CraContext
+ * @extra_appdata: directory name, or %NULL
+ *
+ * Sets the location of a directory which is used for supplimental AppData
+ * files.
+ *
+ * Since: 0.1.0
+ **/
 void
 cra_context_set_extra_appdata (CraContext *ctx, const gchar *extra_appdata)
 {
@@ -163,7 +230,14 @@ cra_context_set_extra_appdata (CraContext *ctx, const gchar *extra_appdata)
 
 /**
  * cra_context_set_extra_screenshots:
- */
+ * @ctx: A #CraContext
+ * @extra_screenshots: directory name, or %NULL
+ *
+ * Sets the location of a directory which is used for supplimental screenshot
+ * files.
+ *
+ * Since: 0.1.0
+ **/
 void
 cra_context_set_extra_screenshots (CraContext *ctx, const gchar *extra_screenshots)
 {
@@ -173,7 +247,13 @@ cra_context_set_extra_screenshots (CraContext *ctx, const gchar *extra_screensho
 
 /**
  * cra_context_set_screenshot_uri:
- */
+ * @ctx: A #CraContext
+ * @screenshot_uri: Remote URI root, e.g. "http://www.mysite.com/screenshots/"
+ *
+ * Sets the remote screenshot URI for screenshots.
+ *
+ * Since: 0.1.0
+ **/
 void
 cra_context_set_screenshot_uri (CraContext *ctx, const gchar *screenshot_uri)
 {
@@ -183,7 +263,13 @@ cra_context_set_screenshot_uri (CraContext *ctx, const gchar *screenshot_uri)
 
 /**
  * cra_context_set_log_dir:
- */
+ * @ctx: A #CraContext
+ * @log_dir: directory
+ *
+ * Sets the log directory to use when building metadata.
+ *
+ * Since: 0.1.0
+ **/
 void
 cra_context_set_log_dir (CraContext *ctx, const gchar *log_dir)
 {
@@ -193,7 +279,13 @@ cra_context_set_log_dir (CraContext *ctx, const gchar *log_dir)
 
 /**
  * cra_context_set_cache_dir:
- */
+ * @ctx: A #CraContext
+ * @cache_dir: directory
+ *
+ * Sets the cache directory to use when building metadata.
+ *
+ * Since: 0.1.0
+ **/
 void
 cra_context_set_cache_dir (CraContext *ctx, const gchar *cache_dir)
 {
@@ -203,7 +295,13 @@ cra_context_set_cache_dir (CraContext *ctx, const gchar *cache_dir)
 
 /**
  * cra_context_set_temp_dir:
- */
+ * @ctx: A #CraContext
+ * @temp_dir: directory
+ *
+ * Sets the temporary directory to use when building metadata.
+ *
+ * Since: 0.1.0
+ **/
 void
 cra_context_set_temp_dir (CraContext *ctx, const gchar *temp_dir)
 {
@@ -213,7 +311,13 @@ cra_context_set_temp_dir (CraContext *ctx, const gchar *temp_dir)
 
 /**
  * cra_context_set_output_dir:
- */
+ * @ctx: A #CraContext
+ * @output_dir: directory
+ *
+ * Sets the output directory to use when building metadata.
+ *
+ * Since: 0.1.0
+ **/
 void
 cra_context_set_output_dir (CraContext *ctx, const gchar *output_dir)
 {
@@ -223,7 +327,13 @@ cra_context_set_output_dir (CraContext *ctx, const gchar *output_dir)
 
 /**
  * cra_context_set_basename:
- */
+ * @ctx: A #CraContext
+ * @basename: AppStream basename, e.g. "fedora-21"
+ *
+ * Sets the basename for the two metadata files.
+ *
+ * Since: 0.1.0
+ **/
 void
 cra_context_set_basename (CraContext *ctx, const gchar *basename)
 {
@@ -233,7 +343,15 @@ cra_context_set_basename (CraContext *ctx, const gchar *basename)
 
 /**
  * cra_context_get_extra_package:
- */
+ * @ctx: A #CraContext
+ * @pkgname: package name
+ *
+ * Gets an extra package that should be used when processing an application.
+ *
+ * Returns: a pakage name, or %NULL
+ *
+ * Since: 0.1.0
+ **/
 const gchar *
 cra_context_get_extra_package (CraContext *ctx, const gchar *pkgname)
 {
@@ -243,7 +361,14 @@ cra_context_get_extra_package (CraContext *ctx, const gchar *pkgname)
 
 /**
  * cra_context_get_use_package_cache:
- */
+ * @ctx: A #CraContext
+ *
+ * Gets if the package cache should be used.
+ *
+ * Returns: boolean
+ *
+ * Since: 0.1.0
+ **/
 gboolean
 cra_context_get_use_package_cache (CraContext *ctx)
 {
@@ -253,7 +378,14 @@ cra_context_get_use_package_cache (CraContext *ctx)
 
 /**
  * cra_context_get_extra_checks:
- */
+ * @ctx: A #CraContext
+ *
+ * Gets if extra checks should be performed.
+ *
+ * Returns: boolean
+ *
+ * Since: 0.1.0
+ **/
 gboolean
 cra_context_get_extra_checks (CraContext *ctx)
 {
@@ -263,7 +395,14 @@ cra_context_get_extra_checks (CraContext *ctx)
 
 /**
  * cra_context_get_add_cache_id:
- */
+ * @ctx: A #CraContext
+ *
+ * Gets if the cache_id should be added to the metadata.
+ *
+ * Returns: boolean
+ *
+ * Since: 0.1.0
+ **/
 gboolean
 cra_context_get_add_cache_id (CraContext *ctx)
 {
@@ -273,7 +412,14 @@ cra_context_get_add_cache_id (CraContext *ctx)
 
 /**
  * cra_context_get_temp_dir:
- */
+ * @ctx: A #CraContext
+ *
+ * Gets the temporary directory to use
+ *
+ * Returns: directory
+ *
+ * Since: 0.1.0
+ **/
 const gchar *
 cra_context_get_temp_dir (CraContext *ctx)
 {
@@ -283,7 +429,14 @@ cra_context_get_temp_dir (CraContext *ctx)
 
 /**
  * cra_context_get_plugins:
- */
+ * @ctx: A #CraContext
+ *
+ * Gets the plugins available to the metadata extractor.
+ *
+ * Returns: array of plugins
+ *
+ * Since: 0.1.0
+ **/
 GPtrArray *
 cra_context_get_plugins (CraContext *ctx)
 {
@@ -293,7 +446,14 @@ cra_context_get_plugins (CraContext *ctx)
 
 /**
  * cra_context_get_packages:
- */
+ * @ctx: A #CraContext
+ *
+ * Returns the packages already added to the context.
+ *
+ * Returns: (transfer none) (element-type CraPackage): array of packages
+ *
+ * Since: 0.1.0
+ **/
 GPtrArray *
 cra_context_get_packages (CraContext *ctx)
 {
@@ -303,7 +463,16 @@ cra_context_get_packages (CraContext *ctx)
 
 /**
  * cra_context_add_filename:
- */
+ * @ctx: A #CraContext
+ * @filename: package filename
+ * @error: A #GError or %NULL
+ *
+ * Adds a filename to the list of packages to be processed
+ *
+ * Returns: %TRUE for success, %FALSE otherwise
+ *
+ * Since: 0.1.0
+ **/
 gboolean
 cra_context_add_filename (CraContext *ctx, const gchar *filename, GError **error)
 {
@@ -345,7 +514,14 @@ cra_context_add_filename (CraContext *ctx, const gchar *filename, GError **error
 
 /**
  * cra_context_get_file_globs:
- */
+ * @ctx: A #CraContext
+ *
+ * Gets the list of file globs added by plugins.
+ *
+ * Returns: file globs
+ *
+ * Since: 0.1.0
+ **/
 GPtrArray *
 cra_context_get_file_globs (CraContext *ctx)
 {
@@ -355,7 +531,15 @@ cra_context_get_file_globs (CraContext *ctx)
 
 /**
  * cra_context_setup:
- */
+ * @ctx: A #CraContext
+ * @error: A #GError or %NULL
+ *
+ * Sets up the context ready for use.
+ *
+ * Returns: %TRUE for success, %FALSE otherwise
+ *
+ * Since: 0.1.0
+ **/
 gboolean
 cra_context_setup (CraContext *ctx, GError **error)
 {
@@ -392,7 +576,7 @@ cra_context_setup (CraContext *ctx, GError **error)
 
 /**
  * cra_task_process_func:
- */
+ **/
 static void
 cra_task_process_func (gpointer data, gpointer user_data)
 {
@@ -406,7 +590,7 @@ cra_task_process_func (gpointer data, gpointer user_data)
 
 /**
  * cra_context_write_icons:
- */
+ **/
 static gboolean
 cra_context_write_icons (CraContext *ctx,
 			 const gchar *temp_dir,
@@ -425,7 +609,7 @@ cra_context_write_icons (CraContext *ctx,
 
 /**
  * cra_context_write_xml:
- */
+ **/
 static gboolean
 cra_context_write_xml (CraContext *ctx,
 		       const gchar *output_dir,
@@ -464,7 +648,15 @@ cra_context_write_xml (CraContext *ctx,
 
 /**
  * cra_context_process:
- */
+ * @ctx: A #CraContext
+ * @error: A #GError or %NULL
+ *
+ * Processes all the packages that have been added to the context.
+ *
+ * Returns: %TRUE for success, %FALSE otherwise
+ *
+ * Since: 0.1.0
+ **/
 gboolean
 cra_context_process (CraContext *ctx, GError **error)
 {
@@ -546,7 +738,12 @@ out:
 
 /**
  * cra_context_disable_older_pkgs:
- */
+ * @ctx: A #CraContext
+ *
+ * Disable older packages that have been added to the context.
+ *
+ * Since: 0.1.0
+ **/
 void
 cra_context_disable_older_pkgs (CraContext *ctx)
 {
@@ -578,7 +775,16 @@ cra_context_disable_older_pkgs (CraContext *ctx)
 
 /**
  * cra_context_find_in_cache:
- */
+ * @ctx: A #CraContext
+ * @filename: cache-id
+ *
+ * Finds an application in the cache. This will only return results if
+ * cra_context_set_old_metadata() has been used.
+ *
+ * Returns: %TRUE for success, %FALSE otherwise
+ *
+ * Since: 0.1.0
+ **/
 gboolean
 cra_context_find_in_cache (CraContext *ctx, const gchar *filename)
 {
@@ -603,7 +809,15 @@ cra_context_find_in_cache (CraContext *ctx, const gchar *filename)
 
 /**
  * cra_context_find_by_pkgname:
- */
+ * @ctx: A #CraContext
+ * @pkgname: a package name
+ *
+ * Find a package from its name.
+ *
+ * Returns: (transfer none): a #CraPackage, or %NULL for not found.
+ *
+ * Since: 0.1.0
+ **/
 CraPackage *
 cra_context_find_by_pkgname (CraContext *ctx, const gchar *pkgname)
 {
@@ -621,7 +835,7 @@ cra_context_find_by_pkgname (CraContext *ctx, const gchar *pkgname)
 
 /**
  * cra_context_add_extra_pkg:
- */
+ **/
 static void
 cra_context_add_extra_pkg (CraContext *ctx, const gchar *pkg1, const gchar *pkg2)
 {
@@ -631,7 +845,7 @@ cra_context_add_extra_pkg (CraContext *ctx, const gchar *pkg1, const gchar *pkg2
 
 /**
  * cra_context_add_blacklist_pkg:
- */
+ **/
 static void
 cra_context_add_blacklist_pkg (CraContext *ctx, const gchar *pkg)
 {
@@ -641,7 +855,13 @@ cra_context_add_blacklist_pkg (CraContext *ctx, const gchar *pkg)
 
 /**
  * cra_context_add_app:
- */
+ * @ctx: A #CraContext
+ * @app: A #CraApp
+ *
+ * Adds an application to the context.
+ *
+ * Since: 0.1.0
+ **/
 void
 cra_context_add_app (CraContext *ctx, CraApp *app)
 {
@@ -743,6 +963,12 @@ cra_context_class_init (CraContextClass *klass)
 
 /**
  * cra_context_new:
+ *
+ * Creates a new high-level instance.
+ *
+ * Returns: a #CraContext
+ *
+ * Since: 0.1.0
  **/
 CraContext *
 cra_context_new (void)

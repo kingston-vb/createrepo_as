@@ -47,10 +47,10 @@ struct _CraPackage
 struct _CraPackageClass
 {
 	GObjectClass		parent_class;
-	gboolean		 (*open)	(CraPackage	*package,
+	gboolean		 (*open)	(CraPackage	*pkg,
 						 const gchar	*filename,
 						 GError		**error);
-	gboolean		 (*explode)	(CraPackage	*package,
+	gboolean		 (*explode)	(CraPackage	*pkg,
 						 const gchar	*dir,
 						 GPtrArray	*glob,
 						 GError		**error);
