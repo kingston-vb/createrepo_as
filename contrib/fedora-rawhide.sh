@@ -1,5 +1,6 @@
 #sudo mount -t tmpfs -o size=1G,nr_inodes=5k tmpfs /mnt/
 time src/createrepo_as \
+	--api-version=0.7 \
 	--use-package-cache \
 	--log-dir=../createrepo_as_logs \
 	--temp-dir=./contrib/tmp \

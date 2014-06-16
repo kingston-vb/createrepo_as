@@ -1,4 +1,5 @@
 time src/createrepo_as \
+	--api-version=0.41 \
 	--log-dir=../createrepo_as_logs \
 	--temp-dir=./contrib/tmp \
 	--cache-dir=./contrib/cache \
