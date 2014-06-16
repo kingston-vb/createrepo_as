@@ -39,7 +39,6 @@ typedef struct	CraPlugin		CraPlugin;
 struct CraPlugin {
 	GModule			*module;
 	gboolean		 enabled;
-	gboolean		 is_native;
 	gchar			*name;
 	CraPluginPrivate	*priv;
 };

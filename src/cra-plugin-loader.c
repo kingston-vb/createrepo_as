@@ -244,7 +244,6 @@ cra_plugin_loader_open_plugin (GPtrArray *plugins,
 	plugin = g_slice_new0 (CraPlugin);
 	plugin->enabled = TRUE;
 	plugin->module = module;
-	plugin->is_native = TRUE;
 	plugin->name = g_strdup (plugin_name ());
 	g_debug ("opened plugin %s: %s", filename, plugin->name);
 

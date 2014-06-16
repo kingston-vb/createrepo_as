@@ -19,40 +19,93 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef __CRA_CONTEXT_H
-#define __CRA_CONTEXT_H
+#ifndef CRA_CONTEXT_H
+#define CRA_CONTEXT_H
 
-#include <glib.h>
-#include <appstream-glib.h>
+#include <glib-object.h>
 
 #include "cra-app.h"
 #include "cra-package.h"
 
+#define CRA_TYPE_CONTEXT		(cra_context_get_type())
+#define CRA_CONTEXT(obj)		(G_TYPE_CHECK_INSTANCE_CAST((obj), CRA_TYPE_CONTEXT, CraContext))
+#define CRA_CONTEXT_CLASS(cls)		(G_TYPE_CHECK_CLASS_CAST((cls), CRA_TYPE_CONTEXT, CraContextClass))
+#define CRA_IS_CONTEXT(obj)		(G_TYPE_CHECK_INSTANCE_TYPE((obj), CRA_TYPE_CONTEXT))
+#define CRA_IS_CONTEXT_CLASS(cls)	(G_TYPE_CHECK_CLASS_TYPE((cls), CRA_TYPE_CONTEXT))
+#define CRA_CONTEXT_GET_CLASS(obj)	(G_TYPE_INSTANCE_GET_CLASS((obj), CRA_TYPE_CONTEXT, CraContextClass))
+
 G_BEGIN_DECLS
 
-typedef struct {
-	GPtrArray	*blacklisted_pkgs;	/* of CraGlobValue */
-	GPtrArray	*extra_pkgs;		/* of CraGlobValue */
-	GPtrArray	*plugins;		/* of CraPlugin */
-	GPtrArray	*packages;		/* of CraPackage */
-	GPtrArray	*file_globs;		/* of CraPackage */
-	GList		*apps;			/* of CraApp */
-	GMutex		 apps_mutex;		/* for ->apps */
-	gboolean	 no_net;
-	gdouble		 api_version;
-	gboolean	 add_cache_id;
-	gboolean	 extra_checks;
-	gboolean	 use_package_cache;
-	AsStore		*old_md_cache;
-} CraContext;
+typedef struct _CraContext		CraContext;
+typedef struct _CraContextClass	CraContextClass;
+
+struct _CraContext
+{
+	GObject			 parent;
+};
+
+struct _CraContextClass
+{
+	GObjectClass			parent_class;
+};
+
+GType		 cra_context_get_type		(void);
 
 CraContext	*cra_context_new		(void);
-void		 cra_context_free		(CraContext	*ctx);
 CraPackage	*cra_context_find_by_pkgname	(CraContext	*ctx,
 						 const gchar 	*pkgname);
 void		 cra_context_add_app		(CraContext	*ctx,
 						 CraApp		*app);
+void		 cra_context_set_no_net		(CraContext	*ctx,
+						 gboolean	 no_net);
+void		 cra_context_set_api_version	(CraContext	*ctx,
+						 gdouble	 api_version);
+void		 cra_context_set_add_cache_id	(CraContext	*ctx,
+						 gboolean	 add_cache_id);
+void		 cra_context_set_extra_checks	(CraContext	*ctx,
+						 gboolean	 extra_checks);
+void		 cra_context_set_use_package_cache (CraContext	*ctx,
+						 gboolean	 use_package_cache);
+void		 cra_context_set_max_threads	(CraContext	*ctx,
+						 guint		 max_threads);
+void		 cra_context_set_old_metadata	(CraContext	*ctx,
+						 const gchar	*old_metadata);
+void		 cra_context_set_extra_appstream (CraContext	*ctx,
+						 const gchar	*extra_appstream);
+void		 cra_context_set_extra_appdata	(CraContext	*ctx,
+						 const gchar	*extra_appdata);
+void		 cra_context_set_extra_screenshots (CraContext	*ctx,
+						 const gchar	*extra_screenshots);
+void		 cra_context_set_screenshot_uri	(CraContext	*ctx,
+						 const gchar	*screenshot_uri);
+void		 cra_context_set_log_dir	(CraContext	*ctx,
+						 const gchar	*log_dir);
+void		 cra_context_set_cache_dir	(CraContext	*ctx,
+						 const gchar	*cache_dir);
+void		 cra_context_set_temp_dir	(CraContext	*ctx,
+						 const gchar	*temp_dir);
+void		 cra_context_set_output_dir	(CraContext	*ctx,
+						 const gchar	*output_dir);
+void		 cra_context_set_basename	(CraContext	*ctx,
+						 const gchar	*basename);
+const gchar	*cra_context_get_temp_dir	(CraContext	*ctx);
+gboolean	 cra_context_get_add_cache_id	(CraContext	*ctx);
+gboolean	 cra_context_get_extra_checks	(CraContext	*ctx);
+gboolean	 cra_context_get_use_package_cache (CraContext	*ctx);
+
+gboolean	 cra_context_setup		(CraContext	*ctx,
+						 GError		**error);
+gboolean	 cra_context_process		(CraContext	*ctx,
+						 GError		**error);
+gboolean	 cra_context_add_filename	(CraContext	*ctx,
+						 const gchar	*filename,
+						 GError		**error);
+void		 cra_context_disable_older_pkgs	(CraContext	*ctx);
+gboolean	 cra_context_find_in_cache	(CraContext	*ctx,
+						 const gchar	*filename);
+const gchar	*cra_context_get_extra_package	(CraContext	*ctx,
+						 const gchar	*pkgname);
 
 G_END_DECLS
 
-#endif /* __CRA_CONTEXT_H */
+#endif /* CRA_CONTEXT_H */

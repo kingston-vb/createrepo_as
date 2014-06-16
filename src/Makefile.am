@@ -19,10 +19,13 @@ createrepo_as_SOURCES =					\
 	cra-cleanup.h					\
 	cra-context.c					\
 	cra-context.h					\
+	cra-context-private.h				\
 	cra-package.c					\
 	cra-package-deb.c				\
 	cra-package-deb.h				\
 	cra-package.h					\
+	cra-task.c					\
+	cra-task.h					\
 	cra-utils.c					\
 	cra-utils.h					\
 	cra-plugin.c					\
