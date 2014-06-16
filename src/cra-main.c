@@ -44,7 +44,6 @@ main (int argc, char **argv)
 	gboolean ret;
 	gboolean use_package_cache = FALSE;
 	gboolean verbose = FALSE;
-	gchar *temp_dir = NULL;
 	gchar *tmp;
 	gdouble api_version = 0.0f;
 	gint max_threads = 4;
@@ -62,6 +61,7 @@ main (int argc, char **argv)
 	_cleanup_free_ gchar *output_dir = NULL;
 	_cleanup_free_ gchar *packages_dir = NULL;
 	_cleanup_free_ gchar *screenshot_uri = NULL;
+	_cleanup_free_ gchar *temp_dir = NULL;
 	_cleanup_ptrarray_unref_ GPtrArray *packages = NULL;
 	_cleanup_timer_destroy_ GTimer *timer = NULL;
 	const GOptionEntry options[] = {
