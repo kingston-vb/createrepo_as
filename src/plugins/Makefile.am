@@ -7,7 +7,7 @@ AM_CPPFLAGS =						\
 	$(RPM_CFLAGS)					\
 	$(SQLITE_CFLAGS)				\
 	$(FREETYPE_CFLAGS)				\
-	-I..						\
+	-I$(top_srcdir)/src				\
 	-DG_LOG_DOMAIN=\"Cra\"
 
 plugindir = $(libdir)/cra-plugins
