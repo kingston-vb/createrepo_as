@@ -236,6 +236,7 @@ main (int argc, char **argv)
 	cra_context_set_log_dir (ctx, log_dir);
 	cra_context_set_temp_dir (ctx, temp_dir);
 	cra_context_set_output_dir (ctx, output_dir);
+	cra_context_set_cache_dir (ctx, cache_dir);
 	cra_context_set_basename (ctx, basename);
 	cra_context_set_max_threads (ctx, max_threads);
 	ret = cra_context_setup (ctx, &error);
