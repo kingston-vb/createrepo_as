@@ -75,7 +75,9 @@ cra_plugin_process_filename (CraPlugin *plugin,
 	_cleanup_object_unref_ CraApp *app = NULL;
 
 	app = cra_app_new (pkg, NULL);
-	if (!as_app_parse_file (AS_APP (app), filename, AS_APP_PARSE_FLAG_NONE, error))
+	if (!as_app_parse_file (AS_APP (app), filename,
+				AS_APP_PARSE_FLAG_APPEND_DATA,
+				error))
 		return FALSE;
 	if (as_app_get_id_kind (AS_APP (app)) != AS_ID_KIND_ADDON) {
 		g_set_error (error,
